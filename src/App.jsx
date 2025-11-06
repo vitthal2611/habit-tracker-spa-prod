@@ -5,6 +5,7 @@ import { auth } from './firebase'
 import Navigation from './components/Navigation'
 import HabitForm from './components/HabitForm'
 import HabitList from './components/HabitList'
+import EisenhowerMatrix from './components/EisenhowerMatrix'
 import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Modal from './components/ui/Modal'
@@ -304,58 +305,11 @@ function App() {
   )
   }
 
-  const renderProgress = () => {
-    const [period, setPeriod] = useState('week')
-    const data = getProgressData(period)
-
+  const renderMatrix = () => {
+    if (loading) return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
     return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Progress Tracking</h2>
-          <select 
-            value={period} 
-            onChange={(e) => setPeriod(e.target.value)}
-            className="input w-auto"
-          >
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="year">This Year</option>
-          </select>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <Card>
-            <h3 className="text-lg font-semibold mb-4">Completion Rate</h3>
-            <div className="space-y-2">
-              {data.slice(-7).map((day, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <span className="text-sm">{day.date}</span>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${day.rate}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium w-12">{day.rate}%</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-          
-          <Card>
-            <h3 className="text-lg font-semibold mb-4">Habit Streaks</h3>
-            <div className="space-y-3">
-              {habits.slice(0, 5).map(habit => (
-                <div key={habit.id} className="flex justify-between items-center">
-                  <span className="text-sm truncate">{habit.habit || habit.newHabit || 'Untitled Habit'}</span>
-                  <span className="text-sm font-medium">{habit.streak} days</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
+      <div className="animate-fade-in">
+        <EisenhowerMatrix habits={habits} />
       </div>
     )
   }
@@ -587,6 +541,7 @@ function App() {
       case 'home': return renderHome()
       case 'habits': return renderHabits()
       case 'checkin': return renderCheckin()
+      case 'matrix': return renderMatrix()
       default: return renderHome()
     }
   }

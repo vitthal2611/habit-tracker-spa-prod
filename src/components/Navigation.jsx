@@ -17,6 +17,7 @@ export default function Navigation({ activeTab, setActiveTab, onLogout }) {
     { id: 'home', label: 'Home', icon: Home },
     { id: 'checkin', label: 'Check-in', icon: CheckSquare },
     { id: 'habits', label: 'Habits', icon: Target },
+    { id: 'matrix', label: 'Matrix', icon: Target },
   ]
 
   return (

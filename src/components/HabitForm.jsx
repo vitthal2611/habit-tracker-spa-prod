@@ -8,7 +8,8 @@ import Modal from './ui/Modal'
 export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHabit = null }) {
   const [form, setForm] = useState(editingHabit || {
     identity: '', habit: '', location: '', time: '', 
-    environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: []
+    environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [],
+    quadrant: ''
   })
   const [showAddModal, setShowAddModal] = useState({ type: '', isOpen: false })
   const [newOption, setNewOption] = useState('')
@@ -31,7 +32,7 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
       : { ...form, id: `habit_${Date.now()}`, completed: false, streak: 0, completions: {}, createdAt: new Date().toISOString() }
     
     onSubmit(habitData)
-    setForm({ identity: '', habit: '', location: '', time: '', environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [] })
+    setForm({ identity: '', habit: '', location: '', time: '', environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [], quadrant: '' })
     onClose()
   }
 
@@ -80,6 +81,14 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
             onChange={(value) => setForm(prev => ({ ...prev, time: value }))}
             placeholder="Select time"
             required
+          />
+          
+          <Dropdown
+            label="Eisenhower Matrix Quadrant"
+            options={['Q1 - Do First (Urgent & Important)', 'Q2 - Schedule (Important, Not Urgent)', 'Q3 - Delegate (Urgent, Not Important)', 'Q4 - Eliminate (Neither Urgent nor Important)']}
+            value={form.quadrant}
+            onChange={(value) => setForm(prev => ({ ...prev, quadrant: value }))}
+            placeholder="Select quadrant"
           />
           
           <div>
