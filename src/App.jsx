@@ -18,6 +18,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('home')
   const [habits, { addItem: addHabitToDb, updateItem: updateHabitInDb, deleteItem: deleteHabitFromDb, loading }] = useFirestore('habits', [])
   const [showForm, setShowForm] = useState(false)
+  const [editingHabit, setEditingHabit] = useState(null)
   const [showActionAlert, setShowActionAlert] = useState(false)
   const [alertHabits, setAlertHabits] = useState([])
   const [showCelebration, setShowCelebration] = useState(false)
@@ -97,6 +98,21 @@ function App() {
   const updateHabit = async (updatedHabit) => {
     await updateHabitInDb(updatedHabit)
   }
+  
+  const handleEditHabit = (habit) => {
+    setEditingHabit(habit)
+    setShowForm(true)
+  }
+  
+  const handleFormSubmit = async (habitData) => {
+    if (editingHabit) {
+      await updateHabit(habitData)
+      setEditingHabit(null)
+    } else {
+      await addHabit(habitData)
+    }
+    setShowForm(false)
+  }
 
   const checkMissedHabits = () => {
     const today = new Date()
@@ -139,14 +155,14 @@ function App() {
     return unsubscribe
   }, [])
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (habits.length > 0) {
-        checkMissedHabits()
-      }
-    }, 1000)
-    return () => clearTimeout(timer)
-  }, [habits])
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     if (habits.length > 0) {
+  //       checkMissedHabits()
+  //     }
+  //   }, 1000)
+  //   return () => clearTimeout(timer)
+  // }, [habits])
 
   const handleLogout = async () => {
     await signOut(auth)
@@ -241,7 +257,7 @@ function App() {
               </Button>
             </div>
           </div>
-          <HabitList habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} groupBy={groupBy} />
+          <HabitList habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} onEdit={handleEditHabit} groupBy={groupBy} />
         </div>
       )}
     </div>
@@ -282,7 +298,7 @@ function App() {
           </div>
         </Card>
       ) : (
-        <HabitList habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} groupBy={groupBy} />
+        <HabitList habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} onEdit={handleEditHabit} groupBy={groupBy} />
       )}
     </div>
   )
@@ -333,7 +349,7 @@ function App() {
             <div className="space-y-3">
               {habits.slice(0, 5).map(habit => (
                 <div key={habit.id} className="flex justify-between items-center">
-                  <span className="text-sm truncate">{habit.newHabit}</span>
+                  <span className="text-sm truncate">{habit.habit || habit.newHabit || 'Untitled Habit'}</span>
                   <span className="text-sm font-medium">{habit.streak} days</span>
                 </div>
               ))}
@@ -353,16 +369,28 @@ function App() {
       return !h.schedule || h.schedule.length === 0 || h.schedule.includes(dayName)
     })
     
+    const sortByTime = (habits) => {
+      return habits.sort((a, b) => {
+        const timeA = a.time || 'ZZ:ZZ'
+        const timeB = b.time || 'ZZ:ZZ'
+        if (timeA === 'Anytime') return 1
+        if (timeB === 'Anytime') return -1
+        return timeA.localeCompare(timeB)
+      })
+    }
+    
     const dayHabits = showCompleted 
-      ? allDayHabits.sort((a, b) => (a.time || '').localeCompare(b.time || ''))
-      : allDayHabits.filter(h => !h.completions[checkinDateStr]).sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+      ? sortByTime(allDayHabits)
+      : sortByTime(allDayHabits.filter(h => !h.completions[checkinDateStr]))
     
     const getTimeGroup = (time) => {
-      if (!time) return 'No Time Set'
+      if (!time || time === 'Anytime') return 'No Time Set'
       const hour = parseInt(time.split(':')[0])
-      if (hour < 12) return 'Morning'
-      if (hour < 17) return 'Afternoon'
-      return 'Evening'
+      
+      if (hour >= 5 && hour < 12) return 'Morning'
+      if (hour >= 12 && hour < 17) return 'Afternoon'
+      if (hour >= 17 && hour < 21) return 'Evening'
+      return 'Night'
     }
     
     const groupedByTime = dayHabits.reduce((acc, habit) => {
@@ -372,7 +400,12 @@ function App() {
       return acc
     }, {})
     
-    const timeOrder = ['Morning', 'Afternoon', 'Evening', 'No Time Set']
+    // Sort habits within each time group
+    Object.keys(groupedByTime).forEach(group => {
+      groupedByTime[group] = sortByTime(groupedByTime[group])
+    })
+    
+    const timeOrder = ['Morning', 'Afternoon', 'Evening', 'Night', 'No Time Set']
     const completedCount = allDayHabits.filter(h => h.completions[checkinDateStr]).length
     const totalCount = allDayHabits.length
     const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0
@@ -486,7 +519,7 @@ function App() {
                 const habits = groupedByTime[timeGroup]
                 if (!habits || habits.length === 0) return null
                 
-                const groupIcon = timeGroup === 'Morning' ? '🌅' : timeGroup === 'Afternoon' ? '☀️' : timeGroup === 'Evening' ? '🌙' : '⏰'
+                const groupIcon = timeGroup === 'Morning' ? '🌅' : timeGroup === 'Afternoon' ? '☀️' : timeGroup === 'Evening' ? '🌆' : timeGroup === 'Night' ? '🌙' : '⏰'
                 
                 return (
                   <div key={timeGroup} className="space-y-3">
@@ -500,6 +533,9 @@ function App() {
                     <div className="space-y-2">
                       {habits.map((habit, index) => {
                         const isCompleted = habit.completions[checkinDateStr]
+                        const formatHabitText = (habit) => {
+                          return habit.habit || habit.newHabit || '-'
+                        }
                         return (
                           <div key={habit.id} className="group animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                             <div className={`bg-white dark:bg-gray-800 rounded-lg p-3 shadow hover:shadow-md transition-all border ${
@@ -528,7 +564,7 @@ function App() {
                                     ? 'text-gray-500 dark:text-gray-400 line-through' 
                                     : 'text-gray-900 dark:text-gray-100'
                                 }`}>
-                                  {habit.newHabit}
+                                  {formatHabitText(habit)}
                                 </div>
                               </div>
                             </div>
@@ -575,9 +611,13 @@ function App() {
       </main>
       <HabitForm 
         isOpen={showForm} 
-        onClose={() => setShowForm(false)} 
-        onSubmit={addHabit}
+        onClose={() => {
+          setShowForm(false)
+          setEditingHabit(null)
+        }} 
+        onSubmit={handleFormSubmit}
         habits={habits}
+        editingHabit={editingHabit}
       />
       
       {showActionAlert && (
@@ -592,7 +632,7 @@ function App() {
             <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
               {alertHabits.map(habit => (
                 <div key={habit.id} className="p-3 sm:p-4 bg-orange-50 dark:bg-orange-900 rounded-xl border-l-4 border-orange-400">
-                  <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-gray-100">{habit.newHabit}</div>
+                  <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-gray-100">{habit.habit || habit.newHabit}</div>
                   <div className="text-xs sm:text-sm text-orange-700 dark:text-orange-300">Identity: {habit.identity || 'Not set'}</div>
                 </div>
               ))}
@@ -646,7 +686,7 @@ function App() {
               You're becoming {celebrationHabit.identity ? `a ${celebrationHabit.identity.toLowerCase()}` : 'better'}!
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Every {celebrationHabit.newHabit} builds your identity.
+              Every {celebrationHabit.habit || celebrationHabit.newHabit} builds your identity.
             </p>
             <div className="mt-6">
               <button 
@@ -667,7 +707,7 @@ function App() {
               <div className="text-4xl mb-4">🗑️</div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Delete Habit?</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-2">Are you sure you want to delete:</p>
-              <p className="font-semibold text-gray-900 dark:text-gray-100">"{habitToDelete.newHabit}"</p>
+              <p className="font-semibold text-gray-900 dark:text-gray-100">"{habitToDelete.habit || habitToDelete.newHabit}"</p>
               <p className="text-sm text-red-600 dark:text-red-400 mt-2">This action cannot be undone.</p>
             </div>
             

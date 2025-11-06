@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { ChevronDown, Plus } from 'lucide-react'
 
-export default function Dropdown({ options, value, onChange, onAddNew, placeholder, label }) {
+export default function Dropdown({ options, value, onChange, onAddNew, placeholder, label, required = false }) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
     <div className="relative">
-      {label && <label className="block text-sm font-medium mb-1">{label}</label>}
+      {label && <label className="block text-sm font-medium mb-1">{label}{required && <span className="text-red-500 ml-1">*</span>}</label>}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="input flex items-center justify-between"
+        className={`input flex items-center justify-between ${required && !value ? 'border-red-300 dark:border-red-600' : ''}`}
       >
         <span className={value ? '' : 'text-gray-500'}>{value || placeholder}</span>
         <ChevronDown className="w-4 h-4" />

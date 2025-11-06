@@ -5,24 +5,33 @@ import Input from './ui/Input'
 import Dropdown from './ui/Dropdown'
 import Modal from './ui/Modal'
 
-export default function HabitForm({ isOpen, onClose, onSubmit, habits }) {
-  const [form, setForm] = useState({
-    identity: '', currentHabit: '', newHabit: '', location: '', time: '', completionTime: '', 
+export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHabit = null }) {
+  const [form, setForm] = useState(editingHabit || {
+    identity: '', habit: '', location: '', time: '', 
     environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: []
   })
   const [showAddModal, setShowAddModal] = useState({ type: '', isOpen: false })
   const [newOption, setNewOption] = useState('')
 
   const identities = [...new Set(habits.map(h => h.identity).filter(Boolean))]
-  const currentHabits = [...new Set(habits.map(h => h.currentHabit).filter(Boolean))]
   const locations = [...new Set(habits.map(h => h.location).filter(Boolean))]
+  
+  const timeOptions = [
+    '07:00', '08:00', '09:00', '10:00', '11:00', '12:00',
+    '13:00', '14:00', '15:00', '16:00', '17:00', '18:00',
+    '19:00', '20:00', '21:00', '22:00', '23:00', 'Anytime'
+  ]
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!form.newHabit.trim()) return
+    if (!form.habit.trim() || !form.time) return
     
-    onSubmit({ ...form, id: `habit_${Date.now()}`, completed: false, streak: 0, completions: {}, createdAt: new Date().toISOString() })
-    setForm({ identity: '', currentHabit: '', newHabit: '', location: '', time: '', completionTime: '', environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [] })
+    const habitData = editingHabit 
+      ? { ...form }
+      : { ...form, id: `habit_${Date.now()}`, completed: false, streak: 0, completions: {}, createdAt: new Date().toISOString() }
+    
+    onSubmit(habitData)
+    setForm({ identity: '', habit: '', location: '', time: '', environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [] })
     onClose()
   }
 
@@ -34,7 +43,7 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits }) {
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose} title="Create New Habit">
+      <Modal isOpen={isOpen} onClose={onClose} title={editingHabit ? "Edit Habit" : "Create New Habit"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Dropdown
             label="Identity"
@@ -45,21 +54,12 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits }) {
             placeholder="Who do you want to become?"
           />
           
-          <Dropdown
-            label="After I..."
-            options={currentHabits}
-            value={form.currentHabit}
-            onChange={(value) => setForm(prev => ({ ...prev, currentHabit: value }))}
-            onAddNew={() => setShowAddModal({ type: 'currentHabit', isOpen: true })}
-            placeholder="After I... (what do you already do?)"
-          />
-          
           <div>
-            <label className="block text-sm font-medium mb-1">I will...</label>
+            <label className="block text-sm font-medium mb-1">Habit *</label>
             <Input
-              value={form.newHabit}
-              onChange={(e) => setForm(prev => ({ ...prev, newHabit: e.target.value }))}
-              placeholder="I will... (e.g., read for 10 minutes)"
+              value={form.habit}
+              onChange={(e) => setForm(prev => ({ ...prev, habit: e.target.value }))}
+              placeholder="I will read for 10 minutes"
               required
             />
           </div>
@@ -73,25 +73,14 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits }) {
             placeholder="Where will you do it?"
           />
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Time</label>
-              <input
-                type="time"
-                value={form.time}
-                onChange={(e) => setForm(prev => ({ ...prev, time: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Duration</label>
-              <Input
-                value={form.completionTime}
-                onChange={(e) => setForm(prev => ({ ...prev, completionTime: e.target.value }))}
-                placeholder="e.g., 10 minutes"
-              />
-            </div>
-          </div>
+          <Dropdown
+            label="Time *"
+            options={timeOptions}
+            value={form.time}
+            onChange={(value) => setForm(prev => ({ ...prev, time: value }))}
+            placeholder="Select time"
+            required
+          />
           
           <div>
             <label className="block text-sm font-medium mb-1">Repeat Schedule</label>
@@ -152,43 +141,45 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits }) {
           </div>
           
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
-            <Button type="submit" className="flex-1">Create Habit</Button>
+            <Button type="submit" className="flex-1" disabled={!form.habit.trim() || !form.time}>
+              {editingHabit ? 'Update Habit' : 'Create Habit'}
+            </Button>
             <Button type="button" variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
           </div>
         </form>
       </Modal>
 
-      {showAddModal.isOpen && (
+      {showAddModal.isOpen && showAddModal.type !== 'currentHabit' && (
         <Modal 
-          isOpen={showAddModal.isOpen} 
-          onClose={() => setShowAddModal({ type: '', isOpen: false })} 
-          title={`Add New ${showAddModal.type}`}
-        >
-          <div className="space-y-4">
-            <Input
-              value={newOption}
-              onChange={(e) => setNewOption(e.target.value)}
-              placeholder={`Enter new ${showAddModal.type}`}
-              autoFocus
-            />
-            <div className="flex space-x-2">
-              <Button 
-                onClick={() => handleAddNew(showAddModal.type, newOption)}
-                disabled={!newOption.trim()}
-                className="flex-1"
-              >
-                Add
-              </Button>
-              <Button 
-                variant="secondary" 
-                onClick={() => setShowAddModal({ type: '', isOpen: false })}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
+            isOpen={showAddModal.isOpen} 
+            onClose={() => setShowAddModal({ type: '', isOpen: false })} 
+            title={`Add New ${showAddModal.type}`}
+          >
+            <div className="space-y-4">
+              <Input
+                value={newOption}
+                onChange={(e) => setNewOption(e.target.value)}
+                placeholder={`Enter new ${showAddModal.type}`}
+                autoFocus
+              />
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={() => handleAddNew(showAddModal.type, newOption)}
+                  disabled={!newOption.trim()}
+                  className="flex-1"
+                >
+                  Add
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  onClick={() => setShowAddModal({ type: '', isOpen: false })}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
-          </div>
-        </Modal>
+          </Modal>
       )}
     </>
   )

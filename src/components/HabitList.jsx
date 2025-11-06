@@ -1,22 +1,29 @@
 import { useState } from 'react'
-import { Check, Clock, MapPin, Link, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Check, Clock, MapPin, Link, Trash2, ChevronLeft, ChevronRight, Edit, Download } from 'lucide-react'
 import Card from './ui/Card'
 import Button from './ui/Button'
 import Modal from './ui/Modal'
+import HabitForm from './HabitForm'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 
 export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupBy = 'none' }) {
   const [weekOffset, setWeekOffset] = useState(0)
-  const [selectedHabit, setSelectedHabit] = useState(null)
-  const [editForm, setEditForm] = useState({})
+  const [editingField, setEditingField] = useState({ habitId: null, field: null })
+  const [editValue, setEditValue] = useState('')
   const [sortBy, setSortBy] = useState('time')
   const [sortOrder, setSortOrder] = useState('asc')
   const today = new Date().toDateString()
 
   const getWeekProgress = (habit) => {
     const week = []
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i + (weekOffset * 7))
+    const today = new Date()
+    const dayOfWeek = today.getDay()
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today)
+      date.setDate(today.getDate() + mondayOffset + i + (weekOffset * 7))
       const dateStr = date.toDateString()
       const dayName = date.toLocaleDateString('en', { weekday: 'short' })
       const isScheduledDay = !habit.schedule || habit.schedule.length === 0 || habit.schedule.includes(dayName)
@@ -26,7 +33,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
         date: date.getDate(),
         dateKey: dateStr,
         completed: habit.completions[dateStr] || false,
-        isToday: dateStr === today,
+        isToday: dateStr === today.toDateString(),
         isScheduled: isScheduledDay
       })
     }
@@ -34,15 +41,167 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
   }
 
   const getWeekRange = () => {
-    const start = new Date()
-    start.setDate(start.getDate() - 6 + (weekOffset * 7))
-    const end = new Date()
-    end.setDate(end.getDate() + (weekOffset * 7))
+    const today = new Date()
+    const dayOfWeek = today.getDay()
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+    
+    const start = new Date(today)
+    start.setDate(today.getDate() + mondayOffset + (weekOffset * 7))
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+    
     return `${start.toLocaleDateString('en', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en', { month: 'short', day: 'numeric' })}`
   }
 
   const toggleDayCompletion = (habitId, dateKey) => {
     onToggle(habitId, dateKey)
+  }
+  
+  const startEdit = (habitId, field, currentValue) => {
+    setEditingField({ habitId, field })
+    setEditValue(currentValue || '')
+  }
+  
+  const timeOptions = [
+    '07:00', '08:00', '09:00', '10:00', '11:00', '12:00',
+    '13:00', '14:00', '15:00', '16:00', '17:00', '18:00',
+    '19:00', '20:00', '21:00', '22:00', '23:00', 'Anytime'
+  ]
+  
+  const locations = [...new Set(habits.map(h => h.location).filter(Boolean))]
+  const identities = [...new Set(habits.map(h => h.identity).filter(Boolean))]
+  
+  const saveEdit = (habitId) => {
+    const habit = habits.find(h => h.id === habitId)
+    if (habit && editingField.field) {
+      onUpdate({ ...habit, [editingField.field]: editValue })
+    }
+    setEditingField({ habitId: null, field: null })
+    setEditValue('')
+  }
+  
+  const cancelEdit = () => {
+    setEditingField({ habitId: null, field: null })
+    setEditValue('')
+  }
+  
+  const downloadWeeklyPDF = () => {
+    const pdf = new jsPDF('l', 'mm', 'a4')
+    const pageWidth = 297
+    const margin = 20
+    let yPos = margin + 10
+    
+    // Header with title and date
+    pdf.setFontSize(18)
+    pdf.setFont(undefined, 'bold')
+    pdf.text('Weekly Habit Tracker', margin, yPos)
+    pdf.setFontSize(12)
+    pdf.setFont(undefined, 'normal')
+    pdf.text(`Week: ${getWeekRange()}`, pageWidth - margin - 60, yPos)
+    yPos += 20
+    
+    // Table structure
+    const colWidths = [40, 80, 25, 40, 70] // Identity, Habit, Time, Location, Week Progress
+    const colPositions = [margin]
+    for (let i = 1; i < colWidths.length; i++) {
+      colPositions[i] = colPositions[i-1] + colWidths[i-1]
+    }
+    
+    // Table headers
+    pdf.setFontSize(10)
+    pdf.setFont(undefined, 'bold')
+    pdf.text('Identity', colPositions[0], yPos)
+    pdf.text('Habit', colPositions[1], yPos)
+    pdf.text('Time', colPositions[2], yPos)
+    pdf.text('Location', colPositions[3], yPos)
+    pdf.text('Mon Tue Wed Thu Fri Sat Sun', colPositions[4], yPos)
+    yPos += 8
+    
+    // Header line
+    pdf.setLineWidth(0.5)
+    pdf.line(margin, yPos - 2, pageWidth - margin, yPos - 2)
+    yPos += 5
+    
+    // Habit rows
+    pdf.setFont(undefined, 'normal')
+    pdf.setFontSize(9)
+    
+    habits.forEach((habit, index) => {
+      const weekProgress = getWeekProgress(habit)
+      const rowHeight = 15
+      
+      // Alternate row background
+      if (index % 2 === 0) {
+        pdf.setFillColor(248, 249, 250)
+        pdf.rect(margin, yPos - 3, pageWidth - (margin * 2), rowHeight, 'F')
+      }
+      
+      // Text content with wrapping
+      const identity = habit.identity || 'No Identity'
+      const habitText = habit.habit || habit.newHabit || 'No Habit'
+      const time = habit.time || '--:--'
+      const location = habit.location || 'No Location'
+      
+      pdf.setTextColor(0, 0, 0)
+      pdf.text(identity, colPositions[0] + 2, yPos + 8, { maxWidth: colWidths[0] - 4 })
+      pdf.text(habitText, colPositions[1] + 2, yPos + 8, { maxWidth: colWidths[1] - 4 })
+      pdf.text(time, colPositions[2] + 2, yPos + 8)
+      pdf.text(location, colPositions[3] + 2, yPos + 8, { maxWidth: colWidths[3] - 4 })
+      
+      // Week progress with better formatting
+      weekProgress.forEach((day, i) => {
+        const x = colPositions[4] + 2 + (i * 9)
+        const y = yPos + 5
+        
+        if (day.completed) {
+          pdf.setFillColor(34, 197, 94) // Green
+          pdf.circle(x + 2, y, 2, 'F')
+          pdf.setTextColor(255, 255, 255)
+          pdf.setFontSize(8)
+          pdf.text('✓', x + 0.5, y + 1)
+        } else if (day.isScheduled) {
+          pdf.setDrawColor(156, 163, 175) // Gray
+          pdf.circle(x + 2, y, 2, 'S')
+        } else {
+          pdf.setFillColor(229, 231, 235) // Light gray
+          pdf.circle(x + 2, y, 2, 'F')
+        }
+      })
+      
+      yPos += rowHeight
+      
+      // New page if needed
+      if (yPos > 180) {
+        pdf.addPage()
+        yPos = margin + 20
+        
+        // Repeat headers on new page
+        pdf.setFontSize(10)
+        pdf.setFont(undefined, 'bold')
+        pdf.text('Identity', colPositions[0], yPos)
+        pdf.text('Habit', colPositions[1], yPos)
+        pdf.text('Time', colPositions[2], yPos)
+        pdf.text('Location', colPositions[3], yPos)
+        pdf.text('Mon Tue Wed Thu Fri Sat Sun', colPositions[4], yPos)
+        yPos += 8
+        pdf.line(margin, yPos - 2, pageWidth - margin, yPos - 2)
+        yPos += 5
+        pdf.setFont(undefined, 'normal')
+        pdf.setFontSize(9)
+      }
+    })
+    
+    // Footer
+    pdf.setFontSize(8)
+    pdf.setTextColor(128, 128, 128)
+    pdf.text(`Generated on ${new Date().toLocaleDateString()}`, margin, 200)
+    
+    const weekRange = getWeekRange()
+    pdf.save(`Weekly-Habits-${weekRange.replace(/\s/g, '-')}.pdf`)
+  }
+  
+  const formatHabitText = (habit) => {
+    return habit.habit || habit.newHabit || '-'
   }
 
   const groupHabits = (habits, groupBy) => {
@@ -103,7 +262,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
   const groupedHabits = groupHabits(sortedHabits, groupBy)
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" id="habit-list-container">
       <div className="flex items-center justify-between mb-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
         <button
           onClick={() => setWeekOffset(weekOffset - 1)}
@@ -123,14 +282,19 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
             {weekOffset === 0 ? 'This Week' : weekOffset > 0 ? `${weekOffset} week${weekOffset > 1 ? 's' : ''} ahead` : `${Math.abs(weekOffset)} week${Math.abs(weekOffset) > 1 ? 's' : ''} ago`}
           </div>
         </div>
-        <button
-          onClick={() => setWeekOffset(weekOffset + 1)}
-          className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-        >
-          <span className="hidden sm:inline">Next Week</span>
-          <span className="sm:hidden">Next</span>
-          <ChevronRight className="w-4 h-4" />
-        </button>
+        <div className="flex items-center space-x-2">
+          <Button onClick={downloadWeeklyPDF} size="sm">
+            <Download className="w-4 h-4 mr-1" />PDF
+          </Button>
+          <button
+            onClick={() => setWeekOffset(weekOffset + 1)}
+            className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+          >
+            <span className="hidden sm:inline">Next Week</span>
+            <span className="sm:hidden">Next</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
       {habits.length === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
@@ -148,7 +312,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
             )}
             
             {/* Desktop Header */}
-            <div className="hidden lg:grid gap-4 p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600" style={{gridTemplateColumns: '1fr 2fr 1fr 1fr 2fr 1fr'}}>
+            <div className="hidden lg:grid gap-4 p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600" style={{gridTemplateColumns: '150px 250px 120px 150px 280px 120px'}}>
               <button onClick={() => handleSort('identity')} className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase flex items-center hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer text-left">
                 Identity {sortBy === 'identity' && (sortOrder === 'asc' ? '↑' : '↓')}
               </button>
@@ -175,22 +339,97 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
             {/* Desktop Rows */}
             <div className="hidden lg:block">
             {groupHabits.map(habit => (
-              <div key={habit.id} className="grid gap-4 p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors animate-fade-in" style={{gridTemplateColumns: '1fr 2fr 1fr 1fr 2fr 1fr'}}>
-                <div className="text-sm text-blue-600 dark:text-blue-400 font-medium truncate flex items-center">{habit.identity || '-'}</div>
-                <button
-                  onClick={() => {
-                    setSelectedHabit(habit)
-                    setEditForm(habit)
-                  }}
-                  className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer text-left flex items-center"
-                >
-                  {habit.currentHabit && habit.newHabit 
-                    ? `After I ${habit.currentHabit}, I will ${habit.newHabit}`
-                    : habit.newHabit || '-'
-                  }
-                </button>
-                <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center">{habit.time || '-'}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 truncate flex items-center">{habit.location || '-'}</div>
+              <div key={habit.id} className="grid gap-4 p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors animate-fade-in" style={{gridTemplateColumns: '150px 250px 120px 150px 280px 120px'}}>
+                <div className="text-sm text-blue-600 dark:text-blue-400 font-medium flex items-center" title={habit.identity || '-'}>
+                  {editingField.habitId === habit.id && editingField.field === 'identity' ? (
+                    <select
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={() => saveEdit(habit.id)}
+                      onKeyDown={(e) => e.key === 'Enter' ? saveEdit(habit.id) : e.key === 'Escape' && cancelEdit()}
+                      className="w-full px-1 py-0 text-sm border rounded bg-white dark:bg-gray-700"
+                      autoFocus
+                    >
+                      <option value="">Select identity</option>
+                      {identities.map(id => (
+                        <option key={id} value={id}>{id}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span 
+                      className="break-words overflow-hidden cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
+                      onDoubleClick={() => startEdit(habit.id, 'identity', habit.identity)}
+                    >
+                      {habit.identity || '-'}
+                    </span>
+                  )}
+                </div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                  {editingField.habitId === habit.id && editingField.field === 'habit' ? (
+                    <input
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={() => saveEdit(habit.id)}
+                      onKeyDown={(e) => e.key === 'Enter' ? saveEdit(habit.id) : e.key === 'Escape' && cancelEdit()}
+                      className="w-full px-1 py-0 text-sm border rounded bg-white dark:bg-gray-700"
+                      autoFocus
+                    />
+                  ) : (
+                    <span 
+                      className="break-words overflow-hidden cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
+                      onDoubleClick={() => startEdit(habit.id, 'habit', habit.habit || habit.newHabit)}
+                    >
+                      {formatHabitText(habit)}
+                    </span>
+                  )}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center break-words">
+                  {editingField.habitId === habit.id && editingField.field === 'time' ? (
+                    <select
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={() => saveEdit(habit.id)}
+                      onKeyDown={(e) => e.key === 'Enter' ? saveEdit(habit.id) : e.key === 'Escape' && cancelEdit()}
+                      className="w-full px-1 py-0 text-sm border rounded bg-white dark:bg-gray-700"
+                      autoFocus
+                    >
+                      {timeOptions.map(time => (
+                        <option key={time} value={time}>{time}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span 
+                      className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
+                      onDoubleClick={() => startEdit(habit.id, 'time', habit.time)}
+                    >
+                      {habit.time || '-'}
+                    </span>
+                  )}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center break-words overflow-hidden">
+                  {editingField.habitId === habit.id && editingField.field === 'location' ? (
+                    <select
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={() => saveEdit(habit.id)}
+                      onKeyDown={(e) => e.key === 'Enter' ? saveEdit(habit.id) : e.key === 'Escape' && cancelEdit()}
+                      className="w-full px-1 py-0 text-sm border rounded bg-white dark:bg-gray-700"
+                      autoFocus
+                    >
+                      <option value="">Select location</option>
+                      {locations.map(loc => (
+                        <option key={loc} value={loc}>{loc}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span 
+                      className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
+                      onDoubleClick={() => startEdit(habit.id, 'location', habit.location)}
+                    >
+                      {habit.location || '-'}
+                    </span>
+                  )}
+                </div>
                 <div className="grid grid-cols-7 gap-1 items-center">
                   {getWeekProgress(habit).map((day, i) => (
                     <div key={i} className="text-center">
@@ -235,32 +474,112 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
               <div key={habit.id} className="p-4 border-b border-gray-100 dark:border-gray-700 animate-fade-in">
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
-                    <button
-                      onClick={() => {
-                        setSelectedHabit(habit)
-                        setEditForm(habit)
-                      }}
-                      className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer text-left block mb-1"
-                    >
-                      {habit.currentHabit && habit.newHabit 
-                        ? `After I ${habit.currentHabit}, I will ${habit.newHabit}`
-                        : habit.newHabit || '-'
-                      }
-                    </button>
-                    <div className="text-xs text-blue-600 dark:text-blue-400">{habit.identity || 'No identity set'}</div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                      {editingField.habitId === habit.id && editingField.field === 'habit' ? (
+                        <input
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => saveEdit(habit.id)}
+                          onKeyDown={(e) => e.key === 'Enter' ? saveEdit(habit.id) : e.key === 'Escape' && cancelEdit()}
+                          className="w-full px-1 py-0 text-sm border rounded bg-white dark:bg-gray-700"
+                          autoFocus
+                        />
+                      ) : (
+                        <span 
+                          className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
+                          onDoubleClick={() => startEdit(habit.id, 'habit', habit.habit || habit.newHabit)}
+                        >
+                          {formatHabitText(habit)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400" title={habit.identity || 'No identity set'}>
+                      {editingField.habitId === habit.id && editingField.field === 'identity' ? (
+                        <select
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => saveEdit(habit.id)}
+                          onKeyDown={(e) => e.key === 'Enter' ? saveEdit(habit.id) : e.key === 'Escape' && cancelEdit()}
+                          className="w-full px-1 py-0 text-xs border rounded bg-white dark:bg-gray-700"
+                          autoFocus
+                        >
+                          <option value="">Select identity</option>
+                          {identities.map(id => (
+                            <option key={id} value={id}>{id}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span 
+                          className="truncate block cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
+                          onDoubleClick={() => startEdit(habit.id, 'identity', habit.identity)}
+                        >
+                          {habit.identity || 'No identity set'}
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {habit.time && <span>{habit.time}</span>}
+                      {editingField.habitId === habit.id && editingField.field === 'time' ? (
+                        <select
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => saveEdit(habit.id)}
+                          onKeyDown={(e) => e.key === 'Enter' ? saveEdit(habit.id) : e.key === 'Escape' && cancelEdit()}
+                          className="px-1 py-0 text-xs border rounded bg-white dark:bg-gray-700"
+                          autoFocus
+                        >
+                          {timeOptions.map(time => (
+                            <option key={time} value={time}>{time}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span 
+                          className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
+                          onDoubleClick={() => startEdit(habit.id, 'time', habit.time)}
+                        >
+                          {habit.time}
+                        </span>
+                      )}
                       {habit.time && habit.location && <span> • </span>}
-                      {habit.location && <span>{habit.location}</span>}
+                      {editingField.habitId === habit.id && editingField.field === 'location' ? (
+                        <select
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => saveEdit(habit.id)}
+                          onKeyDown={(e) => e.key === 'Enter' ? saveEdit(habit.id) : e.key === 'Escape' && cancelEdit()}
+                          className="px-1 py-0 text-xs border rounded bg-white dark:bg-gray-700"
+                          autoFocus
+                        >
+                          <option value="">Select location</option>
+                          {locations.map(loc => (
+                            <option key={loc} value={loc}>{loc}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span 
+                          className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
+                          onDoubleClick={() => startEdit(habit.id, 'location', habit.location)}
+                        >
+                          {habit.location}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => onDelete(habit.id)}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900 p-2 rounded transition-all ml-2"
-                    title="Delete habit"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex space-x-1">
+                    <button
+                      onClick={() => handleEditHabit(habit)}
+                      className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900 p-2 rounded transition-all"
+                      title="Edit habit"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(habit.id)}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900 p-2 rounded transition-all"
+                      title="Delete habit"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="flex justify-between items-center">
@@ -308,68 +627,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
         </div>
       )}
       
-      {selectedHabit && (
-        <Modal 
-          isOpen={!!selectedHabit} 
-          onClose={() => setSelectedHabit(null)} 
-          title="Edit Habit"
-        >
-          <form onSubmit={(e) => {
-            e.preventDefault()
-            onUpdate(editForm)
-            setSelectedHabit(null)
-          }} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Environment Design Tips</label>
-              <textarea
-                value={editForm.environmentTips || ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, environmentTips: e.target.value }))}
-                placeholder="How to set up your environment for success"
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                rows={2}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Make It Attractive</label>
-              <textarea
-                value={editForm.makeAttractive || ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, makeAttractive: e.target.value }))}
-                placeholder="How to make this habit appealing"
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                rows={2}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Make It Easy (2-min version)</label>
-              <textarea
-                value={editForm.makeEasy || ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, makeEasy: e.target.value }))}
-                placeholder="Simplest version of this habit"
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                rows={2}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Make It Satisfying</label>
-              <textarea
-                value={editForm.makeSatisfying || ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, makeSatisfying: e.target.value }))}
-                placeholder="How to make this habit rewarding"
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                rows={2}
-              />
-            </div>
-            
-            <div className="flex space-x-2 pt-4">
-              <Button type="submit" className="flex-1">Save Changes</Button>
-              <Button type="button" variant="secondary" onClick={() => setSelectedHabit(null)} className="flex-1">Cancel</Button>
-            </div>
-          </form>
-        </Modal>
-      )}
+
     </div>
   )
 }
