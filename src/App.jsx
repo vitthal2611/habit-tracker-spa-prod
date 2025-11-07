@@ -320,7 +320,10 @@ function App() {
     const isToday = checkinDateStr === today
     
     const allDayHabits = habits.filter(h => {
-      return !h.schedule || h.schedule.length === 0 || h.schedule.includes(dayName)
+      const dateKey = checkinDate.toISOString().split('T')[0] // YYYY-MM-DD format
+      const isScheduledByDay = !h.schedule || h.schedule.length === 0 || h.schedule.includes(dayName)
+      const isScheduledByDate = h.specificDates && h.specificDates.includes(dateKey)
+      return isScheduledByDay || isScheduledByDate
     })
     
     const sortByTime = (habits) => {

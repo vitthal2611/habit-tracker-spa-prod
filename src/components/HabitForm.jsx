@@ -7,7 +7,7 @@ import Modal from './ui/Modal'
 
 export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHabit = null }) {
   const [form, setForm] = useState(editingHabit || {
-    identity: '', habit: '', location: '', time: '', 
+    identity: '', newHabit: '', location: '', time: '', 
     environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [],
     quadrant: ''
   })
@@ -25,14 +25,14 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!form.habit.trim() || !form.time) return
+    if (!form.newHabit.trim() || !form.time) return
     
     const habitData = editingHabit 
       ? { ...form }
       : { ...form, id: `habit_${Date.now()}`, completed: false, streak: 0, completions: {}, createdAt: new Date().toISOString() }
     
     onSubmit(habitData)
-    setForm({ identity: '', habit: '', location: '', time: '', environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [], quadrant: '' })
+    setForm({ identity: '', newHabit: '', location: '', time: '', environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [], quadrant: '' })
     onClose()
   }
 
@@ -58,8 +58,8 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
           <div>
             <label className="block text-sm font-medium mb-1">Habit *</label>
             <Input
-              value={form.habit}
-              onChange={(e) => setForm(prev => ({ ...prev, habit: e.target.value }))}
+              value={form.newHabit}
+              onChange={(e) => setForm(prev => ({ ...prev, newHabit: e.target.value }))}
               placeholder="I will read for 10 minutes"
               required
             />
@@ -85,7 +85,7 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
           
           <Dropdown
             label="Eisenhower Matrix Quadrant"
-            options={['Q1 - Do First (Urgent & Important)', 'Q2 - Schedule (Important, Not Urgent)', 'Q3 - Delegate (Urgent, Not Important)', 'Q4 - Eliminate (Neither Urgent nor Important)']}
+            options={['Q1', 'Q2', 'Q3', 'Q4']}
             value={form.quadrant}
             onChange={(value) => setForm(prev => ({ ...prev, quadrant: value }))}
             placeholder="Select quadrant"
@@ -150,7 +150,7 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
           </div>
           
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
-            <Button type="submit" className="flex-1" disabled={!form.habit.trim() || !form.time}>
+            <Button type="submit" className="flex-1" disabled={!form.newHabit.trim() || !form.time}>
               {editingHabit ? 'Update Habit' : 'Create Habit'}
             </Button>
             <Button type="button" variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>

@@ -26,7 +26,15 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
       date.setDate(today.getDate() + mondayOffset + i + (weekOffset * 7))
       const dateStr = date.toDateString()
       const dayName = date.toLocaleDateString('en', { weekday: 'short' })
-      const isScheduledDay = !habit.schedule || habit.schedule.length === 0 || habit.schedule.includes(dayName)
+      const dateKey = date.toISOString().split('T')[0] // YYYY-MM-DD format
+      
+      // Check if scheduled by day of week
+      const isScheduledByDay = !habit.schedule || habit.schedule.length === 0 || habit.schedule.includes(dayName)
+      
+      // Check if scheduled by specific date
+      const isScheduledByDate = habit.specificDates && habit.specificDates.includes(dateKey)
+      
+      const isScheduledDay = isScheduledByDay || isScheduledByDate
       
       week.push({
         day: dayName[0],
@@ -333,7 +341,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
                 Quadrant {sortBy === 'quadrant' && (sortOrder === 'asc' ? '↑' : '↓')}
               </button>
               <div className="grid grid-cols-7 gap-1 text-xs font-semibold text-gray-700 dark:text-gray-300">
-                {getWeekProgress(groupHabits[0] || {completions: {}}).map((day, i) => (
+                {getWeekProgress(groupHabits[0] || {completions: {}, schedule: [], specificDates: []}).map((day, i) => (
                   <div key={i} className="text-center">
                     <div className="uppercase text-xs">{day.day}</div>
                     <div className="text-gray-400 dark:text-gray-500 text-xs">{day.date}</div>
@@ -372,7 +380,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
                   )}
                 </div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                  {editingField.habitId === habit.id && editingField.field === 'habit' ? (
+                  {editingField.habitId === habit.id && editingField.field === 'newHabit' ? (
                     <input
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
@@ -384,7 +392,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
                   ) : (
                     <span 
                       className="break-words overflow-hidden cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
-                      onDoubleClick={() => startEdit(habit.id, 'habit', habit.habit || habit.newHabit)}
+                      onDoubleClick={() => startEdit(habit.id, 'newHabit', habit.newHabit)}
                     >
                       {formatHabitText(habit)}
                     </span>
