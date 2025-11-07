@@ -1,4 +1,4 @@
-import { Home, Target, CheckSquare, Moon, Sun } from 'lucide-react'
+import { Home, Target, CheckSquare, Moon, Sun, ClipboardList, Calendar } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import Toggle from './ui/Toggle'
 
@@ -16,8 +16,6 @@ export default function Navigation({ activeTab, setActiveTab, onLogout }) {
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'checkin', label: 'Check-in', icon: CheckSquare },
-    { id: 'habits', label: 'Habits', icon: Target },
-    { id: 'matrix', label: 'Matrix', icon: Target },
   ]
 
   return (

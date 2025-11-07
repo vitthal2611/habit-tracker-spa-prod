@@ -5,7 +5,7 @@ import { auth } from './firebase'
 import Navigation from './components/Navigation'
 import HabitForm from './components/HabitForm'
 import HabitList from './components/HabitList'
-import EisenhowerMatrix from './components/EisenhowerMatrix'
+
 import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Modal from './components/ui/Modal'
@@ -305,14 +305,7 @@ function App() {
   )
   }
 
-  const renderMatrix = () => {
-    if (loading) return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
-    return (
-      <div className="animate-fade-in">
-        <EisenhowerMatrix habits={habits} />
-      </div>
-    )
-  }
+
 
   const renderCheckin = () => {
     const checkinDateStr = checkinDate.toDateString()
@@ -542,9 +535,7 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'home': return renderHome()
-      case 'habits': return renderHabits()
       case 'checkin': return renderCheckin()
-      case 'matrix': return renderMatrix()
       default: return renderHome()
     }
   }

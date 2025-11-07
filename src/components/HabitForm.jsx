@@ -8,8 +8,7 @@ import Modal from './ui/Modal'
 export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHabit = null }) {
   const [form, setForm] = useState(editingHabit || {
     identity: '', newHabit: '', location: '', time: '', 
-    environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [],
-    quadrant: ''
+    environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: []
   })
   const [showAddModal, setShowAddModal] = useState({ type: '', isOpen: false })
   const [newOption, setNewOption] = useState('')
@@ -32,7 +31,7 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
       : { ...form, id: `habit_${Date.now()}`, completed: false, streak: 0, completions: {}, createdAt: new Date().toISOString() }
     
     onSubmit(habitData)
-    setForm({ identity: '', newHabit: '', location: '', time: '', environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [], quadrant: '' })
+    setForm({ identity: '', newHabit: '', location: '', time: '', environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [] })
     onClose()
   }
 
@@ -83,13 +82,7 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
             required
           />
           
-          <Dropdown
-            label="Eisenhower Matrix Quadrant"
-            options={['Q1', 'Q2', 'Q3', 'Q4']}
-            value={form.quadrant}
-            onChange={(value) => setForm(prev => ({ ...prev, quadrant: value }))}
-            placeholder="Select quadrant"
-          />
+
           
           <div>
             <label className="block text-sm font-medium mb-1">Repeat Schedule</label>
