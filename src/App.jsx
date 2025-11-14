@@ -599,11 +599,6 @@ function App() {
                 Load Test Habits
               </Button>
             )}
-            {habits.length > 0 && (
-              <Button onClick={() => setShowDeleteConfirm(true)} variant="secondary" size="md" className="flex-1 sm:flex-none">
-                <span className="hidden sm:inline">Delete All</span><span className="sm:hidden">Clear</span>
-              </Button>
-            )}
             <Button onClick={() => setShowForm(true)} size="md" className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 flex-1 sm:flex-none">
               <Plus className="w-5 h-5 mr-2" /><span className="hidden sm:inline">Add Habit</span><span className="sm:hidden">Add</span>
             </Button>
@@ -689,20 +684,15 @@ function App() {
                   <Target className="w-4 h-4 sm:w-5 sm:h-5" />
                   Weekly Focus
                 </h2>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <select 
-                    value={groupBy} 
-                    onChange={(e) => setGroupBy(e.target.value)}
-                    className="flex-1 sm:flex-none px-2 sm:px-3 py-1.5 text-xs sm:text-sm border-0 rounded-lg bg-white/20 text-white backdrop-blur-sm"
-                  >
-                    <option value="none" className="text-gray-900">No Grouping</option>
-                    <option value="identity" className="text-gray-900">By Identity</option>
-                    <option value="location" className="text-gray-900">By Location</option>
-                  </select>
-                  <Button onClick={() => setShowForm(true)} size="sm" className="bg-white text-green-600 hover:bg-gray-100">
-                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" /><span className="hidden sm:inline">Add</span>
-                  </Button>
-                </div>
+                <select 
+                  value={groupBy} 
+                  onChange={(e) => setGroupBy(e.target.value)}
+                  className="w-full sm:w-auto px-2 sm:px-3 py-1.5 text-xs sm:text-sm border-0 rounded-lg bg-white/20 text-white backdrop-blur-sm"
+                >
+                  <option value="none" className="text-gray-900">No Grouping</option>
+                  <option value="identity" className="text-gray-900">By Identity</option>
+                  <option value="location" className="text-gray-900">By Location</option>
+                </select>
               </div>
             </div>
             <div className="p-3 sm:p-4">

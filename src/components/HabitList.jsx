@@ -56,6 +56,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
   const getWeekProgress = (habit) => {
     const week = []
     const today = new Date()
+    const todayStr = today.toDateString()
     const dayOfWeek = today.getDay()
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
     
@@ -79,7 +80,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
         date: date.getDate(),
         dateKey: dateStr,
         completed: habit.completions[dateStr] || false,
-        isToday: dateStr === today.toDateString(),
+        isToday: dateStr === todayStr,
         isScheduled: isScheduledDay
       })
     }
@@ -313,8 +314,8 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
 
   return (
     <div className="overflow-x-auto" id="habit-list-container">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-        <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setWeekOffset(weekOffset - 1)}
             className="flex items-center space-x-1 px-2 sm:px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
@@ -322,7 +323,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
             <ChevronLeft className="w-4 h-4" />
             <span className="text-xs sm:text-sm">Prev</span>
           </button>
-          <div className="text-center flex-1 sm:flex-none">
+          <div className="text-center min-w-[180px]">
             <div className="font-semibold text-xs sm:text-base text-gray-900 dark:text-gray-100">{getWeekRange()}</div>
             <div className={`text-xs font-medium px-2 py-0.5 rounded ${
               weekOffset === 0 
