@@ -43,9 +43,11 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
     e.preventDefault()
     if (!form.newHabit.trim() || !form.time || !form.identity) return
     
+    const habitStatement = getHabitSentence() || `${form.time ? `At ${form.time}` : ''}${form.location ? ` in the ${form.location}` : ''}, I will ${form.newHabit}`
+    
     const habitData = editingHabit 
-      ? { ...form }
-      : { ...form, id: `habit_${Date.now()}`, completed: false, streak: 0, completions: {}, createdAt: new Date().toISOString() }
+      ? { ...form, habitStatement }
+      : { ...form, habitStatement, id: `habit_${Date.now()}`, completed: false, streak: 0, completions: {}, createdAt: new Date().toISOString() }
     
     onSubmit(habitData)
     setForm({ identity: '', prefix: 'After', currentHabit: '', newHabit: '', location: '', time: '', environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [], specificDates: [], quadrant: '' })
