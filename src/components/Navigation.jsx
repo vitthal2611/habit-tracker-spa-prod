@@ -13,12 +13,7 @@ export default function Navigation({ activeTab, setActiveTab, onLogout }) {
     localStorage.setItem('darkMode', isDark)
   }, [isDark])
 
-  const tabs = [
-    { id: 'daily', label: 'Home', icon: Home },
-    { id: 'habits', label: 'Weekly', icon: Target },
-    { id: 'checkin', label: 'Check-in', icon: CheckSquare },
-    { id: 'tasks', label: 'Tasks', icon: ClipboardList },
-  ]
+  const tabs = []
 
   return (
     <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">

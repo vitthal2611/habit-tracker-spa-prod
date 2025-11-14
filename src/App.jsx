@@ -17,7 +17,7 @@ import { generateTestHabits } from './utils/testHabits'
 function App() {
   const [user, setUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('daily')
+  const [activeTab, setActiveTab] = useState('dashboard')
   const [habits, { addItem: addHabitToDb, updateItem: updateHabitInDb, deleteItem: deleteHabitFromDb, loading }] = useFirestore('habits', [])
   const [showForm, setShowForm] = useState(false)
   const [editingHabit, setEditingHabit] = useState(null)
@@ -30,11 +30,57 @@ function App() {
   const [groupBy, setGroupBy] = useState('none')
   const [checkinDate, setCheckinDate] = useState(new Date())
   const [showCompleted, setShowCompleted] = useState(false)
+  const [viewMode, setViewMode] = useState('today') // 'today' or 'weekly'
 
   const today = new Date().toDateString()
-  const completedToday = habits.filter(h => h.completions[today]).length
-  const totalHabits = habits.length
-  const completionRate = totalHabits > 0 ? Math.round((completedToday / totalHabits) * 100) : 0
+  
+  // Calculate metrics based on view mode
+  const getTodayMetrics = () => {
+    const todayHabits = habits.filter(h => {
+      const dayName = new Date().toLocaleDateString('en', { weekday: 'short' })
+      const dateKey = new Date().toISOString().split('T')[0]
+      const isScheduledByDay = !h.schedule || h.schedule.length === 0 || h.schedule.includes(dayName)
+      const isScheduledByDate = h.specificDates && h.specificDates.includes(dateKey)
+      return isScheduledByDay || isScheduledByDate
+    })
+    const completed = todayHabits.filter(h => h.completions[today]).length
+    const total = todayHabits.length
+    const rate = total > 0 ? Math.round((completed / total) * 100) : 0
+    return { completed, total, rate }
+  }
+  
+  const getWeeklyMetrics = () => {
+    const weekDays = 7
+    let totalScheduled = 0
+    let totalCompleted = 0
+    
+    for (let i = 0; i < weekDays; i++) {
+      const date = new Date()
+      const dayOfWeek = date.getDay()
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+      date.setDate(date.getDate() + mondayOffset + i)
+      const dateStr = date.toDateString()
+      const dayName = date.toLocaleDateString('en', { weekday: 'short' })
+      const dateKey = date.toISOString().split('T')[0]
+      
+      habits.forEach(h => {
+        const isScheduledByDay = !h.schedule || h.schedule.length === 0 || h.schedule.includes(dayName)
+        const isScheduledByDate = h.specificDates && h.specificDates.includes(dateKey)
+        if (isScheduledByDay || isScheduledByDate) {
+          totalScheduled++
+          if (h.completions[dateStr]) totalCompleted++
+        }
+      })
+    }
+    
+    const rate = totalScheduled > 0 ? Math.round((totalCompleted / totalScheduled) * 100) : 0
+    return { completed: totalCompleted, total: totalScheduled, rate }
+  }
+  
+  const metrics = viewMode === 'today' ? getTodayMetrics() : getWeeklyMetrics()
+  const completedToday = metrics.completed
+  const totalHabits = metrics.total
+  const completionRate = metrics.rate
 
   const addHabit = async (habit) => {
     await addHabitToDb(habit)
@@ -533,15 +579,138 @@ function App() {
     )
   }
 
+  const renderDashboard = () => {
+    if (loading) return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+    
+    return (
+      <div className="space-y-6 animate-fade-in">
+        {/* Header with Add Button */}
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Dashboard</h1>
+          <Button onClick={() => setShowForm(true)} className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
+            <Plus className="w-4 h-4 mr-2" />Add Habit
+          </Button>
+        </div>
+
+        {/* Hero Stats Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <Target className="w-10 h-10 opacity-80" />
+              <span className="text-sm font-medium bg-white/20 px-3 py-1 rounded-full">Total</span>
+            </div>
+            <h3 className="text-4xl font-bold mb-1">{totalHabits}</h3>
+            <p className="text-blue-100">Active Habits</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <Calendar className="w-10 h-10 opacity-80" />
+              <span className="text-sm font-medium bg-white/20 px-3 py-1 rounded-full">Today</span>
+            </div>
+            <h3 className="text-4xl font-bold mb-1">{completedToday}/{totalHabits}</h3>
+            <p className="text-green-100">Completed</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <TrendingUp className="w-10 h-10 opacity-80" />
+              <span className="text-sm font-medium bg-white/20 px-3 py-1 rounded-full">Rate</span>
+            </div>
+            <h3 className="text-4xl font-bold mb-1">{completionRate}%</h3>
+            <p className="text-purple-100">Success Rate</p>
+          </div>
+        </div>
+
+        {/* View Toggle */}
+        <div className="flex justify-center">
+          <div className="inline-flex bg-white dark:bg-gray-800 rounded-xl p-1 shadow-lg border border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => setViewMode('today')}
+              className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                viewMode === 'today'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+              }`}
+            >
+              <Calendar className="w-4 h-4 inline mr-2" />
+              Today's Focus
+            </button>
+            <button
+              onClick={() => setViewMode('weekly')}
+              className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                viewMode === 'weekly'
+                  ? 'bg-gradient-to-r from-green-500 to-teal-500 text-white shadow-md'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+              }`}
+            >
+              <Target className="w-4 h-4 inline mr-2" />
+              Weekly Focus
+            </button>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        {viewMode === 'today' ? (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-4">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Today's Focus
+              </h2>
+            </div>
+            <div className="p-4">
+              <DailyHabitView habits={habits} onToggle={toggleHabit} />
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gradient-to-r from-green-500 to-teal-500 p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  Weekly Focus
+                </h2>
+                <div className="flex gap-2">
+                  <select 
+                    value={groupBy} 
+                    onChange={(e) => setGroupBy(e.target.value)}
+                    className="px-3 py-1.5 text-sm border-0 rounded-lg bg-white/20 text-white backdrop-blur-sm"
+                  >
+                    <option value="none" className="text-gray-900">No Grouping</option>
+                    <option value="identity" className="text-gray-900">By Identity</option>
+                    <option value="location" className="text-gray-900">By Location</option>
+                  </select>
+                  <Button onClick={() => setShowForm(true)} size="sm" className="bg-white text-green-600 hover:bg-gray-100">
+                    <Plus className="w-4 h-4 mr-1" />Add
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div className="p-4">
+              {habits.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Target className="w-10 h-10 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">No habits yet</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Start building better habits today</p>
+                  <Button onClick={() => setShowForm(true)}>
+                    <Plus className="w-4 h-4 mr-2" />Create Your First Habit
+                  </Button>
+                </div>
+              ) : (
+                <HabitList habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} onEdit={handleEditHabit} groupBy={groupBy} />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const renderContent = () => {
-    switch (activeTab) {
-      case 'home': return renderDailyHabits()
-      case 'daily': return renderDailyHabits()
-      case 'habits': return renderHabits()
-      case 'checkin': return renderCheckin()
-      case 'tasks': return <TaskView />
-      default: return renderDailyHabits()
-    }
+    return renderDashboard()
   }
 
   if (authLoading) {

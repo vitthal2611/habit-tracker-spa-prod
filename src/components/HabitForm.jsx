@@ -41,7 +41,7 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
   
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!form.newHabit.trim() || !form.time) return
+    if (!form.newHabit.trim() || !form.time || !form.identity) return
     
     const habitData = editingHabit 
       ? { ...form }
@@ -87,11 +87,24 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
           {/* Step 1: Identity & Implementation Intention */}
           {step === 1 && (
             <div className="space-y-3">
+              {/* Habit Preview */}
+              {getHabitSentence() && (
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-lg text-white shadow-lg">
+                  <div className="text-xs opacity-90 mb-1 flex items-center gap-1">
+                    <span>💡</span>
+                    <span>Your Habit Statement</span>
+                  </div>
+                  <div className="text-sm font-medium leading-relaxed">
+                    {getHabitSentence()}
+                  </div>
+                </div>
+              )}
+
               {/* Identity Section */}
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/10 dark:to-purple-900/10 p-3 rounded-lg">
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                   <span className="text-base">👤</span>
-                  <span>Who You Want to Become (Optional)</span>
+                  <span>What identity you want to build *</span>
                 </h3>
                 <Dropdown
                   options={identities}
@@ -99,6 +112,7 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
                   onChange={(value) => setForm(prev => ({ ...prev, identity: value }))}
                   onAddNew={() => setShowAddModal({ type: 'identity', isOpen: true })}
                   placeholder="e.g., a fit person, a reader"
+                  required
                 />
               </div>
 
@@ -167,19 +181,6 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
                   </div>
                 </div>
               </div>
-
-              {/* Habit Preview */}
-              {getHabitSentence() && (
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-lg text-white shadow-lg">
-                  <div className="text-xs opacity-90 mb-1 flex items-center gap-1">
-                    <span>💡</span>
-                    <span>Your Habit Statement</span>
-                  </div>
-                  <div className="text-sm font-medium leading-relaxed">
-                    {getHabitSentence()}
-                  </div>
-                </div>
-              )}
 
               {/* Environment Cues */}
               <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 p-3 rounded-lg">
@@ -321,11 +322,11 @@ export default function HabitForm({ isOpen, onClose, onSubmit, habits, editingHa
               </Button>
             )}
             {step < 4 ? (
-              <Button type="button" onClick={handleNext} className="flex-1" disabled={step === 1 && (!form.newHabit.trim() || !form.time)}>
+              <Button type="button" onClick={handleNext} className="flex-1" disabled={step === 1 && (!form.newHabit.trim() || !form.time || !form.identity)}>
                 Next
               </Button>
             ) : (
-              <Button type="submit" className="flex-1" disabled={!form.newHabit.trim() || !form.time}>
+              <Button type="submit" className="flex-1" disabled={!form.newHabit.trim() || !form.time || !form.identity}>
                 {editingHabit ? 'Update Habit' : 'Create Habit'}
               </Button>
             )}

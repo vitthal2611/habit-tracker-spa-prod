@@ -15,6 +15,30 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
   const [sortOrder, setSortOrder] = useState('asc')
   const today = new Date().toDateString()
 
+  const getConsistencyDays = (habit) => {
+    const completionDates = Object.keys(habit.completions || {}).filter(date => habit.completions[date])
+    if (completionDates.length === 0) return 0
+    
+    const sortedDates = completionDates.map(d => new Date(d)).sort((a, b) => b - a)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    let streak = 0
+    let checkDate = new Date(today)
+    
+    for (let i = 0; i < 365; i++) {
+      const dateStr = checkDate.toDateString()
+      if (habit.completions[dateStr]) {
+        streak++
+      } else {
+        break
+      }
+      checkDate.setDate(checkDate.getDate() - 1)
+    }
+    
+    return streak
+  }
+
   const wasMissedYesterday = (habit) => {
     const yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
@@ -523,129 +547,60 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
             </div>
             
             {/* Mobile Cards */}
-            <div className="lg:hidden">
-            {groupHabits.map(habit => (
-              <div key={habit.id} className={`p-4 border-b animate-fade-in ${wasMissedYesterday(habit) ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'border-gray-100 dark:border-gray-700'}`}>
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                      {editingField.habitId === habit.id && editingField.field === 'habit' ? (
-                        <input
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onBlur={() => saveEdit(habit.id)}
-                          onKeyDown={(e) => e.key === 'Enter' ? saveEdit(habit.id) : e.key === 'Escape' && cancelEdit()}
-                          className="w-full px-1 py-0 text-sm border rounded bg-white dark:bg-gray-700"
-                          autoFocus
-                        />
-                      ) : (
-                        <span 
-                          className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
-                          onDoubleClick={() => startEdit(habit.id, 'habit', habit.habit || habit.newHabit)}
-                        >
-                          {formatHabitText(habit)}
-                        </span>
-                      )}
+            <div className="lg:hidden space-y-3 p-3">
+            {groupHabits.map(habit => {
+              const consistencyDays = getConsistencyDays(habit)
+              const weekProgress = getWeekProgress(habit)
+              const completedThisWeek = weekProgress.filter(d => d.completed).length
+              return (
+              <div key={habit.id} className={`rounded-xl shadow-md overflow-hidden transition-all hover:shadow-lg ${wasMissedYesterday(habit) ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/20 border-2 border-red-300 dark:border-red-700' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'}`}>
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 text-white">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <div className="text-base font-bold mb-1">{formatHabitText(habit)}</div>
+                      <div className="text-xs opacity-90">{habit.identity}</div>
                     </div>
-                    <div className="text-xs text-blue-600 dark:text-blue-400" title={habit.identity || 'No identity set'}>
-                      {editingField.habitId === habit.id && editingField.field === 'identity' ? (
-                        <select
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onBlur={() => saveEdit(habit.id)}
-                          onKeyDown={(e) => e.key === 'Enter' ? saveEdit(habit.id) : e.key === 'Escape' && cancelEdit()}
-                          className="w-full px-1 py-0 text-xs border rounded bg-white dark:bg-gray-700"
-                          autoFocus
-                        >
-                          <option value="">Select identity</option>
-                          {identities.map(id => (
-                            <option key={id} value={id}>{id}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span 
-                          className="truncate block cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
-                          onDoubleClick={() => startEdit(habit.id, 'identity', habit.identity)}
-                        >
-                          {habit.identity || 'No identity set'}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {editingField.habitId === habit.id && editingField.field === 'time' ? (
-                        <select
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onBlur={() => saveEdit(habit.id)}
-                          onKeyDown={(e) => e.key === 'Enter' ? saveEdit(habit.id) : e.key === 'Escape' && cancelEdit()}
-                          className="px-1 py-0 text-xs border rounded bg-white dark:bg-gray-700"
-                          autoFocus
-                        >
-                          {timeOptions.map(time => (
-                            <option key={time} value={time}>{time}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span 
-                          className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
-                          onDoubleClick={() => startEdit(habit.id, 'time', habit.time)}
-                        >
-                          {habit.time}
-                        </span>
-                      )}
-                      {habit.time && habit.location && <span> • </span>}
-                      {editingField.habitId === habit.id && editingField.field === 'location' ? (
-                        <select
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onBlur={() => saveEdit(habit.id)}
-                          onKeyDown={(e) => e.key === 'Enter' ? saveEdit(habit.id) : e.key === 'Escape' && cancelEdit()}
-                          className="px-1 py-0 text-xs border rounded bg-white dark:bg-gray-700"
-                          autoFocus
-                        >
-                          <option value="">Select location</option>
-                          {locations.map(loc => (
-                            <option key={loc} value={loc}>{loc}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span 
-                          className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
-                          onDoubleClick={() => startEdit(habit.id, 'location', habit.location)}
-                        >
-                          {habit.location}
-                        </span>
-                      )}
+                    <div className="flex gap-1">
+                      <button onClick={() => onDelete(habit.id)} className="p-1.5 hover:bg-white/20 rounded transition-colors" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex space-x-1">
-                    <button
-                      onClick={() => handleEditHabit(habit)}
-                      className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900 p-2 rounded transition-all"
-                      title="Edit habit"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(habit.id)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900 p-2 rounded transition-all"
-                      title="Delete habit"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  <div className="flex items-center gap-2 text-xs opacity-90">
+                    <Clock className="w-3 h-3" />
+                    <span>{habit.time}</span>
+                    <MapPin className="w-3 h-3 ml-2" />
+                    <span>{habit.location}</span>
                   </div>
                 </div>
-                
-                <div className="flex justify-between items-center">
-                  <div className="grid grid-cols-7 gap-1 flex-1">
-                    {getWeekProgress(habit).map((day, i) => (
+
+                {/* Metrics */}
+                <div className="grid grid-cols-3 gap-3 p-4 bg-gray-50 dark:bg-gray-900/50">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">{consistencyDays}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">Day Streak</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{completedThisWeek}/7</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">This Week</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{Math.round((completedThisWeek/7)*100)}%</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">Complete</div>
+                  </div>
+                </div>
+
+                {/* Week Progress */}
+                <div className="p-4">
+                  <div className="grid grid-cols-7 gap-1">
+                    {weekProgress.map((day, i) => (
                       <div key={i} className="text-center">
                         <div className="text-xs text-gray-400 dark:text-gray-500 mb-1">{day.day}</div>
-                        <div className="text-xs text-gray-400 dark:text-gray-500 mb-1">{day.date}</div>
                         <button
                           onClick={() => day.isScheduled && toggleDayCompletion(habit.id, day.dateKey)}
                           disabled={!day.isScheduled}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
                             !day.isScheduled
                               ? 'bg-gray-100 text-gray-300 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed'
                               : day.completed 
@@ -655,19 +610,17 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
                               : 'bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-500 cursor-pointer hover:scale-110'
                           }`}
                         >
-                          {day.completed ? '✓' : ''}
+                          {day.completed ? '✓' : day.date}
                         </button>
                       </div>
                     ))}
                   </div>
-                  <div className="text-center ml-4">
-                    <div className="text-lg font-bold text-orange-600 dark:text-orange-400">{getWeekProgress(habit).filter(day => day.completed).length}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">days</div>
-                  </div>
                 </div>
               </div>
-            ))}
+              )
+            })}
             </div>
+
             
             {groupHabits.length > 0 && (
               <div className="p-3 bg-gray-50 dark:bg-gray-700 text-center">
