@@ -361,7 +361,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
             )}
             
             {/* Desktop Header */}
-            <div className="hidden lg:grid gap-4 p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600" style={{gridTemplateColumns: '120px 200px 80px 120px 80px 280px 120px'}}>
+            <div className="hidden lg:grid gap-4 p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600" style={{gridTemplateColumns: '120px 200px 80px 120px 280px 120px'}}>
               <button onClick={() => handleSort('identity')} className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase flex items-center hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer text-left">
                 Identity {sortBy === 'identity' && (sortOrder === 'asc' ? '↑' : '↓')}
               </button>
@@ -373,9 +373,6 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
               </button>
               <button onClick={() => handleSort('location')} className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase flex items-center hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer text-left">
                 Location {sortBy === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
-              </button>
-              <button onClick={() => handleSort('quadrant')} className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase flex items-center hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer text-left">
-                Quadrant {sortBy === 'quadrant' && (sortOrder === 'asc' ? '↑' : '↓')}
               </button>
               <div className="grid grid-cols-7 gap-1 text-xs font-semibold text-gray-700 dark:text-gray-300">
                 {getWeekProgress(groupHabits[0] || {completions: {}, schedule: [], specificDates: []}).map((day, i) => (
@@ -391,7 +388,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
             {/* Desktop Rows */}
             <div className="hidden lg:block">
             {groupHabits.map(habit => (
-              <div key={habit.id} className={`grid gap-4 p-4 border-b transition-colors animate-fade-in ${wasMissedYesterday(habit) ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30' : 'border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'}`} style={{gridTemplateColumns: '120px 200px 80px 120px 80px 280px 120px'}}>
+              <div key={habit.id} className={`grid gap-4 p-4 border-b transition-colors animate-fade-in ${wasMissedYesterday(habit) ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30' : 'border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'}`} style={{gridTemplateColumns: '120px 200px 80px 120px 280px 120px'}}>
                 <div className="text-sm text-blue-600 dark:text-blue-400 font-medium flex items-center" title={habit.identity || '-'}>
                   {editingField.habitId === habit.id && editingField.field === 'identity' ? (
                     <select
@@ -479,31 +476,6 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
                       onDoubleClick={() => startEdit(habit.id, 'location', habit.location)}
                     >
                       {habit.location || '-'}
-                    </span>
-                  )}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center break-words overflow-hidden">
-                  {editingField.habitId === habit.id && editingField.field === 'quadrant' ? (
-                    <select
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      onBlur={() => saveEdit(habit.id)}
-                      onKeyDown={(e) => e.key === 'Enter' ? saveEdit(habit.id) : e.key === 'Escape' && cancelEdit()}
-                      className="w-full px-1 py-0 text-sm border rounded bg-white dark:bg-gray-700"
-                      autoFocus
-                    >
-                      <option value="">Select</option>
-                      <option value="Q1">Q1</option>
-                      <option value="Q2">Q2</option>
-                      <option value="Q3">Q3</option>
-                      <option value="Q4">Q4</option>
-                    </select>
-                  ) : (
-                    <span 
-                      className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-1 rounded"
-                      onDoubleClick={() => startEdit(habit.id, 'quadrant', habit.quadrant)}
-                    >
-                      {habit.quadrant || '-'}
                     </span>
                   )}
                 </div>

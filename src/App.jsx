@@ -3,7 +3,7 @@ import { Plus, Target, TrendingUp, Calendar, AlertTriangle } from 'lucide-react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from './firebase'
 import Navigation from './components/Navigation'
-import HabitForm from './components/HabitForm'
+import HabitFormV2 from './components/HabitFormV2'
 import HabitList from './components/HabitList'
 import TaskView from './components/TaskView'
 import DailyHabitView from './components/DailyHabitView'
@@ -593,16 +593,9 @@ function App() {
         {/* Header with Add Button */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Dashboard</h1>
-          <div className="flex gap-3 w-full sm:w-auto">
-            {habits.length === 0 && (
-              <Button onClick={loadTestHabits} variant="secondary" size="md">
-                Load Test Habits
-              </Button>
-            )}
-            <Button onClick={() => setShowForm(true)} size="md" className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 flex-1 sm:flex-none">
-              <Plus className="w-5 h-5 mr-2" /><span className="hidden sm:inline">Add Habit</span><span className="sm:hidden">Add</span>
-            </Button>
-          </div>
+          <Button onClick={() => setShowForm(true)} size="md" className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
+            <Plus className="w-5 h-5 mr-2" /><span className="hidden sm:inline">Add Habit</span><span className="sm:hidden">Add</span>
+          </Button>
         </div>
 
         {/* Hero Stats Section */}
@@ -739,7 +732,7 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pb-20 sm:pb-8">
         {renderContent()}
       </main>
-      <HabitForm 
+      <HabitFormV2 
         isOpen={showForm} 
         onClose={() => {
           setShowForm(false)
