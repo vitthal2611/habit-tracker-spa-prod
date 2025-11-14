@@ -591,78 +591,78 @@ function App() {
     return (
       <div className="space-y-6 animate-fade-in">
         {/* Header with Add Button */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Dashboard</h1>
-          <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Dashboard</h1>
+          <div className="flex gap-3 w-full sm:w-auto">
             {habits.length === 0 && (
-              <Button onClick={loadTestHabits} variant="secondary">
+              <Button onClick={loadTestHabits} variant="secondary" size="md">
                 Load Test Habits
               </Button>
             )}
             {habits.length > 0 && (
-              <Button onClick={() => setShowDeleteConfirm(true)} variant="secondary" className="flex-1 sm:flex-none">
+              <Button onClick={() => setShowDeleteConfirm(true)} variant="secondary" size="md" className="flex-1 sm:flex-none">
                 <span className="hidden sm:inline">Delete All</span><span className="sm:hidden">Clear</span>
               </Button>
             )}
-            <Button onClick={() => setShowForm(true)} className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 flex-1 sm:flex-none">
-              <Plus className="w-4 h-4 mr-2" /><span className="hidden sm:inline">Add Habit</span><span className="sm:hidden">Add</span>
+            <Button onClick={() => setShowForm(true)} size="md" className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 flex-1 sm:flex-none">
+              <Plus className="w-5 h-5 mr-2" /><span className="hidden sm:inline">Add Habit</span><span className="sm:hidden">Add</span>
             </Button>
           </div>
         </div>
 
         {/* Hero Stats Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg hover:shadow-xl transition-all">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <Target className="w-8 h-8 sm:w-10 sm:h-10 opacity-80" />
-              <span className="text-xs sm:text-sm font-medium bg-white/20 px-2 sm:px-3 py-1 rounded-full">Total</span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 sm:p-8 text-white shadow-xl hover:shadow-2xl transition-all transform hover:scale-105">
+            <div className="flex items-center justify-between mb-4">
+              <Target className="w-10 h-10 sm:w-12 sm:h-12 opacity-90" />
+              <span className="text-sm font-semibold bg-white/20 px-3 py-1.5 rounded-full">Total</span>
             </div>
-            <h3 className="text-3xl sm:text-4xl font-bold mb-1">{totalHabits}</h3>
-            <p className="text-sm sm:text-base text-blue-100">Active Habits</p>
+            <h3 className="text-4xl sm:text-5xl font-bold mb-2">{totalHabits}</h3>
+            <p className="text-base sm:text-lg text-blue-100 font-medium">Active Habits</p>
           </div>
 
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg hover:shadow-xl transition-all">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <Calendar className="w-8 h-8 sm:w-10 sm:h-10 opacity-80" />
-              <span className="text-xs sm:text-sm font-medium bg-white/20 px-2 sm:px-3 py-1 rounded-full">Today</span>
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 sm:p-8 text-white shadow-xl hover:shadow-2xl transition-all transform hover:scale-105">
+            <div className="flex items-center justify-between mb-4">
+              <Calendar className="w-10 h-10 sm:w-12 sm:h-12 opacity-90" />
+              <span className="text-sm font-semibold bg-white/20 px-3 py-1.5 rounded-full">Today</span>
             </div>
-            <h3 className="text-3xl sm:text-4xl font-bold mb-1">{completedToday}/{totalHabits}</h3>
-            <p className="text-sm sm:text-base text-green-100">Completed</p>
+            <h3 className="text-4xl sm:text-5xl font-bold mb-2">{completedToday}/{totalHabits}</h3>
+            <p className="text-base sm:text-lg text-green-100 font-medium">Completed</p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg hover:shadow-xl transition-all">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 opacity-80" />
-              <span className="text-xs sm:text-sm font-medium bg-white/20 px-2 sm:px-3 py-1 rounded-full">Rate</span>
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 sm:p-8 text-white shadow-xl hover:shadow-2xl transition-all transform hover:scale-105">
+            <div className="flex items-center justify-between mb-4">
+              <TrendingUp className="w-10 h-10 sm:w-12 sm:h-12 opacity-90" />
+              <span className="text-sm font-semibold bg-white/20 px-3 py-1.5 rounded-full">Rate</span>
             </div>
-            <h3 className="text-3xl sm:text-4xl font-bold mb-1">{completionRate}%</h3>
-            <p className="text-sm sm:text-base text-purple-100">Success Rate</p>
+            <h3 className="text-4xl sm:text-5xl font-bold mb-2">{completionRate}%</h3>
+            <p className="text-base sm:text-lg text-purple-100 font-medium">Success Rate</p>
           </div>
         </div>
 
         {/* View Toggle */}
         <div className="flex justify-center">
-          <div className="inline-flex bg-white dark:bg-gray-800 rounded-xl p-1 shadow-lg border border-gray-200 dark:border-gray-700 w-full sm:w-auto">
+          <div className="inline-flex bg-white dark:bg-gray-800 rounded-2xl p-1.5 shadow-xl border-2 border-gray-200 dark:border-gray-700 w-full sm:w-auto">
             <button
               onClick={() => setViewMode('today')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base font-medium transition-all ${
+              className={`flex-1 sm:flex-none px-6 py-3.5 rounded-xl text-base font-bold transition-all min-h-[52px] ${
                 viewMode === 'today'
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
-              <Calendar className="w-4 h-4 inline mr-1 sm:mr-2" />
+              <Calendar className="w-5 h-5 inline mr-2" />
               <span className="hidden sm:inline">Today's Focus</span><span className="sm:hidden">Today</span>
             </button>
             <button
               onClick={() => setViewMode('weekly')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base font-medium transition-all ${
+              className={`flex-1 sm:flex-none px-6 py-3.5 rounded-xl text-base font-bold transition-all min-h-[52px] ${
                 viewMode === 'weekly'
-                  ? 'bg-gradient-to-r from-green-500 to-teal-500 text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  ? 'bg-gradient-to-r from-green-500 to-teal-500 text-white shadow-lg'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
-              <Target className="w-4 h-4 inline mr-1 sm:mr-2" />
+              <Target className="w-5 h-5 inline mr-2" />
               <span className="hidden sm:inline">Weekly Focus</span><span className="sm:hidden">Weekly</span>
             </button>
           </div>
@@ -746,7 +746,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pb-20 sm:pb-8">
         {renderContent()}
       </main>
       <HabitForm 
