@@ -25,8 +25,7 @@ export default function DailyHabitView({ habits, onToggle }) {
       .filter(habit => {
         const isScheduledByDay = !habit.schedule || habit.schedule.length === 0 || habit.schedule.includes(dayName)
         const isScheduledByDate = habit.specificDates && habit.specificDates.includes(dateKey)
-        const isCompleted = habit.completions && habit.completions[dateStr]
-        return (isScheduledByDay || isScheduledByDate) && !isCompleted
+        return isScheduledByDay || isScheduledByDate
       })
       .sort((a, b) => {
         const timeA = a.time || 'ZZ:ZZ'
@@ -49,7 +48,8 @@ export default function DailyHabitView({ habits, onToggle }) {
     return isScheduledByDay || isScheduledByDate
   })
   
-  const completedToday = totalScheduled.filter(h => h.completions && h.completions[dateStr]).length
+  const completedToday = totalScheduled.filter(h => h.completions && h.completions[dateStr] === true).length
+  const missedToday = totalScheduled.filter(h => h.completions && h.completions[dateStr] === false).length
   const completionRate = totalScheduled.length > 0 ? Math.round((completedToday / totalScheduled.length) * 100) : 0
   
   // Calculate streak for today
@@ -83,135 +83,183 @@ export default function DailyHabitView({ habits, onToggle }) {
   const remaining = dayHabits.length
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 px-4">
-      {/* Identity Statement - James Clear Style */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-l-4 border-blue-500">
-        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Your Identity Today</div>
-        <div className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
-          "I am the type of person who {completedToday > 0 ? 'shows up every day' : 'never misses twice'}"
-        </div>
-        <div className="mt-3 flex items-center space-x-4 text-sm">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span className="text-gray-600 dark:text-gray-400">{completedToday} completed</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-            <span className="text-gray-600 dark:text-gray-400">{currentStreak} day streak</span>
-          </div>
-        </div>
-      </div>
-      
-
-      
+    <div className="max-w-4xl mx-auto space-y-3 sm:space-y-4 px-2 sm:px-4">
       {/* Date Navigation - Minimal */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2 sm:mb-3">
         <button
           onClick={() => navigateDay(-1)}
-          className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 active:scale-95"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
         
         <div className="text-center">
-          <div className="text-sm text-gray-500 dark:text-gray-400">{formatDate(currentDate)}</div>
+          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{formatDate(currentDate)}</div>
         </div>
         
         <button
           onClick={() => navigateDay(1)}
-          className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 active:scale-95"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
 
+      {/* Metrics */}
+      {totalScheduled.length > 0 && (
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 text-center border border-blue-200 dark:border-blue-800">
+            <div className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{totalScheduled.length}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">Total</div>
+          </div>
+          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 text-center border border-green-200 dark:border-green-800">
+            <div className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">{completedToday}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">Done</div>
+          </div>
+          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 text-center border border-red-200 dark:border-red-800">
+            <div className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">{missedToday}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">Missed</div>
+          </div>
+        </div>
+      )}
+
       {dayHabits.length === 0 ? (
-        <div className="text-center py-12 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+        <div className="text-center py-8 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
           <div className="text-4xl mb-3">✓</div>
-          <h3 className="text-lg font-semibold text-green-700 dark:text-green-400 mb-1">All habits completed</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">You showed up today. That's what matters.</p>
+          <h3 className="text-base sm:text-lg font-semibold text-green-700 dark:text-green-400 mb-1">All habits reviewed</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 px-4">{completedToday} completed, {missedToday} missed</p>
         </div>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-3">
           {dayHabits.map((habit) => (
             <div
               key={habit.id}
-              className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-blue-400 dark:hover:border-blue-600 transition-colors shadow-sm"
+              className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
             >
-              {/* Header: Identity + Streak */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-start space-x-3 flex-1">
-                  <button
-                    onClick={() => onToggle(habit.id, dateStr)}
-                    className="w-6 h-6 mt-0.5 rounded border-2 border-gray-300 dark:border-gray-600 hover:border-green-500 dark:hover:border-green-400 flex items-center justify-center transition-colors flex-shrink-0"
-                  >
-                  </button>
-                  
-                  <div className="flex-1">
-                    {habit.identity && (
-                      <div className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-1">
-                        Identity: I am {habit.identity}
-                      </div>
-                    )}
+              {/* Header with gradient */}
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3">
+                <div className="text-center mb-3">
+                  <div className="text-sm sm:text-base font-bold text-white">👤 {habit.identity || 'Building my identity'}</div>
+                </div>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm sm:text-base font-bold text-white mb-1 line-clamp-2">{habit.newHabit || habit.habit || 'No Habit'}</div>
+                    <div className="flex items-center gap-2 text-xs text-white/80">
+                      {habit.time && <span className="flex items-center gap-1">🕐 {habit.time}</span>}
+                      {habit.location && <span className="flex items-center gap-1 truncate">📍 {habit.location}</span>}
+                    </div>
+                  </div>
+                  {habit.streak > 0 && (
+                    <div className="bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 ml-2 flex-shrink-0">
+                      <div className="text-xs text-white/80">Streak</div>
+                      <div className="text-base sm:text-lg font-bold text-white text-center">{habit.streak}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-3 space-y-2">
+                {/* Implementation Intention */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 border-l-4 border-blue-500">
+                  <div className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">📍 Implementation</div>
+                  <div className="text-xs sm:text-sm text-gray-900 dark:text-gray-100">
+                    {habit.prefix && habit.currentHabit 
+                      ? `${habit.prefix} I ${habit.currentHabit}${habit.location ? ` at ${habit.location}` : ''}${habit.time ? ` at ${habit.time}` : ''}, I will ${habit.newHabit || habit.habit}`
+                      : `${habit.time ? `At ${habit.time}` : ''}${habit.location ? ` in ${habit.location}` : ''}, I will ${habit.newHabit || habit.habit}`}
                   </div>
                 </div>
-                
-                {habit.streak > 0 && (
-                  <div className="text-right">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Overall Streak</div>
-                    <div className="text-lg font-bold text-orange-500">{String(habit.streak).padStart(2, '0')}</div>
+
+                {/* Environment Cues */}
+                {habit.environmentTips && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-2 border-l-4 border-yellow-500">
+                    <div className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-1">🔔 Make it Obvious</div>
+                    <div className="text-xs sm:text-sm text-gray-900 dark:text-gray-100">{habit.environmentTips}</div>
+                  </div>
+                )}
+
+                {/* Make it Attractive */}
+                {habit.makeAttractive && (
+                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2 border-l-4 border-purple-500">
+                    <div className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-1">💜 Attractive</div>
+                    <div className="text-xs sm:text-sm text-gray-900 dark:text-gray-100">{habit.makeAttractive}</div>
+                  </div>
+                )}
+
+                {/* Make it Easy */}
+                {habit.makeEasy && (
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 border-l-4 border-green-500">
+                    <div className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">⚡ 2-Min Version</div>
+                    <div className="text-xs sm:text-sm text-gray-900 dark:text-gray-100">{habit.makeEasy}</div>
+                  </div>
+                )}
+
+                {/* Make it Satisfying */}
+                {habit.makeSatisfying && (
+                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2 border-l-4 border-orange-500">
+                    <div className="text-xs font-semibold text-orange-700 dark:text-orange-400 mb-1">🎯 Satisfying</div>
+                    <div className="text-xs sm:text-sm text-gray-900 dark:text-gray-100">{habit.makeSatisfying}</div>
+                  </div>
+                )}
+
+                {/* Schedule */}
+                {habit.schedule && habit.schedule.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                    <span className="font-medium">📅</span>
+                    <div className="flex flex-wrap gap-1">
+                      {habit.schedule.map(day => (
+                        <span key={day} className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">{day}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quadrant */}
+                {habit.quadrant && (
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    <span className="font-medium">📊</span> {habit.quadrant}
                   </div>
                 )}
               </div>
-              
-              {/* Implementation Intention */}
-              <div className="mb-3 pl-9">
-                <div className="flex items-start gap-2">
-                  {habit.time && (
-                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                      {habit.time}:
-                    </span>
-                  )}
-                  <div className="text-sm text-gray-900 dark:text-gray-100">
-                    {habit.currentHabit && habit.newHabit 
-                      ? `After ${habit.currentHabit}${habit.location ? ` at ${habit.location}` : ''}, I will ${habit.newHabit}`
-                      : habit.newHabit || habit.habit || 'No description'}
-                  </div>
-                </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 p-2 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => {
+                    const isCompleted = habit.completions && habit.completions[dateStr]
+                    if (!isCompleted) onToggle(habit.id, dateStr)
+                  }}
+                  className={`flex-1 py-2.5 rounded-lg font-medium text-sm transition-all active:scale-95 ${
+                    habit.completions && habit.completions[dateStr]
+                      ? 'bg-green-500 text-white shadow-md'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                  }`}
+                >
+                  ✓ Completed
+                </button>
+                <button
+                  onClick={() => {
+                    const isCompleted = habit.completions && habit.completions[dateStr]
+                    if (isCompleted) onToggle(habit.id, dateStr)
+                  }}
+                  className={`flex-1 py-2.5 rounded-lg font-medium text-sm transition-all active:scale-95 ${
+                    habit.completions && habit.completions[dateStr]
+                      ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                      : 'bg-red-500 text-white shadow-md'
+                  }`}
+                >
+                  ✕ Missed
+                </button>
               </div>
-              
-              {/* Make it Easy - Tiny Version */}
-              {habit.makeEasy && (
-                <div className="mb-2 pl-9 bg-green-50 dark:bg-green-900/20 rounded p-2 border-l-2 border-green-400">
-                  <div className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">Tiny Version:</div>
-                  <div className="text-xs text-gray-700 dark:text-gray-300">{habit.makeEasy}</div>
-                </div>
-              )}
-              
-              {/* Make it Attractive */}
-              {habit.makeAttractive && (
-                <div className="mb-2 pl-9 bg-purple-50 dark:bg-purple-900/20 rounded p-2 border-l-2 border-purple-400">
-                  <div className="text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">Attractive:</div>
-                  <div className="text-xs text-gray-700 dark:text-gray-300">{habit.makeAttractive}</div>
-                </div>
-              )}
-              
-              {/* Current Progress / Make it Satisfying */}
-              {habit.makeSatisfying && (
-                <div className="pl-9 bg-blue-50 dark:bg-blue-900/20 rounded p-2 border-l-2 border-blue-400">
-                  <div className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">Current Progress:</div>
-                  <div className="text-xs text-gray-700 dark:text-gray-300">{habit.makeSatisfying}</div>
-                </div>
-              )}
             </div>
           ))}
         </div>
       )}
 
       {/* Atomic Habits Wisdom */}
-      <div className="mt-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border-l-4 border-gray-300 dark:border-gray-600">
+      <div className="mt-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 border-l-4 border-gray-300 dark:border-gray-600">
         <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Remember</div>
-        <div className="text-sm text-gray-700 dark:text-gray-300 italic">
+        <div className="text-xs text-gray-700 dark:text-gray-300 italic">
           {remaining === 0 
             ? '"You do not rise to the level of your goals. You fall to the level of your systems."'
             : remaining === 1
@@ -221,7 +269,7 @@ export default function DailyHabitView({ habits, onToggle }) {
             : '"Habits are the compound interest of self-improvement."'
           }
         </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">— James Clear, Atomic Habits</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">— James Clear</div>
       </div>
     </div>
   )

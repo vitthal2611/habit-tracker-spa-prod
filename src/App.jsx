@@ -140,6 +140,12 @@ function App() {
       await deleteHabitFromDb(habitToDelete.id)
       setShowDeleteConfirm(false)
       setHabitToDelete(null)
+    } else {
+      // Delete all habits
+      for (const habit of habits) {
+        await deleteHabitFromDb(habit.id)
+      }
+      setShowDeleteConfirm(false)
     }
   }
 
@@ -585,109 +591,121 @@ function App() {
     return (
       <div className="space-y-6 animate-fade-in">
         {/* Header with Add Button */}
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Dashboard</h1>
-          <Button onClick={() => setShowForm(true)} className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
-            <Plus className="w-4 h-4 mr-2" />Add Habit
-          </Button>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Dashboard</h1>
+          <div className="flex gap-2 w-full sm:w-auto">
+            {habits.length === 0 && (
+              <Button onClick={loadTestHabits} variant="secondary">
+                Load Test Habits
+              </Button>
+            )}
+            {habits.length > 0 && (
+              <Button onClick={() => setShowDeleteConfirm(true)} variant="secondary" className="flex-1 sm:flex-none">
+                <span className="hidden sm:inline">Delete All</span><span className="sm:hidden">Clear</span>
+              </Button>
+            )}
+            <Button onClick={() => setShowForm(true)} className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 mr-2" /><span className="hidden sm:inline">Add Habit</span><span className="sm:hidden">Add</span>
+            </Button>
+          </div>
         </div>
 
         {/* Hero Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <Target className="w-10 h-10 opacity-80" />
-              <span className="text-sm font-medium bg-white/20 px-3 py-1 rounded-full">Total</span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg hover:shadow-xl transition-all">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <Target className="w-8 h-8 sm:w-10 sm:h-10 opacity-80" />
+              <span className="text-xs sm:text-sm font-medium bg-white/20 px-2 sm:px-3 py-1 rounded-full">Total</span>
             </div>
-            <h3 className="text-4xl font-bold mb-1">{totalHabits}</h3>
-            <p className="text-blue-100">Active Habits</p>
+            <h3 className="text-3xl sm:text-4xl font-bold mb-1">{totalHabits}</h3>
+            <p className="text-sm sm:text-base text-blue-100">Active Habits</p>
           </div>
 
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <Calendar className="w-10 h-10 opacity-80" />
-              <span className="text-sm font-medium bg-white/20 px-3 py-1 rounded-full">Today</span>
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg hover:shadow-xl transition-all">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <Calendar className="w-8 h-8 sm:w-10 sm:h-10 opacity-80" />
+              <span className="text-xs sm:text-sm font-medium bg-white/20 px-2 sm:px-3 py-1 rounded-full">Today</span>
             </div>
-            <h3 className="text-4xl font-bold mb-1">{completedToday}/{totalHabits}</h3>
-            <p className="text-green-100">Completed</p>
+            <h3 className="text-3xl sm:text-4xl font-bold mb-1">{completedToday}/{totalHabits}</h3>
+            <p className="text-sm sm:text-base text-green-100">Completed</p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <TrendingUp className="w-10 h-10 opacity-80" />
-              <span className="text-sm font-medium bg-white/20 px-3 py-1 rounded-full">Rate</span>
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg hover:shadow-xl transition-all">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 opacity-80" />
+              <span className="text-xs sm:text-sm font-medium bg-white/20 px-2 sm:px-3 py-1 rounded-full">Rate</span>
             </div>
-            <h3 className="text-4xl font-bold mb-1">{completionRate}%</h3>
-            <p className="text-purple-100">Success Rate</p>
+            <h3 className="text-3xl sm:text-4xl font-bold mb-1">{completionRate}%</h3>
+            <p className="text-sm sm:text-base text-purple-100">Success Rate</p>
           </div>
         </div>
 
         {/* View Toggle */}
         <div className="flex justify-center">
-          <div className="inline-flex bg-white dark:bg-gray-800 rounded-xl p-1 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="inline-flex bg-white dark:bg-gray-800 rounded-xl p-1 shadow-lg border border-gray-200 dark:border-gray-700 w-full sm:w-auto">
             <button
               onClick={() => setViewMode('today')}
-              className={`px-6 py-2 rounded-lg font-medium transition-all ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base font-medium transition-all ${
                 viewMode === 'today'
                   ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
             >
-              <Calendar className="w-4 h-4 inline mr-2" />
-              Today's Focus
+              <Calendar className="w-4 h-4 inline mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Today's Focus</span><span className="sm:hidden">Today</span>
             </button>
             <button
               onClick={() => setViewMode('weekly')}
-              className={`px-6 py-2 rounded-lg font-medium transition-all ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base font-medium transition-all ${
                 viewMode === 'weekly'
                   ? 'bg-gradient-to-r from-green-500 to-teal-500 text-white shadow-md'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
             >
-              <Target className="w-4 h-4 inline mr-2" />
-              Weekly Focus
+              <Target className="w-4 h-4 inline mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Weekly Focus</span><span className="sm:hidden">Weekly</span>
             </button>
           </div>
         </div>
 
         {/* Main Content */}
         {viewMode === 'today' ? (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-4">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-3 sm:p-4">
+              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
                 Today's Focus
               </h2>
             </div>
-            <div className="p-4">
+            <div className="p-3 sm:p-4">
               <DailyHabitView habits={habits} onToggle={toggleHabit} />
             </div>
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="bg-gradient-to-r from-green-500 to-teal-500 p-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Target className="w-5 h-5" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gradient-to-r from-green-500 to-teal-500 p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+                <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                  <Target className="w-4 h-4 sm:w-5 sm:h-5" />
                   Weekly Focus
                 </h2>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto">
                   <select 
                     value={groupBy} 
                     onChange={(e) => setGroupBy(e.target.value)}
-                    className="px-3 py-1.5 text-sm border-0 rounded-lg bg-white/20 text-white backdrop-blur-sm"
+                    className="flex-1 sm:flex-none px-2 sm:px-3 py-1.5 text-xs sm:text-sm border-0 rounded-lg bg-white/20 text-white backdrop-blur-sm"
                   >
                     <option value="none" className="text-gray-900">No Grouping</option>
                     <option value="identity" className="text-gray-900">By Identity</option>
                     <option value="location" className="text-gray-900">By Location</option>
                   </select>
                   <Button onClick={() => setShowForm(true)} size="sm" className="bg-white text-green-600 hover:bg-gray-100">
-                    <Plus className="w-4 h-4 mr-1" />Add
+                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" /><span className="hidden sm:inline">Add</span>
                   </Button>
                 </div>
               </div>
             </div>
-            <div className="p-4">
+            <div className="p-3 sm:p-4">
               {habits.length === 0 ? (
                 <div className="text-center py-16">
                   <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -728,7 +746,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-8">
         {renderContent()}
       </main>
       <HabitForm 
@@ -822,20 +840,26 @@ function App() {
         </div>
       )}
       
-      {showDeleteConfirm && habitToDelete && (
+      {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 animate-fade-in p-4">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-sm animate-scale-in">
             <div className="text-center mb-6">
               <div className="text-4xl mb-4">🗑️</div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Delete Habit?</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-2">Are you sure you want to delete:</p>
-              <p className="font-semibold text-gray-900 dark:text-gray-100">"{habitToDelete.habit || habitToDelete.newHabit}"</p>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{habitToDelete ? 'Delete Habit?' : 'Delete All Habits?'}</h3>
+              {habitToDelete ? (
+                <>
+                  <p className="text-gray-600 dark:text-gray-400 mb-2">Are you sure you want to delete:</p>
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">"{habitToDelete.habit || habitToDelete.newHabit}"</p>
+                </>
+              ) : (
+                <p className="text-gray-600 dark:text-gray-400 mb-2">Are you sure you want to delete all {habits.length} habits?</p>
+              )}
               <p className="text-sm text-red-600 dark:text-red-400 mt-2">This action cannot be undone.</p>
             </div>
             
             <div className="flex space-x-3">
               <button 
-                onClick={() => setShowDeleteConfirm(false)}
+                onClick={() => { setShowDeleteConfirm(false); setHabitToDelete(null); }}
                 className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
               >
                 Cancel

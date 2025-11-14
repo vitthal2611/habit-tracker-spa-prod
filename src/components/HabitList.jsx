@@ -313,38 +313,36 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
 
   return (
     <div className="overflow-x-auto" id="habit-list-container">
-      <div className="flex items-center justify-between mb-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-        <button
-          onClick={() => setWeekOffset(weekOffset - 1)}
-          className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span className="hidden sm:inline">Previous Week</span>
-          <span className="sm:hidden">Prev</span>
-        </button>
-        <div className="text-center">
-          <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-gray-100">{getWeekRange()}</div>
-          <div className={`text-xs sm:text-sm font-medium px-2 py-1 rounded ${
-            weekOffset === 0 
-              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' 
-              : 'text-gray-500 dark:text-gray-400'
-          }`}>
-            {weekOffset === 0 ? 'This Week' : weekOffset > 0 ? `${weekOffset} week${weekOffset > 1 ? 's' : ''} ahead` : `${Math.abs(weekOffset)} week${Math.abs(weekOffset) > 1 ? 's' : ''} ago`}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+          <button
+            onClick={() => setWeekOffset(weekOffset - 1)}
+            className="flex items-center space-x-1 px-2 sm:px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span className="text-xs sm:text-sm">Prev</span>
+          </button>
+          <div className="text-center flex-1 sm:flex-none">
+            <div className="font-semibold text-xs sm:text-base text-gray-900 dark:text-gray-100">{getWeekRange()}</div>
+            <div className={`text-xs font-medium px-2 py-0.5 rounded ${
+              weekOffset === 0 
+                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' 
+                : 'text-gray-500 dark:text-gray-400'
+            }`}>
+              {weekOffset === 0 ? 'This Week' : weekOffset > 0 ? `${weekOffset}w ahead` : `${Math.abs(weekOffset)}w ago`}
+            </div>
           </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button onClick={downloadWeeklyPDF} size="sm">
-            <Download className="w-4 h-4 mr-1" />PDF
-          </Button>
           <button
             onClick={() => setWeekOffset(weekOffset + 1)}
-            className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+            className="flex items-center space-x-1 px-2 sm:px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
           >
-            <span className="hidden sm:inline">Next Week</span>
-            <span className="sm:hidden">Next</span>
+            <span className="text-xs sm:text-sm">Next</span>
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
+        <Button onClick={downloadWeeklyPDF} size="sm" className="w-full sm:w-auto">
+          <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /><span className="text-xs sm:text-sm">PDF</span>
+        </Button>
       </div>
       {habits.length === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
@@ -547,52 +545,52 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
             </div>
             
             {/* Mobile Cards */}
-            <div className="lg:hidden space-y-3 p-3">
+            <div className="lg:hidden space-y-3 p-2 sm:p-3">
             {groupHabits.map(habit => {
               const consistencyDays = getConsistencyDays(habit)
               const weekProgress = getWeekProgress(habit)
               const completedThisWeek = weekProgress.filter(d => d.completed).length
               return (
-              <div key={habit.id} className={`rounded-xl shadow-md overflow-hidden transition-all hover:shadow-lg ${wasMissedYesterday(habit) ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/20 border-2 border-red-300 dark:border-red-700' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'}`}>
+              <div key={habit.id} className={`rounded-lg sm:rounded-xl shadow-md overflow-hidden transition-all hover:shadow-lg ${wasMissedYesterday(habit) ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/20 border-2 border-red-300 dark:border-red-700' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'}`}>
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 text-white">
+                <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 sm:p-4 text-white">
                   <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <div className="text-base font-bold mb-1">{formatHabitText(habit)}</div>
-                      <div className="text-xs opacity-90">{habit.identity}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm sm:text-base font-bold mb-1 truncate">{formatHabitText(habit)}</div>
+                      <div className="text-xs opacity-90 truncate">{habit.identity}</div>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 flex-shrink-0 ml-2">
                       <button onClick={() => onDelete(habit.id)} className="p-1.5 hover:bg-white/20 rounded transition-colors" title="Delete">
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-xs opacity-90">
                     <Clock className="w-3 h-3" />
-                    <span>{habit.time}</span>
-                    <MapPin className="w-3 h-3 ml-2" />
-                    <span>{habit.location}</span>
+                    <span className="truncate">{habit.time}</span>
+                    <MapPin className="w-3 h-3 ml-1" />
+                    <span className="truncate">{habit.location}</span>
                   </div>
                 </div>
 
                 {/* Metrics */}
-                <div className="grid grid-cols-3 gap-3 p-4 bg-gray-50 dark:bg-gray-900/50">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 p-3 sm:p-4 bg-gray-50 dark:bg-gray-900/50">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">{consistencyDays}</div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400">Day Streak</div>
+                    <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">{consistencyDays}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">Streak</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{completedThisWeek}/7</div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400">This Week</div>
+                    <div className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{completedThisWeek}/7</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">Week</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{Math.round((completedThisWeek/7)*100)}%</div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400">Complete</div>
+                    <div className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{Math.round((completedThisWeek/7)*100)}%</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">Rate</div>
                   </div>
                 </div>
 
                 {/* Week Progress */}
-                <div className="p-4">
+                <div className="p-3 sm:p-4">
                   <div className="grid grid-cols-7 gap-1">
                     {weekProgress.map((day, i) => (
                       <div key={i} className="text-center">
@@ -600,14 +598,14 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
                         <button
                           onClick={() => day.isScheduled && toggleDayCompletion(habit.id, day.dateKey)}
                           disabled={!day.isScheduled}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
+                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
                             !day.isScheduled
                               ? 'bg-gray-100 text-gray-300 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed'
                               : day.completed 
-                              ? 'bg-green-500 text-white hover:bg-green-600 cursor-pointer hover:scale-110' 
+                              ? 'bg-green-500 text-white hover:bg-green-600 cursor-pointer active:scale-95' 
                               : day.isToday 
-                              ? 'bg-blue-500 text-white ring-2 ring-blue-200 hover:bg-blue-600 cursor-pointer hover:scale-110'
-                              : 'bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-500 cursor-pointer hover:scale-110'
+                              ? 'bg-blue-500 text-white ring-2 ring-blue-200 hover:bg-blue-600 cursor-pointer active:scale-95'
+                              : 'bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-500 cursor-pointer active:scale-95'
                           }`}
                         >
                           {day.completed ? '✓' : day.date}
