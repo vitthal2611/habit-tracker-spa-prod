@@ -5,7 +5,8 @@ import { auth } from './firebase'
 import Navigation from './components/Navigation'
 import HabitForm from './components/HabitForm'
 import HabitList from './components/HabitList'
-
+import TaskView from './components/TaskView'
+import DailyHabitView from './components/DailyHabitView'
 import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Modal from './components/ui/Modal'
@@ -16,7 +17,7 @@ import { generateTestHabits } from './utils/testHabits'
 function App() {
   const [user, setUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('home')
+  const [activeTab, setActiveTab] = useState('daily')
   const [habits, { addItem: addHabitToDb, updateItem: updateHabitInDb, deleteItem: deleteHabitFromDb, loading }] = useFirestore('habits', [])
   const [showForm, setShowForm] = useState(false)
   const [editingHabit, setEditingHabit] = useState(null)
@@ -307,13 +308,22 @@ function App() {
 
 
 
+  const renderDailyHabits = () => {
+    if (loading) return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+    return (
+      <div className="animate-fade-in">
+        <DailyHabitView habits={habits} onToggle={toggleHabit} />
+      </div>
+    )
+  }
+
   const renderCheckin = () => {
     const checkinDateStr = checkinDate.toDateString()
     const dayName = checkinDate.toLocaleDateString('en', { weekday: 'short' })
     const isToday = checkinDateStr === today
     
     const allDayHabits = habits.filter(h => {
-      const dateKey = checkinDate.toISOString().split('T')[0] // YYYY-MM-DD format
+      const dateKey = checkinDate.toISOString().split('T')[0]
       const isScheduledByDay = !h.schedule || h.schedule.length === 0 || h.schedule.includes(dayName)
       const isScheduledByDate = h.specificDates && h.specificDates.includes(dateKey)
       return isScheduledByDay || isScheduledByDate
@@ -333,29 +343,6 @@ function App() {
       ? sortByTime(allDayHabits)
       : sortByTime(allDayHabits.filter(h => !h.completions[checkinDateStr]))
     
-    const getTimeGroup = (time) => {
-      if (!time || time === 'Anytime') return 'No Time Set'
-      const hour = parseInt(time.split(':')[0])
-      
-      if (hour >= 5 && hour < 12) return 'Morning'
-      if (hour >= 12 && hour < 17) return 'Afternoon'
-      if (hour >= 17 && hour < 21) return 'Evening'
-      return 'Night'
-    }
-    
-    const groupedByTime = dayHabits.reduce((acc, habit) => {
-      const group = getTimeGroup(habit.time)
-      if (!acc[group]) acc[group] = []
-      acc[group].push(habit)
-      return acc
-    }, {})
-    
-    // Sort habits within each time group
-    Object.keys(groupedByTime).forEach(group => {
-      groupedByTime[group] = sortByTime(groupedByTime[group])
-    })
-    
-    const timeOrder = ['Morning', 'Afternoon', 'Evening', 'Night', 'No Time Set']
     const completedCount = allDayHabits.filter(h => h.completions[checkinDateStr]).length
     const totalCount = allDayHabits.length
     const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0
@@ -367,24 +354,26 @@ function App() {
     }
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 -m-8 p-8">
-        <div className="max-w-4xl mx-auto space-y-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 -m-8 p-4 sm:p-8">
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* Header */}
           <div className="text-center relative">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-green-400 rounded-3xl opacity-10 blur-3xl"></div>
-            <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-xl border border-white/20">
-              <div className="text-4xl sm:text-5xl mb-3 animate-bounce">{progressPercent === 100 && totalCount > 0 ? '🎉' : '✨'}</div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-3">Daily Check-in</h1>
+            <div className="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/20">
+              <div className="text-5xl mb-4">{progressPercent === 100 && totalCount > 0 ? '🎉' : isToday ? '✨' : '📅'}</div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-4">Daily Check-in</h1>
               
-              <div className="flex items-center justify-center space-x-4 mb-4">
+              {/* Date Navigation */}
+              <div className="flex items-center justify-center space-x-4 mb-6">
                 <button 
                   onClick={() => navigateDay(-1)}
-                  className="p-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200"
+                  className="p-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200"
                 >
                   ←
                 </button>
                 
                 <div className="text-center px-4">
-                  <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">
+                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
                     {checkinDate.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' })}
                   </p>
                   {isToday ? (
@@ -401,19 +390,20 @@ function App() {
                 
                 <button 
                   onClick={() => navigateDay(1)}
-                  className="p-2 rounded-full bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200"
+                  className="p-3 rounded-full bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200"
                 >
                   →
                 </button>
               </div>
               
-              <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-6">
-                <div className="relative w-16 h-16 sm:w-20 sm:h-20">
-                  <svg className="w-16 h-16 sm:w-20 sm:h-20 transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-gray-200 dark:text-gray-700" />
+              {/* Progress Circle */}
+              <div className="flex items-center justify-center space-x-6 mb-4">
+                <div className="relative w-24 h-24">
+                  <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="6" fill="none" className="text-gray-200 dark:text-gray-700" />
                     <circle 
                       cx="50" cy="50" r="40" 
-                      stroke="url(#gradient)" strokeWidth="8" fill="none"
+                      stroke="url(#gradient)" strokeWidth="6" fill="none"
                       strokeLinecap="round"
                       strokeDasharray={`${progressPercent * 2.51} 251`}
                       className="transition-all duration-1000 ease-out"
@@ -426,101 +416,112 @@ function App() {
                     </defs>
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-sm sm:text-lg font-bold text-gray-900 dark:text-gray-100">{Math.round(progressPercent)}%</span>
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{Math.round(progressPercent)}%</span>
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{completedCount}/{totalCount}</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Habits Completed</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{completedCount}/{totalCount}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Completed</div>
+                  {totalCount > 0 && (
+                    <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      {completedCount === totalCount ? '🔥 Perfect!' : `${totalCount - completedCount} remaining`}
+                    </div>
+                  )}
                 </div>
+              </div>
+              
+              {/* Toggle Button */}
+              {totalCount > 0 && (
                 <button
                   onClick={() => setShowCompleted(!showCompleted)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                     showCompleted 
                       ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md' 
                       : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                   }`}
                 >
-                  {showCompleted ? 'Hide Completed' : 'Show Completed'}
+                  {showCompleted ? 'Hide Completed' : 'Show All'}
                 </button>
-              </div>
+              )}
             </div>
           </div>
 
+          {/* Habits List */}
           {totalCount === 0 ? (
-            <div className="text-center py-8">
-              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
-                <div className="text-4xl mb-4">🎯</div>
-                <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">No habits scheduled</h3>
-                <p className="text-gray-600 dark:text-gray-400">Enjoy your day off or create new habits!</p>
+            <div className="text-center py-12">
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl">
+                <div className="text-6xl mb-4">🎯</div>
+                <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">No habits for today</h3>
+                <p className="text-gray-600 dark:text-gray-400">Enjoy your day off or add some habits!</p>
               </div>
             </div>
           ) : dayHabits.length === 0 && !showCompleted ? (
-            <div className="text-center py-8">
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-green-200/50">
-                <div className="text-5xl mb-4 animate-pulse">🎉</div>
-                <h3 className="text-xl font-bold mb-2 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">All Done!</h3>
-                <p className="text-sm text-gray-700 dark:text-gray-300">Amazing work! You've completed all your habits.</p>
+            <div className="text-center py-12">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-green-200/50">
+                <div className="text-6xl mb-4 animate-pulse">🎉</div>
+                <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">All Done!</h3>
+                <p className="text-gray-700 dark:text-gray-300">Amazing work! You've completed all your habits for today.</p>
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
-              {timeOrder.map(timeGroup => {
-                const habits = groupedByTime[timeGroup]
-                if (!habits || habits.length === 0) return null
-                
-                const groupIcon = timeGroup === 'Morning' ? '🌅' : timeGroup === 'Afternoon' ? '☀️' : timeGroup === 'Evening' ? '🌆' : timeGroup === 'Night' ? '🌙' : '⏰'
-                
+            <div className="space-y-3">
+              {dayHabits.map((habit, index) => {
+                const isCompleted = habit.completions[checkinDateStr]
                 return (
-                  <div key={timeGroup} className="space-y-3">
-                    <div className="flex items-center space-x-2 px-2">
-                      <span className="text-lg">{groupIcon}</span>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{timeGroup}</h3>
-                      <div className="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600"></div>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">{habits.length} habit{habits.length !== 1 ? 's' : ''}</span>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {habits.map((habit, index) => {
-                        const isCompleted = habit.completions[checkinDateStr]
-                        const formatHabitText = (habit) => {
-                          return habit.habit || habit.newHabit || '-'
-                        }
-                        return (
-                          <div key={habit.id} className="group animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
-                            <div className={`bg-white dark:bg-gray-800 rounded-lg p-3 shadow hover:shadow-md transition-all border ${
-                              isCompleted 
-                                ? 'border-green-200 dark:border-green-700' 
-                                : 'border-gray-200 dark:border-gray-700'
-                            }`}>
-                              <div className="flex items-center space-x-3">
-                                <button
-                                  onClick={() => toggleHabit(habit.id, checkinDateStr)}
-                                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                                    isCompleted
-                                      ? 'bg-green-500 border-green-500 text-white'
-                                      : 'border-gray-300 dark:border-gray-600 hover:border-green-500'
-                                  }`}
-                                >
-                                  {isCompleted && '✓'}
-                                </button>
-                                
-                                <div className="text-sm text-gray-600 dark:text-gray-400 w-16">
-                                  {habit.time || '--:--'}
-                                </div>
-                                
-                                <div className={`flex-1 text-sm ${
-                                  isCompleted 
-                                    ? 'text-gray-500 dark:text-gray-400 line-through' 
-                                    : 'text-gray-900 dark:text-gray-100'
-                                }`}>
-                                  {formatHabitText(habit)}
-                                </div>
-                              </div>
-                            </div>
+                  <div key={habit.id} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+                    <div className={`bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg hover:shadow-xl transition-all border-2 ${
+                      isCompleted 
+                        ? 'border-green-300 dark:border-green-600 bg-green-50/50 dark:bg-green-900/20' 
+                        : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
+                    }`}>
+                      <div className="flex items-center space-x-4">
+                        <button
+                          onClick={() => toggleHabit(habit.id, checkinDateStr)}
+                          className={`w-8 h-8 rounded-full border-3 flex items-center justify-center transition-all transform hover:scale-110 ${
+                            isCompleted
+                              ? 'bg-green-500 border-green-500 text-white shadow-lg'
+                              : 'border-gray-300 dark:border-gray-600 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20'
+                          }`}
+                        >
+                          {isCompleted && <span className="text-lg">✓</span>}
+                        </button>
+                        
+                        <div className="flex-1">
+                          <div className={`font-medium ${
+                            isCompleted 
+                              ? 'text-gray-600 dark:text-gray-400 line-through' 
+                              : 'text-gray-900 dark:text-gray-100'
+                          }`}>
+                            {habit.habit || habit.newHabit || 'Untitled Habit'}
                           </div>
-                        )
-                      })}
+                          <div className="flex items-center space-x-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            {habit.time && (
+                              <span className="flex items-center space-x-1">
+                                <span>🕐</span>
+                                <span>{habit.time}</span>
+                              </span>
+                            )}
+                            {habit.location && (
+                              <span className="flex items-center space-x-1">
+                                <span>📍</span>
+                                <span>{habit.location}</span>
+                              </span>
+                            )}
+                            {habit.identity && (
+                              <span className="flex items-center space-x-1">
+                                <span>👤</span>
+                                <span>{habit.identity}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {isCompleted && (
+                          <div className="text-green-500 text-2xl animate-pulse">
+                            ✨
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )
@@ -534,9 +535,12 @@ function App() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'home': return renderHome()
+      case 'home': return renderDailyHabits()
+      case 'daily': return renderDailyHabits()
+      case 'habits': return renderHabits()
       case 'checkin': return renderCheckin()
-      default: return renderHome()
+      case 'tasks': return <TaskView />
+      default: return renderDailyHabits()
     }
   }
 

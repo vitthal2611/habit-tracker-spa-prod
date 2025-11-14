@@ -15,6 +15,20 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
   const [sortOrder, setSortOrder] = useState('asc')
   const today = new Date().toDateString()
 
+  const wasMissedYesterday = (habit) => {
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+    const yesterdayStr = yesterday.toDateString()
+    const dayName = yesterday.toLocaleDateString('en', { weekday: 'short' })
+    const dateKey = yesterday.toISOString().split('T')[0]
+    
+    const isScheduledByDay = !habit.schedule || habit.schedule.length === 0 || habit.schedule.includes(dayName)
+    const isScheduledByDate = habit.specificDates && habit.specificDates.includes(dateKey)
+    const wasScheduled = isScheduledByDay || isScheduledByDate
+    
+    return wasScheduled && !habit.completions[yesterdayStr]
+  }
+
   const getWeekProgress = (habit) => {
     const week = []
     const today = new Date()
@@ -354,7 +368,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
             {/* Desktop Rows */}
             <div className="hidden lg:block">
             {groupHabits.map(habit => (
-              <div key={habit.id} className="grid gap-4 p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors animate-fade-in" style={{gridTemplateColumns: '120px 200px 80px 120px 80px 280px 120px'}}>
+              <div key={habit.id} className={`grid gap-4 p-4 border-b transition-colors animate-fade-in ${wasMissedYesterday(habit) ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30' : 'border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'}`} style={{gridTemplateColumns: '120px 200px 80px 120px 80px 280px 120px'}}>
                 <div className="text-sm text-blue-600 dark:text-blue-400 font-medium flex items-center" title={habit.identity || '-'}>
                   {editingField.habitId === habit.id && editingField.field === 'identity' ? (
                     <select
@@ -511,7 +525,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
             {/* Mobile Cards */}
             <div className="lg:hidden">
             {groupHabits.map(habit => (
-              <div key={habit.id} className="p-4 border-b border-gray-100 dark:border-gray-700 animate-fade-in">
+              <div key={habit.id} className={`p-4 border-b animate-fade-in ${wasMissedYesterday(habit) ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'border-gray-100 dark:border-gray-700'}`}>
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
                     <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">

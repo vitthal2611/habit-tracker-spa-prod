@@ -14,8 +14,10 @@ export default function Navigation({ activeTab, setActiveTab, onLogout }) {
   }, [isDark])
 
   const tabs = [
-    { id: 'home', label: 'Home', icon: Home },
+    { id: 'daily', label: 'Home', icon: Home },
+    { id: 'habits', label: 'Weekly', icon: Target },
     { id: 'checkin', label: 'Check-in', icon: CheckSquare },
+    { id: 'tasks', label: 'Tasks', icon: ClipboardList },
   ]
 
   return (
