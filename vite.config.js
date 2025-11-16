@@ -11,13 +11,22 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    },
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          icons: ['lucide-react']
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+          icons: ['lucide-react'],
+          pdf: ['jspdf', 'html2canvas']
         }
       }
-    }
+    },
+    chunkSizeWarningLimit: 1000
   }
 })
