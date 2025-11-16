@@ -6,6 +6,7 @@ import { db, auth } from '../firebase'
 export const useFirestore = (collectionName, initialValue = []) => {
   const [data, setData] = useState(initialValue)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [user, setUser] = useState(null)
 
   useEffect(() => {
@@ -20,12 +21,31 @@ export const useFirestore = (collectionName, initialValue = []) => {
       
       if (user) {
         const userCollection = collection(db, 'users', user.uid, collectionName)
-        dataUnsubscribe = onSnapshot(userCollection, (snapshot) => {
-          const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-          setData(items)
-          setLoading(false)
-        })
+        dataUnsubscribe = onSnapshot(
+          userCollection,
+          (snapshot) => {
+            try {
+              const items = snapshot.docs.map(doc => {
+                const data = doc.data()
+                return { ...data, id: data.id || doc.id }
+              })
+              setData(items)
+              setError(null)
+            } catch (err) {
+              console.error('Error processing snapshot:', err)
+              setError(err.message)
+            } finally {
+              setLoading(false)
+            }
+          },
+          (err) => {
+            console.error('Snapshot error:', err)
+            setError(err.message)
+            setLoading(false)
+          }
+        )
       } else {
+        setData(initialValue)
         setLoading(false)
       }
     })
@@ -36,26 +56,60 @@ export const useFirestore = (collectionName, initialValue = []) => {
     }
   }, [collectionName])
 
+  const cleanData = (obj) => {
+    const cleaned = {}
+    Object.keys(obj).forEach(key => {
+      if (obj[key] !== undefined) {
+        cleaned[key] = obj[key]
+      }
+    })
+    return cleaned
+  }
+
   const addItem = async (item) => {
-    const currentUser = auth.currentUser
-    if (!currentUser) return
-    const docId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_')
-    await setDoc(doc(db, 'users', currentUser.uid, collectionName, docId), { ...item, id: docId })
+    try {
+      const currentUser = auth.currentUser
+      if (!currentUser) throw new Error('User not authenticated')
+      if (!item?.id) throw new Error('Item must have an id')
+      
+      const docId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_')
+      await setDoc(doc(db, 'users', currentUser.uid, collectionName, docId), cleanData(item))
+    } catch (err) {
+      console.error('Error adding item:', err)
+      setError(err.message)
+      throw err
+    }
   }
 
   const updateItem = async (item) => {
-    const currentUser = auth.currentUser
-    if (!currentUser) return
-    const docId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_')
-    await setDoc(doc(db, 'users', currentUser.uid, collectionName, docId), { ...item, id: docId })
+    try {
+      const currentUser = auth.currentUser
+      if (!currentUser) throw new Error('User not authenticated')
+      if (!item?.id) throw new Error('Item must have an id')
+      
+      const docId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_')
+      await setDoc(doc(db, 'users', currentUser.uid, collectionName, docId), cleanData(item))
+    } catch (err) {
+      console.error('Error updating item:', err)
+      setError(err.message)
+      throw err
+    }
   }
 
   const deleteItem = async (id) => {
-    const currentUser = auth.currentUser
-    if (!currentUser) return
-    const docId = String(id).replace(/[^a-zA-Z0-9_-]/g, '_')
-    await deleteDoc(doc(db, 'users', currentUser.uid, collectionName, docId))
+    try {
+      const currentUser = auth.currentUser
+      if (!currentUser) throw new Error('User not authenticated')
+      if (!id) throw new Error('Item id is required')
+      
+      const docId = String(id).replace(/[^a-zA-Z0-9_-]/g, '_')
+      await deleteDoc(doc(db, 'users', currentUser.uid, collectionName, docId))
+    } catch (err) {
+      console.error('Error deleting item:', err)
+      setError(err.message)
+      throw err
+    }
   }
 
-  return [data, { addItem, updateItem, deleteItem, loading, user }]
+  return [data, { addItem, updateItem, deleteItem, loading, error, user }]
 }

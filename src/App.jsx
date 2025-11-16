@@ -13,12 +13,14 @@ import Modal from './components/ui/Modal'
 import Auth from './components/Auth'
 import { useFirestore } from './hooks/useFirestore'
 import { generateTestHabits } from './utils/testHabits'
+import { useHabitLinkedList } from './hooks/useHabitLinkedList'
 
 function App() {
   const [user, setUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
-  const [habits, { addItem: addHabitToDb, updateItem: updateHabitInDb, deleteItem: deleteHabitFromDb, loading }] = useFirestore('habits', [])
+  const [dbHabits, { addItem: addHabitToDb, updateItem: updateHabitInDb, deleteItem: deleteHabitFromDb, loading }] = useFirestore('habits', [])
+  const { habits, addHabit: addToList, removeHabit: removeFromList, updateHabit: updateInList, getHabitChain } = useHabitLinkedList(dbHabits)
   const [showForm, setShowForm] = useState(false)
   const [editingHabit, setEditingHabit] = useState(null)
   const [showActionAlert, setShowActionAlert] = useState(false)
@@ -83,7 +85,40 @@ function App() {
   const completionRate = metrics.rate
 
   const addHabit = async (habit) => {
-    await addHabitToDb(habit)
+    try {
+      if (habit.stackAfter) {
+        const targetHabit = habits.find(h => h.id === habit.stackAfter)
+        if (targetHabit) {
+          habit.prevId = targetHabit.id
+          habit.nextId = targetHabit.nextId || null
+          habit.currentHabit = targetHabit.newHabit || targetHabit.habit
+          habit.habitStatement = `After I ${habit.currentHabit}, I will ${habit.newHabit}`
+          
+          await addHabitToDb(habit)
+          await updateHabitInDb({ ...targetHabit, nextId: habit.id })
+          
+          if (targetHabit.nextId) {
+            const nextHabit = habits.find(h => h.id === targetHabit.nextId)
+            if (nextHabit) {
+              await updateHabitInDb({
+                ...nextHabit,
+                prevId: habit.id,
+                currentHabit: habit.newHabit,
+                stackAfter: habit.id,
+                habitStatement: `After I ${habit.newHabit}, I will ${nextHabit.newHabit}`
+              })
+            }
+          }
+        } else {
+          await addHabitToDb(habit)
+        }
+      } else {
+        await addHabitToDb(habit)
+      }
+    } catch (err) {
+      console.error('Error adding habit:', err)
+      alert('Failed to add habit. Please try again.')
+    }
   }
 
   const loadTestHabits = async () => {
@@ -94,20 +129,20 @@ function App() {
   }
 
   const toggleHabit = async (id, dateKey = today) => {
-    const habit = habits.find(h => h.id === id)
-    if (habit) {
+    try {
+      const habit = habits.find(h => h.id === id)
+      if (!habit) return
+      
       const checkinDate = new Date(dateKey)
       const createdDate = new Date(habit.createdAt || habit.id)
       
-      // Create new dates for comparison without modifying originals
       const checkinDateOnly = new Date(checkinDate)
       const createdDateOnly = new Date(createdDate)
       checkinDateOnly.setHours(0, 0, 0, 0)
       createdDateOnly.setHours(0, 0, 0, 0)
       
-      if (checkinDateOnly < createdDateOnly) {
-        return // Don't allow check-in before creation date
-      }
+      if (checkinDateOnly < createdDateOnly) return
+      
       const newCompletions = { ...habit.completions, [dateKey]: !habit.completions[dateKey] }
       let streak = 0
       
@@ -126,6 +161,9 @@ function App() {
       }
       
       await updateHabitInDb({ ...habit, completions: newCompletions, streak })
+    } catch (err) {
+      console.error('Error toggling habit:', err)
+      alert('Failed to update habit. Please try again.')
     }
   }
 
@@ -135,22 +173,58 @@ function App() {
     setShowDeleteConfirm(true)
   }
 
+  const viewHabitChain = (id) => {
+    return getHabitChain(id)
+  }
+
   const confirmDelete = async () => {
-    if (habitToDelete) {
-      await deleteHabitFromDb(habitToDelete.id)
+    try {
+      if (habitToDelete) {
+        const result = removeFromList(habitToDelete.id)
+        
+        if (result) {
+          if (result.next) await updateHabitInDb(result.next)
+          if (result.prev) await updateHabitInDb(result.prev)
+          
+          const orphanedHabits = habits.filter(h => 
+            h.id !== habitToDelete.id && 
+            (h.currentHabit === result.deletedName || h.stackAfter === result.deletedId)
+          )
+          
+          for (const habit of orphanedHabits) {
+            const prevName = result.prev ? (result.prev.newHabit || result.prev.habit) : ''
+            await updateHabitInDb({
+              ...habit,
+              currentHabit: prevName,
+              stackAfter: result.prev?.id || null,
+              prevId: result.prev?.id || null,
+              habitStatement: prevName ? `After I ${prevName}, I will ${habit.newHabit}` : `I will ${habit.newHabit}`
+            })
+          }
+        }
+        
+        await deleteHabitFromDb(habitToDelete.id)
+      } else {
+        for (const habit of habits) {
+          await deleteHabitFromDb(habit.id)
+        }
+      }
+    } catch (err) {
+      console.error('Error deleting habit:', err)
+      alert('Failed to delete habit. Please try again.')
+    } finally {
       setShowDeleteConfirm(false)
       setHabitToDelete(null)
-    } else {
-      // Delete all habits
-      for (const habit of habits) {
-        await deleteHabitFromDb(habit.id)
-      }
-      setShowDeleteConfirm(false)
     }
   }
 
   const updateHabit = async (updatedHabit) => {
-    await updateHabitInDb(updatedHabit)
+    try {
+      await updateHabitInDb(updatedHabit)
+    } catch (err) {
+      console.error('Error updating habit:', err)
+      alert('Failed to update habit. Please try again.')
+    }
   }
   
   const handleEditHabit = (habit) => {
@@ -593,9 +667,16 @@ function App() {
         {/* Header with Add Button */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Dashboard</h1>
-          <Button onClick={() => setShowForm(true)} size="md" className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
-            <Plus className="w-5 h-5 mr-2" /><span className="hidden sm:inline">Add Habit</span><span className="sm:hidden">Add</span>
-          </Button>
+          <div className="flex gap-3 w-full sm:w-auto">
+            {habits.length > 0 && (
+              <Button onClick={() => setShowDeleteConfirm(true)} variant="secondary" size="md" className="flex-1 sm:flex-none">
+                <span className="hidden sm:inline">Delete All</span><span className="sm:hidden">Clear</span>
+              </Button>
+            )}
+            <Button onClick={() => setShowForm(true)} size="md" className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 flex-1 sm:flex-none">
+              <Plus className="w-5 h-5 mr-2" /><span className="hidden sm:inline">Add Habit</span><span className="sm:hidden">Add</span>
+            </Button>
+          </div>
         </div>
 
         {/* Hero Stats Section */}

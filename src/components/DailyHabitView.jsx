@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-export default function DailyHabitView({ habits, onToggle }) {
+export default function DailyHabitView({ habits, onToggle, onEdit }) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [showAll, setShowAll] = useState(false)
 
@@ -22,28 +22,17 @@ export default function DailyHabitView({ habits, onToggle }) {
     const dayName = currentDate.toLocaleDateString('en', { weekday: 'short' })
     const dateKey = currentDate.toISOString().split('T')[0]
 
-    return habits
-      .filter(habit => {
-        const isScheduledByDay = !habit.schedule || habit.schedule.length === 0 || habit.schedule.includes(dayName)
-        const isScheduledByDate = habit.specificDates && habit.specificDates.includes(dateKey)
-        const isScheduled = isScheduledByDay || isScheduledByDate
-        
-        if (!isScheduled) return false
-        
-        // If showAll is true, show all scheduled habits
-        if (showAll) return true
-        
-        // Otherwise hide if already completed or skipped today
-        const hasAction = habit.completions && (habit.completions[dateStr] === true || habit.completions[dateStr] === false)
-        return !hasAction
-      })
-      .sort((a, b) => {
-        const timeA = a.time || 'ZZ:ZZ'
-        const timeB = b.time || 'ZZ:ZZ'
-        if (timeA === 'Anytime') return 1
-        if (timeB === 'Anytime') return -1
-        return timeA.localeCompare(timeB)
-      })
+    return habits.filter(habit => {
+      const isScheduledByDay = !habit.schedule || habit.schedule.length === 0 || habit.schedule.includes(dayName)
+      const isScheduledByDate = habit.specificDates && habit.specificDates.includes(dateKey)
+      const isScheduled = isScheduledByDay || isScheduledByDate
+      
+      if (!isScheduled) return false
+      if (showAll) return true
+      
+      const hasAction = habit.completions && (habit.completions[dateStr] === true || habit.completions[dateStr] === false)
+      return !hasAction
+    })
   }
 
   const dayHabits = getDayHabits()
@@ -63,12 +52,21 @@ export default function DailyHabitView({ habits, onToggle }) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-3 px-2 sm:px-4">
-      <div className="flex items-center justify-between mb-3">
-        <button onClick={() => navigateDay(-1)} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={() => navigateDay(-1)} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <div className="text-sm text-gray-600 dark:text-gray-400">{formatDate(currentDate)}</div>
-        <button onClick={() => navigateDay(1)} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+        <div className={`px-6 py-3 rounded-xl font-bold text-center transition-all ${
+          currentDate.toDateString() === new Date().toDateString()
+            ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-lg scale-105'
+            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+        }`}>
+          <div className="text-sm">{formatDate(currentDate)}</div>
+          {currentDate.toDateString() === new Date().toDateString() && (
+            <div className="text-xs mt-1 opacity-90">📅 Today</div>
+          )}
+        </div>
+        <button onClick={() => navigateDay(1)} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
@@ -114,21 +112,22 @@ export default function DailyHabitView({ habits, onToggle }) {
             
             return (
               <div key={habit.id} className="group bg-white dark:bg-gray-800 rounded-2xl shadow-xl hover:shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:scale-[1.01] animate-fade-in">
-                <div className="relative bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 p-4">
+                <div className="relative bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 p-4 cursor-pointer hover:from-indigo-600 hover:via-purple-700 hover:to-pink-600 transition-all" onClick={() => onEdit && onEdit(habit)}>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent group-hover:from-black/10 transition-all"></div>
                   <div className="relative flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      {habit.time && (
+                      {habit.currentHabit && (
                         <div className="inline-flex items-center gap-1 bg-white/25 backdrop-blur-md rounded-full px-3 py-1 mb-2">
-                          <span className="text-xs font-bold text-white">🕐 {habit.time}</span>
+                          <span className="text-xs font-bold text-white">🔗 After: {habit.currentHabit}</span>
                         </div>
                       )}
                       <h3 className="text-xl font-bold text-white leading-tight mb-1">{habit.newHabit || habit.habit}</h3>
                       <p className="text-sm text-white/80 italic">
-                        {habit.habitStatement || (habit.prefix && habit.currentHabit 
-                          ? `${habit.prefix} I ${habit.currentHabit}, I will ${habit.newHabit || habit.habit}`
+                        {habit.habitStatement || (habit.currentHabit 
+                          ? `After I ${habit.currentHabit}, I will ${habit.newHabit || habit.habit}`
                           : `I will ${habit.newHabit || habit.habit}`)}
                       </p>
+                      <p className="text-xs text-white/60 mt-1">✏️ Click to edit</p>
                     </div>
                     {habit.streak > 0 && (
                       <div className="flex-shrink-0 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl px-3 py-2 shadow-lg">

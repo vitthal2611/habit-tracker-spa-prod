@@ -1,16 +1,19 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { X, Sparkles, Target, Clock, MapPin, Zap, Gift, Calendar } from 'lucide-react'
 
 export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editingHabit = null }) {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(editingHabit || {
     identity: '', prefix: 'After', currentHabit: '', newHabit: '', location: '', time: '', 
-    environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [], specificDates: [], quadrant: ''
+    environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [], specificDates: [], quadrant: '', habitGroup: ''
   })
 
   const identities = [...new Set(habits.map(h => h.identity).filter(Boolean))]
   const locations = [...new Set(habits.map(h => h.location).filter(Boolean))]
-  const currentHabits = [...new Set(habits.map(h => h.currentHabit).filter(Boolean))]
+  const currentHabits = [...new Set([
+    ...habits.map(h => h.currentHabit).filter(Boolean),
+    ...habits.map(h => h.newHabit).filter(Boolean)
+  ])]
   
   const getHabitSentence = () => {
     if (!form.currentHabit || !form.newHabit) return ''
@@ -19,16 +22,17 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!form.newHabit.trim() || !form.time || !form.identity) return
+    if (!form.newHabit.trim() || !form.identity || !form.currentHabit.trim() || !form.habitGroup) return
     
-    const habitStatement = getHabitSentence() || `${form.time ? `At ${form.time}` : ''}${form.location ? ` in the ${form.location}` : ''}, I will ${form.newHabit}`
+    const habitStatement = `After I ${form.currentHabit}, I will ${form.newHabit}`
+    const stackAfterHabit = habits.find(h => h.newHabit === form.currentHabit || h.currentHabit === form.currentHabit)
     
     const habitData = editingHabit 
       ? { ...form, habitStatement }
-      : { ...form, habitStatement, id: `habit_${Date.now()}`, completed: false, streak: 0, completions: {}, createdAt: new Date().toISOString() }
+      : { ...form, habitStatement, stackAfter: stackAfterHabit?.id, id: `habit_${Date.now()}`, completed: false, streak: 0, completions: {}, createdAt: new Date().toISOString() }
     
     onSubmit(habitData)
-    setForm({ identity: '', prefix: 'After', currentHabit: '', newHabit: '', location: '', time: '', environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [], specificDates: [], quadrant: '' })
+    setForm({ identity: '', prefix: 'After', currentHabit: '', newHabit: '', location: '', time: '', environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [], specificDates: [], quadrant: '', habitGroup: '' })
     setStep(1)
     onClose()
   }
@@ -99,57 +103,70 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
                     <Sparkles className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 dark:text-gray-100">Habit Action</h3>
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100">New Habit</h3>
                     <p className="text-xs text-gray-500">What will you do?</p>
                   </div>
                 </div>
                 <input
                   value={form.newHabit}
                   onChange={(e) => setForm(prev => ({ ...prev, newHabit: e.target.value }))}
-                  placeholder="e.g., Read 10 pages, Drink water"
+                  placeholder="e.g., Drink warm water, Go to toilet, Brush teeth"
                   className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Clock className="w-5 h-5 text-teal-500" />
-                    <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100">Time</h3>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                    <span className="text-xl">🕐</span>
                   </div>
-                  <input
-                    type="time"
-                    value={form.time}
-                    onChange={(e) => setForm(prev => ({ ...prev, time: e.target.value }))}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all"
-                    required
-                  />
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-2 mb-3">
-                    <MapPin className="w-5 h-5 text-teal-500" />
-                    <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100">Location</h3>
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100">Habit Group</h3>
+                    <p className="text-xs text-gray-500">When do you do this?</p>
                   </div>
-                  <input
-                    list="locations"
-                    value={form.location}
-                    onChange={(e) => setForm(prev => ({ ...prev, location: e.target.value }))}
-                    placeholder="e.g., Bedroom"
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all"
-                    required
-                  />
-                  <datalist id="locations">
-                    {locations.map(loc => <option key={loc} value={loc} />)}
-                  </datalist>
                 </div>
+                <select
+                  value={form.habitGroup || ''}
+                  onChange={(e) => setForm(prev => ({ ...prev, habitGroup: e.target.value }))}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                  required
+                >
+                  <option value="">Select time of day</option>
+                  <option value="Morning">🌅 Morning Habit</option>
+                  <option value="Afternoon">☀️ Afternoon Habit</option>
+                  <option value="Evening">🌆 Evening Habit</option>
+                  <option value="Night">🌙 Night Habit</option>
+                </select>
               </div>
 
-              {getHabitSentence() && (
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-5 border-2 border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center">
+                    <span className="text-xl">🔗</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100">Stack After</h3>
+                    <p className="text-xs text-gray-500">Which habit comes before this?</p>
+                  </div>
+                </div>
+                <input
+                  list="currentHabits"
+                  value={form.currentHabit}
+                  onChange={(e) => setForm(prev => ({ ...prev, currentHabit: e.target.value }))}
+                  placeholder="e.g., Wake up, Drink water, Go to toilet"
+                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  required
+                />
+                <datalist id="currentHabits">
+                  {currentHabits.map(h => <option key={h} value={h} />)}
+                </datalist>
+              </div>
+
+              {form.currentHabit && form.newHabit && (
                 <div className="bg-gradient-to-r from-cyan-500 to-teal-500 rounded-2xl p-5 text-white shadow-xl">
-                  <p className="text-xs font-semibold mb-2 opacity-90">YOUR HABIT STATEMENT</p>
-                  <p className="text-lg font-bold leading-relaxed">{getHabitSentence()}</p>
+                  <p className="text-xs font-semibold mb-2 opacity-90">🔗 YOUR HABIT STACK</p>
+                  <p className="text-lg font-bold leading-relaxed">After I {form.currentHabit}, I will {form.newHabit}</p>
                 </div>
               )}
             </div>
@@ -180,31 +197,6 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
                   className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all resize-none"
                 />
                 <p className="text-xs text-gray-500 mt-2">💡 How will you make this habit visible?</p>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
-                <label className="block font-semibold mb-3 text-gray-900 dark:text-gray-100">Habit Stacking (Optional)</label>
-                <div className="space-y-3">
-                  <select
-                    value={form.prefix}
-                    onChange={(e) => setForm(prev => ({ ...prev, prefix: e.target.value }))}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
-                  >
-                    <option value="After">After</option>
-                    <option value="Before">Before</option>
-                    <option value="When">When</option>
-                  </select>
-                  <input
-                    list="currentHabits"
-                    value={form.currentHabit}
-                    onChange={(e) => setForm(prev => ({ ...prev, currentHabit: e.target.value }))}
-                    placeholder="e.g., I brush my teeth"
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
-                  />
-                  <datalist id="currentHabits">
-                    {currentHabits.map(h => <option key={h} value={h} />)}
-                  </datalist>
-                </div>
               </div>
             </div>
           )}
@@ -343,7 +335,7 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
               <button
                 type="button"
                 onClick={() => setStep(step + 1)}
-                disabled={step === 1 && (!form.newHabit.trim() || !form.time || !form.identity)}
+                disabled={step === 1 && (!form.newHabit.trim() || !form.identity || !form.currentHabit.trim() || !form.habitGroup)}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-teal-500 text-white rounded-xl font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 Next →
@@ -352,7 +344,7 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={!form.newHabit.trim() || !form.time || !form.identity}
+                disabled={!form.newHabit.trim() || !form.identity || !form.currentHabit.trim() || !form.habitGroup}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 ✓ {editingHabit ? 'Update' : 'Create'} Habit
@@ -361,6 +353,7 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
           </div>
         </div>
       </div>
+
     </div>
   )
 }
