@@ -3,7 +3,6 @@ import { Check, Clock, MapPin, Link, Trash2, ChevronLeft, ChevronRight, Edit, Do
 import Card from './ui/Card'
 import Button from './ui/Button'
 import Modal from './ui/Modal'
-import HabitForm from './HabitForm'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 
