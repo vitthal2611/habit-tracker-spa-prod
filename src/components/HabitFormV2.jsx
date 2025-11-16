@@ -40,21 +40,21 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800 rounded-3xl shadow-2xl animate-scale-in">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800 rounded-t-3xl sm:rounded-3xl shadow-2xl animate-scale-in">
         
         {/* Header */}
-        <div className="relative bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 p-6 text-white">
-          <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors">
+        <div className="relative bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 p-4 sm:p-6 text-white">
+          <button onClick={onClose} className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2.5 hover:bg-white/20 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
             <X className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
-              <Sparkles className="w-6 h-6" />
+          <div className="flex items-center gap-2 sm:gap-3 mb-2">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-md rounded-xl sm:rounded-2xl flex items-center justify-center">
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold">{editingHabit ? 'Edit Habit' : 'New Habit'}</h2>
-              <p className="text-sm text-white/80">Step {step} of 4</p>
+              <h2 className="text-xl sm:text-2xl font-bold">{editingHabit ? 'Edit Habit' : 'New Habit'}</h2>
+              <p className="text-xs sm:text-sm text-white/80">Step {step} of 4</p>
             </div>
           </div>
           
@@ -69,18 +69,18 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto max-h-[calc(95vh-180px)] sm:max-h-[calc(90vh-180px)]">
           
           {/* Step 1: Core Details */}
           {step === 1 && (
-            <div className="space-y-5 animate-fade-in">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-xl flex items-center justify-center">
-                    <Target className="w-5 h-5 text-white" />
+            <div className="space-y-4 sm:space-y-5 animate-fade-in">
+              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 dark:text-gray-100">Identity</h3>
+                    <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100">Identity</h3>
                     <p className="text-xs text-gray-500">Who do you want to become?</p>
                   </div>
                 </div>
@@ -89,7 +89,7 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
                   value={form.identity}
                   onChange={(e) => setForm(prev => ({ ...prev, identity: e.target.value }))}
                   placeholder="e.g., A fit person, A reader"
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                  className="w-full px-3 sm:px-4 py-3 text-sm sm:text-base bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all min-h-[48px]"
                   required
                 />
                 <datalist id="identities">
@@ -164,9 +164,9 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
               </div>
 
               {form.currentHabit && form.newHabit && (
-                <div className="bg-gradient-to-r from-cyan-500 to-teal-500 rounded-2xl p-5 text-white shadow-xl">
+                <div className="bg-gradient-to-r from-cyan-500 to-teal-500 rounded-xl sm:rounded-2xl p-4 sm:p-5 text-white shadow-xl">
                   <p className="text-xs font-semibold mb-2 opacity-90">🔗 YOUR HABIT STACK</p>
-                  <p className="text-lg font-bold leading-relaxed">After I {form.currentHabit}, I will {form.newHabit}</p>
+                  <p className="text-base sm:text-lg font-bold leading-relaxed">After I {form.currentHabit}, I will {form.newHabit}</p>
                 </div>
               )}
             </div>
@@ -194,7 +194,7 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
                   onChange={(e) => setForm(prev => ({ ...prev, environmentTips: e.target.value }))}
                   placeholder="e.g., Put the book on my pillow, Place water bottle on desk"
                   rows="3"
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all resize-none"
+                  className="w-full px-3 sm:px-4 py-3 text-sm sm:text-base bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all resize-none"
                 />
                 <p className="text-xs text-gray-500 mt-2">💡 How will you make this habit visible?</p>
               </div>
@@ -284,17 +284,17 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
                   <label className="font-semibold text-gray-900 dark:text-gray-100">Schedule</label>
                 </div>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  <button type="button" onClick={() => setForm(prev => ({ ...prev, schedule: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] }))} className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all">
+                  <button type="button" onClick={() => setForm(prev => ({ ...prev, schedule: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] }))} className="px-3 sm:px-4 py-2.5 text-sm sm:text-base bg-gradient-to-r from-cyan-500 to-teal-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all min-h-[44px]">
                     Daily
                   </button>
-                  <button type="button" onClick={() => setForm(prev => ({ ...prev, schedule: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] }))} className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all">
+                  <button type="button" onClick={() => setForm(prev => ({ ...prev, schedule: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] }))} className="px-3 sm:px-4 py-2.5 text-sm sm:text-base bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all min-h-[44px]">
                     Weekdays
                   </button>
-                  <button type="button" onClick={() => setForm(prev => ({ ...prev, schedule: ['Sat', 'Sun'] }))} className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all">
+                  <button type="button" onClick={() => setForm(prev => ({ ...prev, schedule: ['Sat', 'Sun'] }))} className="px-3 sm:px-4 py-2.5 text-sm sm:text-base bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all min-h-[44px]">
                     Weekends
                   </button>
                 </div>
-                <div className="grid grid-cols-7 gap-2">
+                <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
                   {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                     <button
                       key={day}
@@ -304,7 +304,7 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
                         const newSchedule = schedule.includes(day) ? schedule.filter(d => d !== day) : [...schedule, day]
                         setForm(prev => ({ ...prev, schedule: newSchedule }))
                       }}
-                      className={`py-3 rounded-xl font-bold text-sm transition-all ${
+                      className={`py-3 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all min-h-[48px] ${
                         (form.schedule || []).includes(day)
                           ? 'bg-gradient-to-br from-cyan-500 to-teal-500 text-white shadow-lg scale-105'
                           : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -320,13 +320,13 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
         </form>
 
         {/* Footer */}
-        <div className="p-6 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex gap-3">
+        <div className="p-4 sm:p-6 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex gap-2 sm:gap-3">
             {step > 1 && (
               <button
                 type="button"
                 onClick={() => setStep(step - 1)}
-                className="flex-1 px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+                className="flex-1 px-4 sm:px-6 py-3.5 text-sm sm:text-base bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all min-h-[52px]"
               >
                 ← Back
               </button>
@@ -336,7 +336,7 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
                 type="button"
                 onClick={() => setStep(step + 1)}
                 disabled={step === 1 && (!form.newHabit.trim() || !form.identity || !form.currentHabit.trim() || !form.habitGroup)}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-teal-500 text-white rounded-xl font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex-1 px-4 sm:px-6 py-3.5 text-sm sm:text-base bg-gradient-to-r from-cyan-500 to-teal-500 text-white rounded-xl font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[52px]"
               >
                 Next →
               </button>
@@ -345,7 +345,7 @@ export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editing
                 type="button"
                 onClick={handleSubmit}
                 disabled={!form.newHabit.trim() || !form.identity || !form.currentHabit.trim() || !form.habitGroup}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex-1 px-4 sm:px-6 py-3.5 text-sm sm:text-base bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[52px]"
               >
                 ✓ {editingHabit ? 'Update' : 'Create'} Habit
               </button>

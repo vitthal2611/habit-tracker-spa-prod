@@ -59,20 +59,24 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
     const dayOfWeek = today.getDay()
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
     
+    const habitStartDate = new Date(habit.createdAt || habit.id)
+    habitStartDate.setHours(0, 0, 0, 0)
+    
     for (let i = 0; i < 7; i++) {
       const date = new Date(today)
       date.setDate(today.getDate() + mondayOffset + i + (weekOffset * 7))
       const dateStr = date.toDateString()
       const dayName = date.toLocaleDateString('en', { weekday: 'short' })
-      const dateKey = date.toISOString().split('T')[0] // YYYY-MM-DD format
+      const dateKey = date.toISOString().split('T')[0]
       
-      // Check if scheduled by day of week
+      const checkDate = new Date(date)
+      checkDate.setHours(0, 0, 0, 0)
+      
+      const isBeforeStart = checkDate < habitStartDate
+      
       const isScheduledByDay = !habit.schedule || habit.schedule.length === 0 || habit.schedule.includes(dayName)
-      
-      // Check if scheduled by specific date
       const isScheduledByDate = habit.specificDates && habit.specificDates.includes(dateKey)
-      
-      const isScheduledDay = isScheduledByDay || isScheduledByDate
+      const isScheduledDay = (isScheduledByDay || isScheduledByDate) && !isBeforeStart
       
       week.push({
         day: dayName[0],
@@ -479,13 +483,19 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
                   )}
                 </div>
                 <div className="grid grid-cols-7 gap-1 items-center">
-                  {getWeekProgress(habit).map((day, i) => (
+                  {getWeekProgress(habit).map((day, i) => {
+                    const dayDate = new Date(day.dateKey)
+                    const today = new Date()
+                    dayDate.setHours(0,0,0,0)
+                    today.setHours(0,0,0,0)
+                    const isFuture = dayDate > today
+                    return (
                     <div key={i} className="text-center">
                       <button
-                        onClick={() => day.isScheduled && toggleDayCompletion(habit.id, day.dateKey)}
-                        disabled={!day.isScheduled}
+                        onClick={() => day.isScheduled && !isFuture && toggleDayCompletion(habit.id, day.dateKey)}
+                        disabled={!day.isScheduled || isFuture}
                         className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
-                          !day.isScheduled
+                          !day.isScheduled || isFuture
                             ? 'bg-gray-100 text-gray-300 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed'
                             : day.completed 
                             ? 'bg-green-500 text-white hover:bg-green-600 cursor-pointer hover:scale-110' 
@@ -497,7 +507,8 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
                         {day.completed ? '✓' : ''}
                       </button>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
                 <div className="flex justify-center items-center space-x-2">
                   <button
@@ -568,10 +579,28 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
                       <div key={i} className="text-center">
                         <div className="text-xs text-gray-400 dark:text-gray-500 mb-1">{day.day}</div>
                         <button
-                          onClick={() => day.isScheduled && toggleDayCompletion(habit.id, day.dateKey)}
-                          disabled={!day.isScheduled}
+                          onClick={() => {
+                            const dayDate = new Date(day.dateKey)
+                            const today = new Date()
+                            dayDate.setHours(0,0,0,0)
+                            today.setHours(0,0,0,0)
+                            if (day.isScheduled && dayDate <= today) toggleDayCompletion(habit.id, day.dateKey)
+                          }}
+                          disabled={!day.isScheduled || (() => {
+                            const dayDate = new Date(day.dateKey)
+                            const today = new Date()
+                            dayDate.setHours(0,0,0,0)
+                            today.setHours(0,0,0,0)
+                            return dayDate > today
+                          })()}
                           className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
-                            !day.isScheduled
+                            !day.isScheduled || (() => {
+                              const dayDate = new Date(day.dateKey)
+                              const today = new Date()
+                              dayDate.setHours(0,0,0,0)
+                              today.setHours(0,0,0,0)
+                              return dayDate > today
+                            })()
                               ? 'bg-gray-100 text-gray-300 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed'
                               : day.completed 
                               ? 'bg-green-500 text-white hover:bg-green-600 cursor-pointer active:scale-95' 

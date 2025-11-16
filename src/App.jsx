@@ -27,6 +27,13 @@ function App() {
   
   const getTodayMetrics = () => {
     const todayHabits = habits.filter(h => {
+      const habitStartDate = new Date(h.createdAt || h.id)
+      const todayDate = new Date()
+      habitStartDate.setHours(0, 0, 0, 0)
+      todayDate.setHours(0, 0, 0, 0)
+      
+      if (todayDate < habitStartDate) return false
+      
       const dayName = new Date().toLocaleDateString('en', { weekday: 'short' })
       const dateKey = new Date().toISOString().split('T')[0]
       const isScheduledByDay = !h.schedule || h.schedule.length === 0 || h.schedule.includes(dayName)
@@ -54,6 +61,13 @@ function App() {
       const dateKey = date.toISOString().split('T')[0]
       
       habits.forEach(h => {
+        const habitStartDate = new Date(h.createdAt || h.id)
+        const checkDate = new Date(date)
+        habitStartDate.setHours(0, 0, 0, 0)
+        checkDate.setHours(0, 0, 0, 0)
+        
+        if (checkDate < habitStartDate) return
+        
         const isScheduledByDay = !h.schedule || h.schedule.length === 0 || h.schedule.includes(dayName)
         const isScheduledByDate = h.specificDates && h.specificDates.includes(dateKey)
         if (isScheduledByDay || isScheduledByDate) {
