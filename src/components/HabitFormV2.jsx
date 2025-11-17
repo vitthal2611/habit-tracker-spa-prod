@@ -1,12 +1,23 @@
-﻿import { useState } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { X, Sparkles, Target, Clock, MapPin, Zap, Gift, Calendar } from 'lucide-react'
 
 export default function HabitFormV2({ isOpen, onClose, onSubmit, habits, editingHabit = null }) {
   const [step, setStep] = useState(1)
-  const [form, setForm] = useState(editingHabit || {
+  const [form, setForm] = useState({
     identity: '', prefix: 'After', currentHabit: '', newHabit: '', location: '', time: '', 
     environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [], specificDates: [], quadrant: '', habitGroup: ''
   })
+
+  useEffect(() => {
+    if (editingHabit) {
+      setForm(editingHabit)
+    } else {
+      setForm({
+        identity: '', prefix: 'After', currentHabit: '', newHabit: '', location: '', time: '', 
+        environmentTips: '', makeAttractive: '', makeEasy: '', makeSatisfying: '', schedule: [], specificDates: [], quadrant: '', habitGroup: ''
+      })
+    }
+  }, [editingHabit])
 
   const identities = [...new Set(habits.map(h => h.identity).filter(Boolean))]
   const locations = [...new Set(habits.map(h => h.location).filter(Boolean))]

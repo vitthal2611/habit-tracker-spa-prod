@@ -4,5 +4,11 @@ service cloud.firestore {
     match /users/{userId}/habits/{habitId} {
       allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
     }
+    match /users/{userId}/todos/{todoId} {
+      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    }
+    match /users/{userId}/todoCategories/{categoryId} {
+      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }

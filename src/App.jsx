@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Plus, Target, TrendingUp, Calendar } from 'lucide-react'
+import { Plus, Target, TrendingUp, Calendar, CheckSquare } from 'lucide-react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from './firebase'
 import Navigation from './components/Navigation'
 import HabitFormV2 from './components/HabitFormV2'
 import HabitList from './components/HabitList'
 import DailyHabitView from './components/DailyHabitView'
+import TodoList from './components/TodoList'
 import Button from './components/ui/Button'
 import Auth from './components/Auth'
 import { useFirestore } from './hooks/useFirestore'
@@ -22,6 +23,9 @@ function App() {
   const [habitToDelete, setHabitToDelete] = useState(null)
   const [groupBy, setGroupBy] = useState('none')
   const [viewMode, setViewMode] = useState('today')
+  const [dbTodos, { addItem: addTodoToDb, updateItem: updateTodoInDb, deleteItem: deleteTodoFromDb, loading: todosLoading }] = useFirestore('todos', [])
+  const [dbCategories, { addItem: addCategoryToDb, deleteItem: deleteCategoryFromDb }] = useFirestore('todoCategories', [])
+  const [activeTab, setActiveTab] = useState('habits')
 
   const today = new Date().toDateString()
   
@@ -229,6 +233,7 @@ function App() {
       setEditingHabit(null)
     } else {
       await addHabit(habitData)
+      setViewMode('today')
     }
     setShowForm(false)
   }
@@ -246,121 +251,205 @@ function App() {
   }
 
   const renderDashboard = () => {
-    if (loading) return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+    if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-600 border-t-transparent"></div></div>
     return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Dashboard</h1>
-          <div className="flex gap-3 w-full sm:w-auto">
+      <div className="space-y-8 animate-fade-in">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="font-display text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-1">Dashboard</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Track your daily habits and build consistency</p>
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
             {habits.length > 0 && (
-              <Button onClick={() => setShowDeleteConfirm(true)} variant="secondary" size="md" className="flex-1 sm:flex-none">
+              <button onClick={() => setShowDeleteConfirm(true)} className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-[44px]">
                 <span className="hidden sm:inline">Delete All</span><span className="sm:hidden">Clear</span>
-              </Button>
+              </button>
             )}
-            <Button onClick={() => setShowForm(true)} size="md" className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 flex-1 sm:flex-none">
-              <Plus className="w-5 h-5 mr-2" /><span className="hidden sm:inline">Add Habit</span><span className="sm:hidden">Add</span>
-            </Button>
+            <button onClick={() => setShowForm(true)} className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm hover:shadow-md min-h-[44px] flex items-center justify-center gap-2">
+              <Plus className="w-4 h-4" /><span className="hidden sm:inline">New Habit</span><span className="sm:hidden">New</span>
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 sm:p-8 text-white shadow-xl hover:shadow-2xl transition-all transform hover:scale-105">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-all">
             <div className="flex items-center justify-between mb-4">
-              <Target className="w-10 h-10 sm:w-12 sm:h-12 opacity-90" />
-              <span className="text-sm font-semibold bg-white/20 px-3 py-1.5 rounded-full">Total</span>
+              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center">
+                <Target className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</span>
             </div>
-            <h3 className="text-4xl sm:text-5xl font-bold mb-2">{totalHabits}</h3>
-            <p className="text-base sm:text-lg text-blue-100 font-medium">Active Habits</p>
+            <h3 className="font-display text-4xl font-bold text-gray-900 dark:text-white mb-1">{totalHabits}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Active Habits</p>
           </div>
 
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 sm:p-8 text-white shadow-xl hover:shadow-2xl transition-all transform hover:scale-105">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-all">
             <div className="flex items-center justify-between mb-4">
-              <Calendar className="w-10 h-10 sm:w-12 sm:h-12 opacity-90" />
-              <span className="text-sm font-semibold bg-white/20 px-3 py-1.5 rounded-full">Today</span>
+              <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-xl flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Today</span>
             </div>
-            <h3 className="text-4xl sm:text-5xl font-bold mb-2">{completedToday}/{totalHabits}</h3>
-            <p className="text-base sm:text-lg text-green-100 font-medium">Completed</p>
+            <h3 className="font-display text-4xl font-bold text-gray-900 dark:text-white mb-1">{completedToday}<span className="text-2xl text-gray-400 dark:text-gray-500">/{totalHabits}</span></h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 sm:p-8 text-white shadow-xl hover:shadow-2xl transition-all transform hover:scale-105">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-all">
             <div className="flex items-center justify-between mb-4">
-              <TrendingUp className="w-10 h-10 sm:w-12 sm:h-12 opacity-90" />
-              <span className="text-sm font-semibold bg-white/20 px-3 py-1.5 rounded-full">Rate</span>
+              <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Rate</span>
             </div>
-            <h3 className="text-4xl sm:text-5xl font-bold mb-2">{completionRate}%</h3>
-            <p className="text-base sm:text-lg text-purple-100 font-medium">Success Rate</p>
+            <h3 className="font-display text-4xl font-bold text-gray-900 dark:text-white mb-1">{completionRate}%</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Success Rate</p>
           </div>
         </div>
 
+        {/* Tab Toggle */}
         <div className="flex justify-center">
-          <div className="inline-flex bg-white dark:bg-gray-800 rounded-2xl p-1.5 shadow-xl border-2 border-gray-200 dark:border-gray-700 w-full sm:w-auto">
+          <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-full sm:w-auto">
             <button
-              onClick={() => setViewMode('today')}
-              className={`flex-1 sm:flex-none px-6 py-3.5 rounded-xl text-base font-bold transition-all min-h-[52px] ${
-                viewMode === 'today'
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+              onClick={() => setActiveTab('habits')}
+              className={`flex-1 sm:flex-none px-6 py-3 rounded-lg text-sm font-semibold transition-all min-h-[44px] flex items-center justify-center gap-2 ${
+                activeTab === 'habits'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
-              <Calendar className="w-5 h-5 inline mr-2" />
-              <span className="hidden sm:inline">Today's Focus</span><span className="sm:hidden">Today</span>
+              <Target className="w-4 h-4" />
+              <span>Habits</span>
             </button>
             <button
-              onClick={() => setViewMode('weekly')}
-              className={`flex-1 sm:flex-none px-6 py-3.5 rounded-xl text-base font-bold transition-all min-h-[52px] ${
-                viewMode === 'weekly'
-                  ? 'bg-gradient-to-r from-green-500 to-teal-500 text-white shadow-lg'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+              onClick={() => setActiveTab('todos')}
+              className={`flex-1 sm:flex-none px-6 py-3 rounded-lg text-sm font-semibold transition-all min-h-[44px] flex items-center justify-center gap-2 ${
+                activeTab === 'todos'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
-              <Target className="w-5 h-5 inline mr-2" />
-              <span className="hidden sm:inline">Weekly Focus</span><span className="sm:hidden">Weekly</span>
+              <CheckSquare className="w-4 h-4" />
+              <span>To-Do</span>
             </button>
           </div>
         </div>
 
-        {viewMode === 'today' ? (
-          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-3 sm:p-4">
-              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-                <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-                Today's Focus
-              </h2>
+        {/* View Toggle (only for habits) */}
+        {activeTab === 'habits' && (
+          <div className="flex justify-center">
+            <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-full sm:w-auto">
+              <button
+                onClick={() => setViewMode('today')}
+                className={`flex-1 sm:flex-none px-6 py-3 rounded-lg text-sm font-semibold transition-all min-h-[44px] flex items-center justify-center gap-2 ${
+                  viewMode === 'today'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                <span className="hidden sm:inline">Today's Focus</span><span className="sm:hidden">Today</span>
+              </button>
+              <button
+                onClick={() => setViewMode('weekly')}
+                className={`flex-1 sm:flex-none px-6 py-3 rounded-lg text-sm font-semibold transition-all min-h-[44px] flex items-center justify-center gap-2 ${
+                  viewMode === 'weekly'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                <Target className="w-4 h-4" />
+                <span className="hidden sm:inline">Weekly Focus</span><span className="sm:hidden">Weekly</span>
+              </button>
             </div>
-            <div className="p-3 sm:p-4">
-              <DailyHabitView habits={habits} onToggle={toggleHabit} />
-            </div>
+          </div>
+        )}
+
+        {/* Content Section */}
+        {activeTab === 'todos' ? (
+          <TodoList 
+            todos={dbTodos}
+            categories={dbCategories}
+            onAdd={async (todo) => {
+              try {
+                console.log('Adding todo:', todo)
+                await addTodoToDb(todo)
+                console.log('Todo added successfully')
+              } catch (err) {
+                console.error('Error adding todo:', err)
+                throw err
+              }
+            }}
+            onToggle={async (id) => {
+              try {
+                const todo = dbTodos.find(t => t.id === id)
+                if (todo) await updateTodoInDb({ ...todo, completed: !todo.completed })
+              } catch (err) {
+                console.error('Error toggling todo:', err)
+              }
+            }}
+            onDelete={async (id) => {
+              try {
+                await deleteTodoFromDb(id)
+              } catch (err) {
+                console.error('Error deleting todo:', err)
+              }
+            }}
+            onAddCategory={async (category) => {
+              try {
+                await addCategoryToDb({ ...category, id: category.id, createdAt: new Date().toISOString() })
+              } catch (err) {
+                console.error('Error adding category:', err)
+              }
+            }}
+            onDeleteCategory={async (id) => {
+              try {
+                await deleteCategoryFromDb(id)
+              } catch (err) {
+                console.error('Error deleting category:', err)
+              }
+            }}
+          />
+        ) : viewMode === 'today' ? (
+          <div>
+            <DailyHabitView habits={habits} onToggle={toggleHabit} onEdit={handleEditHabit} onDelete={deleteHabit} />
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="bg-gradient-to-r from-green-500 to-teal-500 p-3 sm:p-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-                <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-                  <Target className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Weekly Focus
-                </h2>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+            <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center">
+                    <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-xl font-bold text-gray-900 dark:text-white">Weekly Focus</h2>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Track your weekly progress</p>
+                  </div>
+                </div>
                 <select 
                   value={groupBy} 
                   onChange={(e) => setGroupBy(e.target.value)}
-                  className="w-full sm:w-auto px-2 sm:px-3 py-1.5 text-xs sm:text-sm border-0 rounded-lg bg-white/20 text-white backdrop-blur-sm"
+                  className="w-full sm:w-auto px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="none" className="text-gray-900">No Grouping</option>
-                  <option value="identity" className="text-gray-900">By Identity</option>
-                  <option value="location" className="text-gray-900">By Location</option>
+                  <option value="none">No Grouping</option>
+                  <option value="identity">By Identity</option>
+                  <option value="location">By Location</option>
                 </select>
               </div>
             </div>
-            <div className="p-3 sm:p-4">
+            <div className="p-4 sm:p-6">
               {habits.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Target className="w-10 h-10 text-gray-400" />
+                <div className="text-center py-20">
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Target className="w-8 h-8 text-gray-400" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">No habits yet</h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Start building better habits today</p>
-                  <Button onClick={() => setShowForm(true)}>
-                    <Plus className="w-4 h-4 mr-2" />Create Your First Habit
-                  </Button>
+                  <h3 className="font-display text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">No habits yet</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Start building better habits today</p>
+                  <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm">
+                    <Plus className="w-4 h-4" />Create Your First Habit
+                  </button>
                 </div>
               ) : (
                 <HabitList habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} onEdit={handleEditHabit} groupBy={groupBy} />
