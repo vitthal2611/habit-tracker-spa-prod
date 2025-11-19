@@ -24,7 +24,14 @@ export default function Auth() {
         await createUserWithEmailAndPassword(auth, email, password)
       }
     } catch (error) {
-      setError(error.message)
+      const errorMessages = {
+        'auth/user-not-found': 'Invalid email or password',
+        'auth/wrong-password': 'Invalid email or password',
+        'auth/email-already-in-use': 'This email is already registered',
+        'auth/weak-password': 'Password should be at least 6 characters',
+        'auth/invalid-email': 'Invalid email address'
+      }
+      setError(errorMessages[error.code] || error.message)
     }
     setLoading(false)
   }
@@ -53,9 +60,10 @@ export default function Auth() {
             />
             <Input
               type="password"
-              placeholder="Password"
+              placeholder="Password (min 6 characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
               required
             />
             

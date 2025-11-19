@@ -3,8 +3,9 @@ import { Plus, Target, TrendingUp, Calendar, CheckSquare } from 'lucide-react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from './firebase'
 import Navigation from './components/Navigation'
-import HabitFormV2 from './components/HabitFormV2'
+import QuickHabitForm from './components/QuickHabitForm'
 import HabitList from './components/HabitList'
+import HabitTableView from './components/HabitTableView'
 import DailyHabitView from './components/DailyHabitView'
 import TodoList from './components/TodoList'
 import Button from './components/ui/Button'
@@ -17,13 +18,16 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true)
   const [dbHabits, { addItem: addHabitToDb, updateItem: updateHabitInDb, deleteItem: deleteHabitFromDb, loading }] = useFirestore('habits', [])
   const { habits, removeHabit: removeFromList } = useHabitLinkedList(dbHabits)
-  const [showForm, setShowForm] = useState(false)
-  const [editingHabit, setEditingHabit] = useState(null)
+  
+
+  const [showQuickForm, setShowQuickForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [habitToDelete, setHabitToDelete] = useState(null)
+  const [toast, setToast] = useState(null)
   const [groupBy, setGroupBy] = useState('none')
   const [viewMode, setViewMode] = useState('today')
-  const [dbTodos, { addItem: addTodoToDb, updateItem: updateTodoInDb, deleteItem: deleteTodoFromDb, loading: todosLoading }] = useFirestore('todos', [])
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [dbTodos, { addItem: addTodoToDb, updateItem: updateTodoInDb, deleteItem: deleteTodoFromDb }] = useFirestore('todos', [])
   const [dbCategories, { addItem: addCategoryToDb, deleteItem: deleteCategoryFromDb }] = useFirestore('todoCategories', [])
   const [activeTab, setActiveTab] = useState('habits')
 
@@ -90,6 +94,64 @@ function App() {
   const totalHabits = metrics.total
   const completionRate = metrics.rate
 
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  const generateTestData = async () => {
+    const testHabits = [
+      { identity: 'healthy person', current: 'wake up', new: 'drink water', time: '06:00', location: 'kitchen' },
+      { identity: 'healthy person', current: 'drink water', new: 'stretch', time: '06:05', location: 'bedroom' },
+      { identity: 'healthy person', current: 'stretch', new: 'meditate', time: '06:15', location: 'living room' },
+      { identity: 'fit person', current: 'meditate', new: 'exercise', time: '06:30', location: 'gym' },
+      { identity: 'fit person', current: 'exercise', new: 'shower', time: '07:30', location: 'bathroom' },
+      { identity: 'organized person', current: 'shower', new: 'make bed', time: '08:00', location: 'bedroom' },
+      { identity: 'organized person', current: 'make bed', new: 'plan day', time: '08:10', location: 'desk' },
+      { identity: 'productive person', current: 'plan day', new: 'check emails', time: '08:30', location: 'office' },
+      { identity: 'productive person', current: 'check emails', new: 'deep work', time: '09:00', location: 'office' },
+      { identity: 'focused person', current: 'deep work', new: 'take break', time: '11:00', location: 'outside' },
+      { identity: 'healthy person', current: 'take break', new: 'eat lunch', time: '12:00', location: 'kitchen' },
+      { identity: 'healthy person', current: 'eat lunch', new: 'walk', time: '12:30', location: 'park' },
+      { identity: 'productive person', current: 'walk', new: 'work session', time: '13:00', location: 'office' },
+      { identity: 'learner', current: 'work session', new: 'read', time: '15:00', location: 'library' },
+      { identity: 'learner', current: 'read', new: 'take notes', time: '15:30', location: 'desk' },
+      { identity: 'creative person', current: 'take notes', new: 'brainstorm', time: '16:00', location: 'office' },
+      { identity: 'creative person', current: 'brainstorm', new: 'write', time: '16:30', location: 'desk' },
+      { identity: 'social person', current: 'write', new: 'call friend', time: '17:00', location: 'phone' },
+      { identity: 'organized person', current: 'call friend', new: 'tidy up', time: '17:30', location: 'home' },
+      { identity: 'healthy person', current: 'tidy up', new: 'cook dinner', time: '18:00', location: 'kitchen' },
+      { identity: 'mindful person', current: 'cook dinner', new: 'eat mindfully', time: '19:00', location: 'dining room' },
+      { identity: 'family person', current: 'eat mindfully', new: 'family time', time: '19:30', location: 'living room' },
+      { identity: 'learner', current: 'family time', new: 'study', time: '20:00', location: 'desk' },
+      { identity: 'creative person', current: 'study', new: 'hobby time', time: '20:30', location: 'studio' },
+      { identity: 'organized person', current: 'hobby time', new: 'prepare tomorrow', time: '21:00', location: 'bedroom' },
+      { identity: 'grateful person', current: 'prepare tomorrow', new: 'journal', time: '21:15', location: 'desk' },
+      { identity: 'mindful person', current: 'journal', new: 'gratitude practice', time: '21:30', location: 'bedroom' },
+      { identity: 'healthy person', current: 'gratitude practice', new: 'skincare routine', time: '21:45', location: 'bathroom' },
+      { identity: 'reader', current: 'skincare routine', new: 'read book', time: '22:00', location: 'bed' },
+      { identity: 'healthy person', current: 'read book', new: 'sleep', time: '22:30', location: 'bedroom' }
+    ]
+
+    for (const habit of testHabits) {
+      const habitData = {
+        identity: habit.identity,
+        currentHabit: habit.current,
+        newHabit: habit.new,
+        time: habit.time,
+        location: habit.location,
+        schedule: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        id: `habit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        streak: 0,
+        completions: {},
+        createdAt: new Date().toISOString()
+      }
+      await addHabitToDb(habitData)
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+    showToast('30 test habits added!')
+  }
+
   const addHabit = async (habit) => {
     try {
       if (habit.stackAfter) {
@@ -121,48 +183,48 @@ function App() {
       } else {
         await addHabitToDb(habit)
       }
+      showToast('Habit added successfully!')
     } catch (err) {
       console.error('Error adding habit:', err)
-      alert('Failed to add habit. Please try again.')
+      showToast('Failed to add habit. Please try again.', 'error')
     }
   }
 
-  const toggleHabit = async (id, dateKey = today) => {
+  const toggleHabit = async (id, dateKey) => {
     try {
       const habit = habits.find(h => h.id === id)
       if (!habit) return
       
-      const checkinDate = new Date(dateKey)
+      const dateStr = dateKey || today
+      const checkinDate = new Date(dateStr)
       const createdDate = new Date(habit.createdAt || habit.id)
       
-      const checkinDateOnly = new Date(checkinDate)
-      const createdDateOnly = new Date(createdDate)
-      checkinDateOnly.setHours(0, 0, 0, 0)
-      createdDateOnly.setHours(0, 0, 0, 0)
+      checkinDate.setHours(0, 0, 0, 0)
+      createdDate.setHours(0, 0, 0, 0)
       
-      if (checkinDateOnly < createdDateOnly) return
+      if (checkinDate < createdDate) return
       
-      const newCompletions = { ...habit.completions, [dateKey]: !habit.completions[dateKey] }
+      const newCompletions = { ...habit.completions, [dateStr]: !habit.completions[dateStr] }
       let streak = 0
       
-      const toggleDate = new Date(dateKey)
+      const toggleDate = new Date(dateStr)
       const habitCreatedDate = new Date(habit.createdAt || habit.id)
       
-      for (let i = 0; i >= 0; i++) {
+      for (let i = 0; i < 365; i++) {
         const date = new Date(toggleDate)
         date.setDate(date.getDate() - i)
         
         if (date < habitCreatedDate) break
         
-        const dateStr = date.toDateString()
-        if (newCompletions[dateStr]) streak++
+        const checkDateStr = date.toDateString()
+        if (newCompletions[checkDateStr]) streak++
         else break
       }
       
       await updateHabitInDb({ ...habit, completions: newCompletions, streak })
     } catch (err) {
       console.error('Error toggling habit:', err)
-      alert('Failed to update habit. Please try again.')
+      showToast('Failed to update habit. Please try again.', 'error')
     }
   }
 
@@ -199,14 +261,16 @@ function App() {
         }
         
         await deleteHabitFromDb(habitToDelete.id)
+        showToast('Habit deleted successfully!')
       } else {
         for (const habit of habits) {
           await deleteHabitFromDb(habit.id)
         }
+        showToast('All habits deleted!')
       }
     } catch (err) {
       console.error('Error deleting habit:', err)
-      alert('Failed to delete habit. Please try again.')
+      showToast('Failed to delete habit. Please try again.', 'error')
     } finally {
       setShowDeleteConfirm(false)
       setHabitToDelete(null)
@@ -222,21 +286,7 @@ function App() {
     }
   }
   
-  const handleEditHabit = (habit) => {
-    setEditingHabit(habit)
-    setShowForm(true)
-  }
-  
-  const handleFormSubmit = async (habitData) => {
-    if (editingHabit) {
-      await updateHabit(habitData)
-      setEditingHabit(null)
-    } else {
-      await addHabit(habitData)
-      setViewMode('today')
-    }
-    setShowForm(false)
-  }
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -247,7 +297,12 @@ function App() {
   }, [])
 
   const handleLogout = async () => {
-    await signOut(auth)
+    try {
+      await signOut(auth)
+    } catch (err) {
+      console.error('Logout failed:', err)
+      alert('Failed to logout. Please try again.')
+    }
   }
 
   const renderDashboard = () => {
@@ -255,112 +310,121 @@ function App() {
     return (
       <div className="space-y-8 animate-fade-in">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="font-display text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-1">Dashboard</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Track your daily habits and build consistency</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Track your daily habits</p>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex gap-2">
             {habits.length > 0 && (
-              <button onClick={() => setShowDeleteConfirm(true)} className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-[44px]">
-                <span className="hidden sm:inline">Delete All</span><span className="sm:hidden">Clear</span>
+              <button onClick={() => setShowDeleteConfirm(true)} className="px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                Delete All
               </button>
             )}
-            <button onClick={() => setShowForm(true)} className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm hover:shadow-md min-h-[44px] flex items-center justify-center gap-2">
-              <Plus className="w-4 h-4" /><span className="hidden sm:inline">New Habit</span><span className="sm:hidden">New</span>
+            <button onClick={generateTestData} className="px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors">
+              Generate Test Data
+            </button>
+            <button onClick={() => setShowQuickForm(true)} className="px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-2">
+              <Plus className="w-4 h-4" />Add Habit
             </button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center">
-                <Target className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</span>
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Total</span>
             </div>
-            <h3 className="font-display text-4xl font-bold text-gray-900 dark:text-white mb-1">{totalHabits}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Active Habits</p>
+            <h3 className="text-3xl font-bold text-gray-900 dark:text-white">{totalHabits}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Active Habits</p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-xl flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-green-600 dark:text-green-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Today</span>
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
             </div>
-            <h3 className="font-display text-4xl font-bold text-gray-900 dark:text-white mb-1">{completedToday}<span className="text-2xl text-gray-400 dark:text-gray-500">/{totalHabits}</span></h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
+            <h3 className="text-3xl font-bold text-gray-900 dark:text-white">{completedToday}<span className="text-xl text-gray-400">/{totalHabits}</span></h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Completed</p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Rate</span>
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Rate</span>
             </div>
-            <h3 className="font-display text-4xl font-bold text-gray-900 dark:text-white mb-1">{completionRate}%</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Success Rate</p>
+            <h3 className="text-3xl font-bold text-gray-900 dark:text-white">{completionRate}%</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Success Rate</p>
           </div>
         </div>
 
         {/* Tab Toggle */}
-        <div className="flex justify-center">
-          <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-full sm:w-auto">
+        <div className="flex justify-center mb-6">
+          <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
             <button
               onClick={() => setActiveTab('habits')}
-              className={`flex-1 sm:flex-none px-6 py-3 rounded-lg text-sm font-semibold transition-all min-h-[44px] flex items-center justify-center gap-2 ${
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
                 activeTab === 'habits'
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  : 'text-gray-600 dark:text-gray-400'
               }`}
             >
-              <Target className="w-4 h-4" />
-              <span>Habits</span>
+              <Target className="w-4 h-4" />Habits
             </button>
             <button
               onClick={() => setActiveTab('todos')}
-              className={`flex-1 sm:flex-none px-6 py-3 rounded-lg text-sm font-semibold transition-all min-h-[44px] flex items-center justify-center gap-2 ${
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
                 activeTab === 'todos'
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  : 'text-gray-600 dark:text-gray-400'
               }`}
             >
-              <CheckSquare className="w-4 h-4" />
-              <span>To-Do</span>
+              <CheckSquare className="w-4 h-4" />To-Do
             </button>
           </div>
         </div>
 
         {/* View Toggle (only for habits) */}
         {activeTab === 'habits' && (
-          <div className="flex justify-center">
-            <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-full sm:w-auto">
+          <div className="flex justify-center mb-6">
+            <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
               <button
-                onClick={() => setViewMode('today')}
-                className={`flex-1 sm:flex-none px-6 py-3 rounded-lg text-sm font-semibold transition-all min-h-[44px] flex items-center justify-center gap-2 ${
+                onClick={() => { setViewMode('today'); setCurrentDate(new Date()); }}
+                className={`px-5 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
                   viewMode === 'today'
                     ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    : 'text-gray-600 dark:text-gray-400'
                 }`}
               >
-                <Calendar className="w-4 h-4" />
-                <span className="hidden sm:inline">Today's Focus</span><span className="sm:hidden">Today</span>
+                <Calendar className="w-4 h-4" />Today
               </button>
               <button
                 onClick={() => setViewMode('weekly')}
-                className={`flex-1 sm:flex-none px-6 py-3 rounded-lg text-sm font-semibold transition-all min-h-[44px] flex items-center justify-center gap-2 ${
+                className={`px-5 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
                   viewMode === 'weekly'
                     ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    : 'text-gray-600 dark:text-gray-400'
                 }`}
               >
-                <Target className="w-4 h-4" />
-                <span className="hidden sm:inline">Weekly Focus</span><span className="sm:hidden">Weekly</span>
+                <Target className="w-4 h-4" />Weekly
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`px-5 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                  viewMode === 'table'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" />Table
               </button>
             </div>
           </div>
@@ -411,9 +475,13 @@ function App() {
               }
             }}
           />
+        ) : viewMode === 'table' ? (
+          <div>
+            <HabitTableView habits={habits} onDelete={deleteHabit} onUpdate={updateHabit} />
+          </div>
         ) : viewMode === 'today' ? (
           <div>
-            <DailyHabitView habits={habits} onToggle={toggleHabit} onEdit={handleEditHabit} onDelete={deleteHabit} />
+            <DailyHabitView habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} currentDate={currentDate} setCurrentDate={setCurrentDate} />
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
@@ -445,14 +513,18 @@ function App() {
                   <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <Target className="w-8 h-8 text-gray-400" />
                   </div>
-                  <h3 className="font-display text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">No habits yet</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Start building better habits today</p>
-                  <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm">
+                  <h3 className="font-display text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">Welcome to Habit Tracker!</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Build better habits with habit stacking</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mb-6 max-w-md mx-auto">Link new habits to existing ones: "After I [current habit], I will [new habit]"</p>
+                  <button onClick={() => setShowQuickForm(true)} className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm">
                     <Plus className="w-4 h-4" />Create Your First Habit
                   </button>
                 </div>
               ) : (
-                <HabitList habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} onEdit={handleEditHabit} groupBy={groupBy} />
+                <>
+
+                  <HabitList habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} groupBy={groupBy} />
+                </>
               )}
             </div>
           </div>
@@ -476,22 +548,23 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation onLogout={handleLogout} />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pb-20 sm:pb-8">
+      <main className="max-w-6xl mx-auto px-4 py-6">
         {renderDashboard()}
       </main>
-      <HabitFormV2 
-        isOpen={showForm} 
-        onClose={() => {
-          setShowForm(false)
-          setEditingHabit(null)
-        }} 
-        onSubmit={handleFormSubmit}
-        habits={habits}
-        editingHabit={editingHabit}
-      />
+      {showQuickForm && (
+        <QuickHabitForm
+          habits={habits}
+          onSubmit={addHabit}
+          onClose={() => setShowQuickForm(false)}
+        />
+      )}
       
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 animate-fade-in p-4">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 animate-fade-in p-4"
+          onClick={(e) => e.target === e.currentTarget && setShowDeleteConfirm(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowDeleteConfirm(false)}
+        >
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-sm animate-scale-in">
             <div className="text-center mb-6">
               <div className="text-4xl mb-4">🗑️</div>
@@ -522,6 +595,14 @@ function App() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      
+      {toast && (
+        <div className={`fixed bottom-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg animate-fade-in ${
+          toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'
+        } text-white font-medium`}>
+          {toast.message}
         </div>
       )}
     </div>

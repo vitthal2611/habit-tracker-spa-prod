@@ -15,10 +15,8 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
   const today = new Date().toDateString()
 
   const getConsistencyDays = (habit) => {
-    const completionDates = Object.keys(habit.completions || {}).filter(date => habit.completions[date])
-    if (completionDates.length === 0) return 0
+    if (!habit.completions || Object.keys(habit.completions).filter(date => habit.completions[date]).length === 0) return 0
     
-    const sortedDates = completionDates.map(d => new Date(d)).sort((a, b) => b - a)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
