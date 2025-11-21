@@ -18,6 +18,18 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true)
   const [dbHabits, { addItem: addHabitToDb, updateItem: updateHabitInDb, deleteItem: deleteHabitFromDb, loading }] = useFirestore('habits', [])
   const { habits, removeHabit: removeFromList } = useHabitLinkedList(dbHabits)
+
+  useEffect(() => {
+    const syncHabits = async () => {
+      for (const habit of habits) {
+        const prevHabit = habits.find(h => h.nextId === habit.id || h.id === habit.prevId)
+        if (prevHabit && habit.currentHabit !== prevHabit.newHabit) {
+          await updateHabitInDb({ ...habit, currentHabit: prevHabit.newHabit })
+        }
+      }
+    }
+    if (habits.length > 0) syncHabits()
+  }, [habits.length])
   
 
   const [showQuickForm, setShowQuickForm] = useState(false)
@@ -279,10 +291,20 @@ function App() {
 
   const updateHabit = async (updatedHabit) => {
     try {
+      const oldHabit = habits.find(h => h.id === updatedHabit.id)
       await updateHabitInDb(updatedHabit)
+      
+      if (oldHabit && oldHabit.newHabit !== updatedHabit.newHabit) {
+        const dependentHabits = habits.filter(h => h.currentHabit === oldHabit.newHabit && h.id !== updatedHabit.id)
+        for (const depHabit of dependentHabits) {
+          await updateHabitInDb({ ...depHabit, currentHabit: updatedHabit.newHabit })
+        }
+      }
+      
+      showToast('Habit updated!')
     } catch (err) {
       console.error('Error updating habit:', err)
-      alert('Failed to update habit. Please try again.')
+      showToast('Failed to update habit. Please try again.', 'error')
     }
   }
   
@@ -481,7 +503,7 @@ function App() {
           </div>
         ) : viewMode === 'today' ? (
           <div>
-            <DailyHabitView habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} currentDate={currentDate} setCurrentDate={setCurrentDate} />
+            <DailyHabitView habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} currentDate={currentDate} setCurrentDate={setCurrentDate} />
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">

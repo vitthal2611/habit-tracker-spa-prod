@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 
-export default function DailyHabitView({ habits, onToggle, onDelete, currentDate: propCurrentDate, setCurrentDate: propSetCurrentDate }) {
+export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, currentDate: propCurrentDate, setCurrentDate: propSetCurrentDate }) {
   const [currentDate, setCurrentDate] = useState(propCurrentDate || new Date())
   const [showAll, setShowAll] = useState(false)
   const [completedHabit, setCompletedHabit] = useState(null)
+  const [editingHabit, setEditingHabit] = useState(null)
 
   useEffect(() => {
     if (propCurrentDate) setCurrentDate(propCurrentDate)
@@ -212,6 +213,13 @@ export default function DailyHabitView({ habits, onToggle, onDelete, currentDate
                           </span>
                         )}
                         <button 
+                          onClick={(e) => { e.stopPropagation(); setEditingHabit(habit); }} 
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-all"
+                          title="Edit habit"
+                        >
+                          ✎
+                        </button>
+                        <button 
                           onClick={(e) => { e.stopPropagation(); onDelete(habit.id); }} 
                           className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-all"
                         >
@@ -381,6 +389,63 @@ export default function DailyHabitView({ habits, onToggle, onDelete, currentDate
               </div>
             )
           })}
+        </div>
+      )}
+
+      {editingHabit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Edit Habit</h2>
+              <button onClick={() => setEditingHabit(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              const formData = new FormData(e.target)
+              onUpdate({
+                ...editingHabit,
+                identity: formData.get('identity'),
+                newHabit: formData.get('newHabit'),
+                time: formData.get('time'),
+                location: formData.get('location'),
+                createdAt: new Date(formData.get('startDate')).toISOString()
+              })
+              setEditingHabit(null)
+            }} className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">I am a</label>
+                <input name="identity" defaultValue={editingHabit.identity} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Starting From</label>
+                <input name="startDate" type="date" defaultValue={new Date(editingHabit.createdAt).toISOString().split('T')[0]} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">I will</label>
+                  <input name="newHabit" defaultValue={editingHabit.newHabit} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">At (time)</label>
+                  <input name="time" type="time" defaultValue={editingHabit.time} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">In (location)</label>
+                <input name="location" defaultValue={editingHabit.location} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setEditingHabit(null)} className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                  Cancel
+                </button>
+                <button type="submit" className="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all">
+                  Update Habit
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
