@@ -475,6 +475,13 @@ function App() {
                 console.error('Error toggling todo:', err)
               }
             }}
+            onUpdate={async (updatedTodo) => {
+              try {
+                await updateTodoInDb(updatedTodo)
+              } catch (err) {
+                console.error('Error updating todo:', err)
+              }
+            }}
             onDelete={async (id) => {
               try {
                 await deleteTodoFromDb(id)

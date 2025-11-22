@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, X, Check, Circle } from 'lucide-react'
+import { Plus, X, Check, Circle, Edit2 } from 'lucide-react'
 
 const DEFAULT_CATEGORIES = [
   { id: 'work', name: 'Work', color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-900/20' },
@@ -22,7 +22,7 @@ const COLORS = [
   { color: 'bg-slate-500', lightBg: 'bg-slate-50 dark:bg-slate-900/20' }
 ]
 
-export default function TodoList({ todos, onAdd, onToggle, onDelete, categories, onAddCategory, onDeleteCategory }) {
+export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, categories, onAddCategory, onDeleteCategory }) {
   const [newTodo, setNewTodo] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('personal')
   const [filterCategory, setFilterCategory] = useState('all')
@@ -31,6 +31,8 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, categories,
   const [selectedColor, setSelectedColor] = useState(0)
   
   const allCategories = [...DEFAULT_CATEGORIES, ...(categories || [])]
+
+  const [dueDate, setDueDate] = useState('')
 
   const handleAdd = async (e) => {
     e.preventDefault()
@@ -42,9 +44,11 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, categories,
           text: newTodo.trim(),
           category: selectedCategory,
           completed: false,
+          dueDate: dueDate || null,
           createdAt: new Date().toISOString()
         })
         setNewTodo('')
+        setDueDate('')
       } catch (err) {
         console.error('Error adding todo:', err)
         alert('Failed to add task. Please try again.')
@@ -56,8 +60,28 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, categories,
     ? todos 
     : todos.filter(todo => todo.category === filterCategory)
 
-  const activeTodos = filteredTodos.filter(t => !t.completed)
-  const completedTodos = filteredTodos.filter(t => t.completed)
+  const sortedTodos = [...filteredTodos].sort((a, b) => {
+    if (!a.dueDate && !b.dueDate) return 0
+    if (!a.dueDate) return 1
+    if (!b.dueDate) return -1
+    return new Date(a.dueDate) - new Date(b.dueDate)
+  })
+
+  const activeTodos = sortedTodos.filter(t => !t.completed)
+  const completedTodos = sortedTodos.filter(t => t.completed)
+
+  const groupByDate = (todos) => {
+    const groups = {}
+    todos.forEach(todo => {
+      const key = todo.dueDate || 'No Date'
+      if (!groups[key]) groups[key] = []
+      groups[key].push(todo)
+    })
+    return groups
+  }
+
+  const activeGroups = groupByDate(activeTodos)
+  const completedGroups = groupByDate(completedTodos)
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 px-4">
@@ -74,6 +98,12 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, categories,
               onChange={(e) => setNewTodo(e.target.value)}
               placeholder="Add a new task..."
               className="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="px-3 py-2.5 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <button
               type="submit"
@@ -219,20 +249,38 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, categories,
 
       {/* Active Todos */}
       {activeTodos.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-4">
           <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 px-2">Active Tasks</h3>
-          {activeTodos.map(todo => (
-            <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} allCategories={allCategories} />
+          {Object.entries(activeGroups).map(([date, todos]) => (
+            <div key={date} className="space-y-2">
+              <div className="px-2 py-1 bg-slate-100 dark:bg-gray-700 rounded-lg">
+                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {date === 'No Date' ? '📋 No Due Date' : `📅 ${new Date(date).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })}`}
+                </h4>
+              </div>
+              {todos.map(todo => (
+                <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} allCategories={allCategories} />
+              ))}
+            </div>
           ))}
         </div>
       )}
 
       {/* Completed Todos */}
       {completedTodos.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-4">
           <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 px-2">Completed</h3>
-          {completedTodos.map(todo => (
-            <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} allCategories={allCategories} />
+          {Object.entries(completedGroups).map(([date, todos]) => (
+            <div key={date} className="space-y-2">
+              <div className="px-2 py-1 bg-slate-100 dark:bg-gray-700 rounded-lg">
+                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {date === 'No Date' ? '📋 No Due Date' : `📅 ${new Date(date).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })}`}
+                </h4>
+              </div>
+              {todos.map(todo => (
+                <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} allCategories={allCategories} />
+              ))}
+            </div>
           ))}
         </div>
       )}
@@ -249,13 +297,62 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, categories,
   )
 }
 
-function TodoItem({ todo, onToggle, onDelete, allCategories }) {
+function TodoItem({ todo, onToggle, onDelete, onUpdate, allCategories }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editText, setEditText] = useState(todo.text)
+  const [editDate, setEditDate] = useState(todo.dueDate || '')
+  const [editCategory, setEditCategory] = useState(todo.category)
   const category = allCategories.find(c => c.id === todo.category) || allCategories[4]
+  const isOverdue = todo.dueDate && new Date(todo.dueDate) < new Date() && !todo.completed
+
+  const handleUpdate = () => {
+    onUpdate({ ...todo, text: editText, dueDate: editDate || null, category: editCategory })
+    setIsEditing(false)
+  }
+
+  if (isEditing) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-indigo-300 dark:border-indigo-700 p-3 sm:p-4">
+        <input
+          type="text"
+          value={editText}
+          onChange={(e) => setEditText(e.target.value)}
+          className="w-full px-3 py-2 mb-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          autoFocus
+        />
+        <div className="flex gap-2 mb-2">
+          <input
+            type="date"
+            value={editDate}
+            onChange={(e) => setEditDate(e.target.value)}
+            className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <select
+            value={editCategory}
+            onChange={(e) => setEditCategory(e.target.value)}
+            className="px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            {allCategories.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={handleUpdate} className="flex-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">
+            Save
+          </button>
+          <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-300 dark:hover:bg-gray-600">
+            Cancel
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3 sm:p-4 transition-all hover:shadow-md ${
       todo.completed ? 'opacity-60' : ''
-    }`}>
+    } ${isOverdue ? 'border-red-300 dark:border-red-700' : ''}`}>
       <div className="flex items-start gap-3">
         <button
           onClick={() => onToggle(todo.id)}
@@ -280,15 +377,30 @@ function TodoItem({ todo, onToggle, onDelete, allCategories }) {
             <span className={`text-xs font-semibold px-2 py-0.5 rounded ${category.lightBg} text-slate-700 dark:text-slate-300`}>
               {category.name}
             </span>
+            {todo.dueDate && (
+              <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                isOverdue ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-slate-400'
+              }`}>
+                {new Date(todo.dueDate).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+              </span>
+            )}
           </div>
         </div>
 
-        <button
-          onClick={() => onDelete(todo.id)}
-          className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors p-1"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex gap-1">
+          <button
+            onClick={() => setIsEditing(true)}
+            className="flex-shrink-0 text-slate-400 hover:text-indigo-500 transition-colors p-1"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onDelete(todo.id)}
+            className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors p-1"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
     </div>
   )
