@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, X, Check, Circle, Edit2 } from 'lucide-react'
+import { Plus, X, Check, Circle, Edit2, Calendar } from 'lucide-react'
 
 const DEFAULT_CATEGORIES = [
   { id: 'work', name: 'Work', color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-900/20' },
@@ -9,18 +9,13 @@ const DEFAULT_CATEGORIES = [
   { id: 'other', name: 'Other', color: 'bg-slate-500', lightBg: 'bg-slate-50 dark:bg-slate-900/20' }
 ]
 
-const COLORS = [
-  { color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-900/20' },
-  { color: 'bg-purple-500', lightBg: 'bg-purple-50 dark:bg-purple-900/20' },
-  { color: 'bg-green-500', lightBg: 'bg-green-50 dark:bg-green-900/20' },
-  { color: 'bg-amber-500', lightBg: 'bg-amber-50 dark:bg-amber-900/20' },
+const COLORS = DEFAULT_CATEGORIES.map(c => ({ color: c.color, lightBg: c.lightBg })).concat([
   { color: 'bg-red-500', lightBg: 'bg-red-50 dark:bg-red-900/20' },
   { color: 'bg-pink-500', lightBg: 'bg-pink-50 dark:bg-pink-900/20' },
   { color: 'bg-indigo-500', lightBg: 'bg-indigo-50 dark:bg-indigo-900/20' },
   { color: 'bg-teal-500', lightBg: 'bg-teal-50 dark:bg-teal-900/20' },
-  { color: 'bg-orange-500', lightBg: 'bg-orange-50 dark:bg-orange-900/20' },
-  { color: 'bg-slate-500', lightBg: 'bg-slate-50 dark:bg-slate-900/20' }
-]
+  { color: 'bg-orange-500', lightBg: 'bg-orange-50 dark:bg-orange-900/20' }
+])
 
 export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, categories, onAddCategory, onDeleteCategory }) {
   const [newTodo, setNewTodo] = useState('')
@@ -33,11 +28,30 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
   const allCategories = [...DEFAULT_CATEGORIES, ...(categories || [])]
 
   const [dueDate, setDueDate] = useState('')
+  const [priority, setPriority] = useState('medium')
+
+  useEffect(() => {
+    if (todos.length === 0) return
+    
+    const todayStr = new Date().toISOString().split('T')[0]
+    let updatedCount = 0
+    
+    todos.forEach(todo => {
+      if (!todo.completed && todo.dueDate && todo.dueDate < todayStr && !todo.autoUpdated) {
+        onUpdate({ ...todo, dueDate: todayStr, autoUpdated: true })
+        updatedCount++
+      }
+    })
+    
+    if (updatedCount > 0) {
+      setTimeout(() => alert(`${updatedCount} overdue task(s) moved to today`), 100)
+    }
+  }, [todos.map(t => t.id).join(',')])
 
   const handleAdd = async (e) => {
     e.preventDefault()
     if (newTodo.trim()) {
-      const todoId = `todo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const todoId = `todo_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
       try {
         await onAdd({
           id: todoId,
@@ -45,10 +59,12 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
           category: selectedCategory,
           completed: false,
           dueDate: dueDate || null,
+          priority: priority,
           createdAt: new Date().toISOString()
         })
         setNewTodo('')
         setDueDate('')
+        setPriority('medium')
       } catch (err) {
         console.error('Error adding todo:', err)
         alert('Failed to add task. Please try again.')
@@ -72,10 +88,18 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
 
   const groupByDate = (todos) => {
     const groups = {}
+    const priorityOrder = { high: 0, medium: 1, low: 2 }
     todos.forEach(todo => {
       const key = todo.dueDate || 'No Date'
       if (!groups[key]) groups[key] = []
       groups[key].push(todo)
+    })
+    Object.keys(groups).forEach(key => {
+      groups[key].sort((a, b) => {
+        const aPriority = priorityOrder[a.priority || 'medium']
+        const bPriority = priorityOrder[b.priority || 'medium']
+        return aPriority - bPriority
+      })
     })
     return groups
   }
@@ -105,6 +129,41 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
               onChange={(e) => setDueDate(e.target.value)}
               className="px-3 py-2.5 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => setPriority('high')}
+                className={`px-3 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+                  priority === 'high'
+                    ? 'bg-red-500 text-white shadow-md'
+                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200'
+                }`}
+              >
+                High
+              </button>
+              <button
+                type="button"
+                onClick={() => setPriority('medium')}
+                className={`px-3 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+                  priority === 'medium'
+                    ? 'bg-yellow-500 text-white shadow-md'
+                    : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-200'
+                }`}
+              >
+                Med
+              </button>
+              <button
+                type="button"
+                onClick={() => setPriority('low')}
+                className={`px-3 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+                  priority === 'low'
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200'
+                }`}
+              >
+                Low
+              </button>
+            </div>
             <button
               type="submit"
               className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-lg font-semibold hover:from-indigo-600 hover:to-violet-700 transition-all flex items-center gap-2"
@@ -190,8 +249,12 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
               e.preventDefault()
               if (newCategoryName.trim()) {
                 const colorSet = COLORS[selectedColor]
+                let categoryId = newCategoryName.toLowerCase().replace(/\s+/g, '-')
+                if (allCategories.find(c => c.id === categoryId)) {
+                  categoryId = `${categoryId}-${Date.now()}`
+                }
                 onAddCategory({
-                  id: newCategoryName.toLowerCase().replace(/\s+/g, '-'),
+                  id: categoryId,
                   name: newCategoryName.trim(),
                   color: colorSet.color,
                   lightBg: colorSet.lightBg
@@ -202,7 +265,7 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
               }
             }} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Category Name</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{'Category Name'}</label>
                 <input
                   type="text"
                   value={newCategoryName}
@@ -213,7 +276,7 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Color</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{'Color'}</label>
                 <div className="grid grid-cols-5 gap-2">
                   {COLORS.map((colorSet, idx) => (
                     <button
@@ -253,9 +316,13 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
           <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 px-2">Active Tasks</h3>
           {Object.entries(activeGroups).map(([date, todos]) => (
             <div key={date} className="space-y-2">
-              <div className="px-2 py-1 bg-slate-100 dark:bg-gray-700 rounded-lg">
-                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {date === 'No Date' ? '📋 No Due Date' : `📅 ${new Date(date).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })}`}
+              <div className="px-4 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl shadow-md">
+                <h4 className="text-base font-bold text-white flex items-center gap-2">
+                  {date === 'No Date' ? (
+                    <><Circle className="w-5 h-5" /> No Due Date</>
+                  ) : (
+                    <><Calendar className="w-5 h-5" /> {new Date(date).toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</>
+                  )}
                 </h4>
               </div>
               {todos.map(todo => (
@@ -272,9 +339,13 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
           <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 px-2">Completed</h3>
           {Object.entries(completedGroups).map(([date, todos]) => (
             <div key={date} className="space-y-2">
-              <div className="px-2 py-1 bg-slate-100 dark:bg-gray-700 rounded-lg">
-                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {date === 'No Date' ? '📋 No Due Date' : `📅 ${new Date(date).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })}`}
+              <div className="px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-md">
+                <h4 className="text-base font-bold text-white flex items-center gap-2">
+                  {date === 'No Date' ? (
+                    <><Circle className="w-5 h-5" /> No Due Date</>
+                  ) : (
+                    <><Calendar className="w-5 h-5" /> {new Date(date).toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</>
+                  )}
                 </h4>
               </div>
               {todos.map(todo => (
@@ -302,11 +373,19 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, allCategories }) {
   const [editText, setEditText] = useState(todo.text)
   const [editDate, setEditDate] = useState(todo.dueDate || '')
   const [editCategory, setEditCategory] = useState(todo.category)
-  const category = allCategories.find(c => c.id === todo.category) || allCategories[4]
-  const isOverdue = todo.dueDate && new Date(todo.dueDate) < new Date() && !todo.completed
+  const [editPriority, setEditPriority] = useState(todo.priority || 'medium')
+  const category = allCategories.find(c => c.id === todo.category) || allCategories.find(c => c.id === 'other') || allCategories[0]
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const dueDate = todo.dueDate ? new Date(todo.dueDate + 'T00:00:00') : null
+  const isOverdue = dueDate && dueDate < today && !todo.completed
 
   const handleUpdate = () => {
-    onUpdate({ ...todo, text: editText, dueDate: editDate || null, category: editCategory })
+    if (!editText.trim()) {
+      alert('Task text cannot be empty')
+      return
+    }
+    onUpdate({ ...todo, text: editText.trim(), dueDate: editDate || null, category: editCategory, priority: editPriority })
     setIsEditing(false)
   }
 
@@ -336,6 +415,41 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, allCategories }) {
               <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
           </select>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setEditPriority('high')}
+              className={`px-2 py-2 rounded-lg font-semibold text-xs transition-all ${
+                editPriority === 'high'
+                  ? 'bg-red-500 text-white'
+                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+              }`}
+            >
+              H
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditPriority('medium')}
+              className={`px-2 py-2 rounded-lg font-semibold text-xs transition-all ${
+                editPriority === 'medium'
+                  ? 'bg-yellow-500 text-white'
+                  : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+              }`}
+            >
+              M
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditPriority('low')}
+              className={`px-2 py-2 rounded-lg font-semibold text-xs transition-all ${
+                editPriority === 'low'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+              }`}
+            >
+              L
+            </button>
+          </div>
         </div>
         <div className="flex gap-2">
           <button onClick={handleUpdate} className="flex-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">
@@ -377,6 +491,41 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, allCategories }) {
             <span className={`text-xs font-semibold px-2 py-0.5 rounded ${category.lightBg} text-slate-700 dark:text-slate-300`}>
               {category.name}
             </span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => onUpdate({ ...todo, priority: 'high' })}
+                className={`text-xs font-semibold px-2 py-0.5 rounded transition-all ${
+                  todo.priority === 'high'
+                    ? 'bg-red-500 text-white shadow-sm'
+                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200'
+                }`}
+                title="High priority"
+              >
+                H
+              </button>
+              <button
+                onClick={() => onUpdate({ ...todo, priority: 'medium' })}
+                className={`text-xs font-semibold px-2 py-0.5 rounded transition-all ${
+                  todo.priority === 'medium'
+                    ? 'bg-yellow-500 text-white shadow-sm'
+                    : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-200'
+                }`}
+                title="Medium priority"
+              >
+                M
+              </button>
+              <button
+                onClick={() => onUpdate({ ...todo, priority: 'low' })}
+                className={`text-xs font-semibold px-2 py-0.5 rounded transition-all ${
+                  todo.priority === 'low'
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200'
+                }`}
+                title="Low priority"
+              >
+                L
+              </button>
+            </div>
             {todo.dueDate && (
               <span className={`text-xs font-medium px-2 py-0.5 rounded ${
                 isOverdue ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-slate-400'
