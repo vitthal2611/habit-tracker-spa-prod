@@ -90,19 +90,19 @@ export default function HabitTableView({ habits, onDelete, onUpdate }) {
 
   return (
     <div className="overflow-x-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Habit Details Table</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Habit Details Table</h2>
         <button
           onClick={downloadPDF}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
         >
           <Download className="w-4 h-4" />
           Download PDF
         </button>
       </div>
 
-      <div className="min-w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" style={{minWidth: '1200px'}}>
           <thead className="bg-blue-600 text-white">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Step</th>

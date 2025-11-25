@@ -111,11 +111,11 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
     <div className="max-w-4xl mx-auto space-y-4 px-4">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">To-Do List</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-4">To-Do List</h2>
         
         {/* Add Todo Form */}
         <form onSubmit={handleAdd} className="space-y-3">
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
               value={newTodo}
@@ -123,53 +123,55 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
               placeholder="Add a new task..."
               className="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="px-3 py-2.5 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <div className="flex gap-1">
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="flex-1 sm:flex-none px-3 py-2.5 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              />
               <button
-                type="button"
-                onClick={() => setPriority('high')}
-                className={`px-3 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                  priority === 'high'
-                    ? 'bg-red-500 text-white shadow-md'
-                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200'
-                }`}
+                type="submit"
+                className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-lg font-semibold hover:from-indigo-600 hover:to-violet-700 transition-all flex items-center gap-2 whitespace-nowrap"
               >
-                High
-              </button>
-              <button
-                type="button"
-                onClick={() => setPriority('medium')}
-                className={`px-3 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                  priority === 'medium'
-                    ? 'bg-yellow-500 text-white shadow-md'
-                    : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-200'
-                }`}
-              >
-                Med
-              </button>
-              <button
-                type="button"
-                onClick={() => setPriority('low')}
-                className={`px-3 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                  priority === 'low'
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200'
-                }`}
-              >
-                Low
+                <Plus className="w-5 h-5" />
+                <span className="hidden sm:inline">Add</span>
               </button>
             </div>
+          </div>
+          <div className="flex gap-2">
             <button
-              type="submit"
-              className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-lg font-semibold hover:from-indigo-600 hover:to-violet-700 transition-all flex items-center gap-2"
+              type="button"
+              onClick={() => setPriority('high')}
+              className={`flex-1 px-3 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all ${
+                priority === 'high'
+                  ? 'bg-red-500 text-white shadow-md'
+                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200'
+              }`}
             >
-              <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">Add</span>
+              High
+            </button>
+            <button
+              type="button"
+              onClick={() => setPriority('medium')}
+              className={`flex-1 px-3 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all ${
+                priority === 'medium'
+                  ? 'bg-yellow-500 text-white shadow-md'
+                  : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-200'
+              }`}
+            >
+              Med
+            </button>
+            <button
+              type="button"
+              onClick={() => setPriority('low')}
+              className={`flex-1 px-3 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all ${
+                priority === 'low'
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200'
+              }`}
+            >
+              Low
             </button>
           </div>
 
@@ -211,10 +213,10 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
         <button
           onClick={() => setFilterCategory('all')}
-          className={`px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap transition-all ${
+          className={`px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm whitespace-nowrap transition-all ${
             filterCategory === 'all'
               ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
               : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600'
@@ -228,7 +230,7 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
             <button
               key={cat.id}
               onClick={() => setFilterCategory(cat.id)}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap transition-all ${
+              className={`px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm whitespace-nowrap transition-all ${
                 filterCategory === cat.id
                   ? `${cat.color} text-white`
                   : `${cat.lightBg} text-slate-700 dark:text-slate-300 hover:opacity-80`
@@ -316,12 +318,12 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
           <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 px-2">Active Tasks</h3>
           {Object.entries(activeGroups).map(([date, todos]) => (
             <div key={date} className="space-y-2">
-              <div className="px-4 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl shadow-md">
-                <h4 className="text-base font-bold text-white flex items-center gap-2">
+              <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl shadow-md">
+                <h4 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
                   {date === 'No Date' ? (
-                    <><Circle className="w-5 h-5" /> No Due Date</>
+                    <><Circle className="w-4 h-4 sm:w-5 sm:h-5" /> No Due Date</>
                   ) : (
-                    <><Calendar className="w-5 h-5" /> {new Date(date).toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</>
+                    <><Calendar className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">{new Date(date).toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span><span className="sm:hidden">{new Date(date).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>
                   )}
                 </h4>
               </div>
@@ -339,12 +341,12 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
           <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 px-2">Completed</h3>
           {Object.entries(completedGroups).map(([date, todos]) => (
             <div key={date} className="space-y-2">
-              <div className="px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-md">
-                <h4 className="text-base font-bold text-white flex items-center gap-2">
+              <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-md">
+                <h4 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
                   {date === 'No Date' ? (
-                    <><Circle className="w-5 h-5" /> No Due Date</>
+                    <><Circle className="w-4 h-4 sm:w-5 sm:h-5" /> No Due Date</>
                   ) : (
-                    <><Calendar className="w-5 h-5" /> {new Date(date).toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</>
+                    <><Calendar className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">{new Date(date).toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span><span className="sm:hidden">{new Date(date).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>
                   )}
                 </h4>
               </div>
@@ -396,66 +398,66 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, allCategories }) {
           type="text"
           value={editText}
           onChange={(e) => setEditText(e.target.value)}
-          className="w-full px-3 py-2 mb-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full px-3 py-2 mb-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
           autoFocus
         />
-        <div className="flex gap-2 mb-2">
+        <div className="flex flex-col sm:flex-row gap-2 mb-2">
           <input
             type="date"
             value={editDate}
             onChange={(e) => setEditDate(e.target.value)}
-            className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
           />
           <select
             value={editCategory}
             onChange={(e) => setEditCategory(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
           >
             {allCategories.map(cat => (
               <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
           </select>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              onClick={() => setEditPriority('high')}
-              className={`px-2 py-2 rounded-lg font-semibold text-xs transition-all ${
-                editPriority === 'high'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-              }`}
-            >
-              H
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditPriority('medium')}
-              className={`px-2 py-2 rounded-lg font-semibold text-xs transition-all ${
-                editPriority === 'medium'
-                  ? 'bg-yellow-500 text-white'
-                  : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-              }`}
-            >
-              M
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditPriority('low')}
-              className={`px-2 py-2 rounded-lg font-semibold text-xs transition-all ${
-                editPriority === 'low'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-              }`}
-            >
-              L
-            </button>
-          </div>
+        </div>
+        <div className="flex gap-2 mb-2">
+          <button
+            type="button"
+            onClick={() => setEditPriority('high')}
+            className={`flex-1 px-3 py-2 rounded-lg font-semibold text-xs transition-all ${
+              editPriority === 'high'
+                ? 'bg-red-500 text-white'
+                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+            }`}
+          >
+            High
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditPriority('medium')}
+            className={`flex-1 px-3 py-2 rounded-lg font-semibold text-xs transition-all ${
+              editPriority === 'medium'
+                ? 'bg-yellow-500 text-white'
+                : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+            }`}
+          >
+            Med
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditPriority('low')}
+            className={`flex-1 px-3 py-2 rounded-lg font-semibold text-xs transition-all ${
+              editPriority === 'low'
+                ? 'bg-blue-500 text-white'
+                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+            }`}
+          >
+            Low
+          </button>
         </div>
         <div className="flex gap-2">
-          <button onClick={handleUpdate} className="flex-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">
+          <button onClick={handleUpdate} className="flex-1 px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">
             Save
           </button>
-          <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-300 dark:hover:bg-gray-600">
+          <button onClick={() => setIsEditing(false)} className="flex-1 px-3 py-2 bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-300 dark:hover:bg-gray-600">
             Cancel
           </button>
         </div>
@@ -487,14 +489,14 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, allCategories }) {
           }`}>
             {todo.text}
           </p>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex flex-wrap items-center gap-2 mt-1">
             <span className={`text-xs font-semibold px-2 py-0.5 rounded ${category.lightBg} text-slate-700 dark:text-slate-300`}>
               {category.name}
             </span>
             <div className="flex gap-1">
               <button
                 onClick={() => onUpdate({ ...todo, priority: 'high' })}
-                className={`text-xs font-semibold px-2 py-0.5 rounded transition-all ${
+                className={`text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded transition-all ${
                   todo.priority === 'high'
                     ? 'bg-red-500 text-white shadow-sm'
                     : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200'
@@ -505,7 +507,7 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, allCategories }) {
               </button>
               <button
                 onClick={() => onUpdate({ ...todo, priority: 'medium' })}
-                className={`text-xs font-semibold px-2 py-0.5 rounded transition-all ${
+                className={`text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded transition-all ${
                   todo.priority === 'medium'
                     ? 'bg-yellow-500 text-white shadow-sm'
                     : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-200'
@@ -516,7 +518,7 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, allCategories }) {
               </button>
               <button
                 onClick={() => onUpdate({ ...todo, priority: 'low' })}
-                className={`text-xs font-semibold px-2 py-0.5 rounded transition-all ${
+                className={`text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded transition-all ${
                   todo.priority === 'low'
                     ? 'bg-blue-500 text-white shadow-sm'
                     : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200'

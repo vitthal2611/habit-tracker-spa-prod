@@ -332,68 +332,73 @@ function App() {
     return (
       <div className="space-y-8 animate-fade-in">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Track your daily habits</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             {habits.length > 0 && (
-              <button onClick={() => setShowDeleteConfirm(true)} className="px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                Delete All
+              <button onClick={() => {
+                const data = JSON.stringify(habits, null, 2)
+                const blob = new Blob([data], { type: 'application/json' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = 'my-habits.json'
+                a.click()
+              }} className="px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
+                Export
               </button>
             )}
-            <button onClick={generateTestData} className="px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors">
-              Generate Test Data
-            </button>
-            <button onClick={() => setShowQuickForm(true)} className="px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-2">
+            <button onClick={() => setShowQuickForm(true)} className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center justify-center gap-2">
               <Plus className="w-4 h-4" />Add Habit
             </button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-2 sm:mb-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Total</span>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 dark:text-white">{totalHabits}</h3>
+            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{totalHabits}</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Active Habits</p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-2 sm:mb-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 dark:text-white">{completedToday}<span className="text-xl text-gray-400">/{totalHabits}</span></h3>
+            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{completedToday}<span className="text-lg sm:text-xl text-gray-400">/{totalHabits}</span></h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Completed</p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-2 sm:mb-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Rate</span>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 dark:text-white">{completionRate}%</h3>
+            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{completionRate}%</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Success Rate</p>
           </div>
         </div>
 
         {/* Tab Toggle */}
         <div className="flex justify-center mb-6">
-          <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+          <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full sm:w-auto">
             <button
               onClick={() => setActiveTab('habits')}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                 activeTab === 'habits'
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400'
@@ -403,7 +408,7 @@ function App() {
             </button>
             <button
               onClick={() => setActiveTab('todos')}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                 activeTab === 'todos'
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400'
@@ -417,36 +422,36 @@ function App() {
         {/* View Toggle (only for habits) */}
         {activeTab === 'habits' && (
           <div className="flex justify-center mb-6">
-            <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full sm:w-auto overflow-x-auto">
               <button
                 onClick={() => { setViewMode('today'); setCurrentDate(new Date()); }}
-                className={`px-5 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 rounded-md text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap ${
                   viewMode === 'today'
                     ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                     : 'text-gray-600 dark:text-gray-400'
                 }`}
               >
-                <Calendar className="w-4 h-4" />Today
+                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />Today
               </button>
               <button
                 onClick={() => setViewMode('weekly')}
-                className={`px-5 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 rounded-md text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap ${
                   viewMode === 'weekly'
                     ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                     : 'text-gray-600 dark:text-gray-400'
                 }`}
               >
-                <Target className="w-4 h-4" />Weekly
+                <Target className="w-3 h-3 sm:w-4 sm:h-4" />Weekly
               </button>
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-5 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 rounded-md text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap ${
                   viewMode === 'table'
                     ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                     : 'text-gray-600 dark:text-gray-400'
                 }`}
               >
-                <TrendingUp className="w-4 h-4" />Table
+                <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />Table
               </button>
             </div>
           </div>

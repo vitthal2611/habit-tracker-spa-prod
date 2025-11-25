@@ -407,6 +407,7 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, c
               onUpdate({
                 ...editingHabit,
                 identity: formData.get('identity'),
+                currentHabit: formData.get('currentHabit'),
                 newHabit: formData.get('newHabit'),
                 time: formData.get('time'),
                 location: formData.get('location'),
@@ -422,19 +423,25 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, c
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Starting From</label>
                 <input name="startDate" type="date" defaultValue={new Date(editingHabit.createdAt).toISOString().split('T')[0]} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" required />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">After I</label>
+                  <input name="currentHabit" defaultValue={editingHabit.currentHabit} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">I will</label>
                   <input name="newHabit" defaultValue={editingHabit.newHabit} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" required />
                 </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">At (time)</label>
                   <input name="time" type="time" defaultValue={editingHabit.time} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" />
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">In (location)</label>
-                <input name="location" defaultValue={editingHabit.location} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">In (location)</label>
+                  <input name="location" defaultValue={editingHabit.location} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+                </div>
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setEditingHabit(null)} className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
