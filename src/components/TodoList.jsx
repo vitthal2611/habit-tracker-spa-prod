@@ -34,19 +34,17 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
     if (todos.length === 0) return
     
     const todayStr = new Date().toISOString().split('T')[0]
-    let updatedCount = 0
+    const overdueTodos = todos.filter(todo => 
+      !todo.completed && todo.dueDate && todo.dueDate < todayStr
+    )
     
-    todos.forEach(todo => {
-      if (!todo.completed && todo.dueDate && todo.dueDate < todayStr && !todo.autoUpdated) {
-        onUpdate({ ...todo, dueDate: todayStr, autoUpdated: true })
-        updatedCount++
-      }
-    })
-    
-    if (updatedCount > 0) {
-      setTimeout(() => alert(`${updatedCount} overdue task(s) moved to today`), 100)
+    if (overdueTodos.length > 0) {
+      overdueTodos.forEach(todo => {
+        onUpdate({ ...todo, dueDate: todayStr })
+      })
+      setTimeout(() => alert(`${overdueTodos.length} overdue task(s) moved to today`), 100)
     }
-  }, [todos.map(t => t.id).join(',')])
+  }, [])
 
   const handleAdd = async (e) => {
     e.preventDefault()

@@ -19,22 +19,14 @@ function App() {
   const [dbHabits, { addItem: addHabitToDb, updateItem: updateHabitInDb, deleteItem: deleteHabitFromDb, loading }] = useFirestore('habits', [])
   const { habits, removeHabit: removeFromList } = useHabitLinkedList(dbHabits)
 
-  useEffect(() => {
-    const syncHabits = async () => {
-      for (const habit of habits) {
-        const prevHabit = habits.find(h => h.nextId === habit.id || h.id === habit.prevId)
-        if (prevHabit && habit.currentHabit !== prevHabit.newHabit) {
-          await updateHabitInDb({ ...habit, currentHabit: prevHabit.newHabit })
-        }
-      }
-    }
-    if (habits.length > 0) syncHabits()
-  }, [habits.length])
+  // Removed auto-sync to prevent overwriting manual edits
   
 
   const [showQuickForm, setShowQuickForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [habitToDelete, setHabitToDelete] = useState(null)
+  const [selectedHabits, setSelectedHabits] = useState(new Set())
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [toast, setToast] = useState(null)
   const [groupBy, setGroupBy] = useState('none')
   const [viewMode, setViewMode] = useState('today')
@@ -197,8 +189,7 @@ function App() {
       }
       showToast('Habit added successfully!')
     } catch (err) {
-      console.error('Error adding habit:', err)
-      showToast('Failed to add habit. Please try again.', 'error')
+      showToast('Failed to add habit', 'error')
     }
   }
 
@@ -235,8 +226,7 @@ function App() {
       
       await updateHabitInDb({ ...habit, completions: newCompletions, streak })
     } catch (err) {
-      console.error('Error toggling habit:', err)
-      showToast('Failed to update habit. Please try again.', 'error')
+      showToast('Failed to update habit', 'error')
     }
   }
 
@@ -246,43 +236,48 @@ function App() {
     setShowDeleteConfirm(true)
   }
 
+  const toggleHabitSelection = (id) => {
+    const newSelected = new Set(selectedHabits)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedHabits(newSelected)
+  }
+
+  const deleteSelectedHabits = () => {
+    setShowDeleteConfirm(true)
+  }
+
+  const selectAllHabits = () => {
+    setSelectedHabits(new Set(habits.map(h => h.id)))
+  }
+
+  const clearSelection = () => {
+    setSelectedHabits(new Set())
+    setIsSelectionMode(false)
+  }
+
   const confirmDelete = async () => {
     try {
       if (habitToDelete) {
         const result = removeFromList(habitToDelete.id)
-        
         if (result) {
           if (result.next) await updateHabitInDb(result.next)
           if (result.prev) await updateHabitInDb(result.prev)
-          
-          const orphanedHabits = habits.filter(h => 
-            h.id !== habitToDelete.id && 
-            (h.currentHabit === result.deletedName || h.stackAfter === result.deletedId)
-          )
-          
-          for (const habit of orphanedHabits) {
-            const prevName = result.prev ? (result.prev.newHabit || result.prev.habit) : ''
-            await updateHabitInDb({
-              ...habit,
-              currentHabit: prevName,
-              stackAfter: result.prev?.id || null,
-              prevId: result.prev?.id || null,
-              habitStatement: prevName ? `After I ${prevName}, I will ${habit.newHabit}` : `I will ${habit.newHabit}`
-            })
-          }
         }
-        
         await deleteHabitFromDb(habitToDelete.id)
-        showToast('Habit deleted successfully!')
-      } else {
-        for (const habit of habits) {
-          await deleteHabitFromDb(habit.id)
+        showToast('Habit deleted!')
+      } else if (selectedHabits.size > 0) {
+        for (const id of selectedHabits) {
+          await deleteHabitFromDb(id)
         }
-        showToast('All habits deleted!')
+        showToast(`${selectedHabits.size} habits deleted!`)
+        clearSelection()
       }
     } catch (err) {
-      console.error('Error deleting habit:', err)
-      showToast('Failed to delete habit. Please try again.', 'error')
+      showToast('Failed to delete', 'error')
     } finally {
       setShowDeleteConfirm(false)
       setHabitToDelete(null)
@@ -291,8 +286,10 @@ function App() {
 
   const updateHabit = async (updatedHabit) => {
     try {
+      console.log('Updating habit:', updatedHabit)
       const oldHabit = habits.find(h => h.id === updatedHabit.id)
       await updateHabitInDb(updatedHabit)
+      console.log('Habit updated in Firebase')
       
       if (oldHabit && oldHabit.newHabit !== updatedHabit.newHabit) {
         const dependentHabits = habits.filter(h => h.currentHabit === oldHabit.newHabit && h.id !== updatedHabit.id)
@@ -303,8 +300,26 @@ function App() {
       
       showToast('Habit updated!')
     } catch (err) {
-      console.error('Error updating habit:', err)
-      showToast('Failed to update habit. Please try again.', 'error')
+      console.error('Update error:', err)
+      showToast('Failed to update habit', 'error')
+    }
+  }
+
+  const duplicateHabit = async (habit) => {
+    try {
+      const newId = `habit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const duplicated = { ...habit }
+      duplicated.id = newId
+      duplicated.completions = {}
+      duplicated.streak = 0
+      duplicated.createdAt = new Date().toISOString()
+      delete duplicated.prevId
+      delete duplicated.nextId
+      delete duplicated.stackAfter
+      await addHabitToDb(duplicated)
+      showToast('Habit duplicated!')
+    } catch (err) {
+      showToast('Failed to duplicate', 'error')
     }
   }
   
@@ -322,8 +337,7 @@ function App() {
     try {
       await signOut(auth)
     } catch (err) {
-      console.error('Logout failed:', err)
-      alert('Failed to logout. Please try again.')
+      showToast('Failed to logout', 'error')
     }
   }
 
@@ -339,17 +353,27 @@ function App() {
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             {habits.length > 0 && (
-              <button onClick={() => {
-                const data = JSON.stringify(habits, null, 2)
-                const blob = new Blob([data], { type: 'application/json' })
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement('a')
-                a.href = url
-                a.download = 'my-habits.json'
-                a.click()
-              }} className="px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
-                Export
-              </button>
+              <>
+                {isSelectionMode ? (
+                  <>
+                    <button onClick={selectAllHabits} className="px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
+                      Select All
+                    </button>
+                    <button onClick={clearSelection} className="px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg">
+                      Cancel
+                    </button>
+                    {selectedHabits.size > 0 && (
+                      <button onClick={deleteSelectedHabits} className="px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
+                        Delete ({selectedHabits.size})
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <button onClick={() => setIsSelectionMode(true)} className="px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg">
+                    Select
+                  </button>
+                )}
+              </>
             )}
             <button onClick={() => setShowQuickForm(true)} className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center justify-center gap-2">
               <Plus className="w-4 h-4" />Add Habit
@@ -462,60 +486,25 @@ function App() {
           <TodoList 
             todos={dbTodos}
             categories={dbCategories}
-            onAdd={async (todo) => {
-              try {
-                console.log('Adding todo:', todo)
-                await addTodoToDb(todo)
-                console.log('Todo added successfully')
-              } catch (err) {
-                console.error('Error adding todo:', err)
-                throw err
-              }
-            }}
+            onAdd={addTodoToDb}
             onToggle={async (id) => {
-              try {
-                const todo = dbTodos.find(t => t.id === id)
-                if (todo) await updateTodoInDb({ ...todo, completed: !todo.completed })
-              } catch (err) {
-                console.error('Error toggling todo:', err)
-              }
+              const todo = dbTodos.find(t => t.id === id)
+              if (todo) await updateTodoInDb({ ...todo, completed: !todo.completed })
             }}
-            onUpdate={async (updatedTodo) => {
-              try {
-                await updateTodoInDb(updatedTodo)
-              } catch (err) {
-                console.error('Error updating todo:', err)
-              }
-            }}
-            onDelete={async (id) => {
-              try {
-                await deleteTodoFromDb(id)
-              } catch (err) {
-                console.error('Error deleting todo:', err)
-              }
-            }}
+            onUpdate={updateTodoInDb}
+            onDelete={deleteTodoFromDb}
             onAddCategory={async (category) => {
-              try {
-                await addCategoryToDb({ ...category, id: category.id, createdAt: new Date().toISOString() })
-              } catch (err) {
-                console.error('Error adding category:', err)
-              }
+              await addCategoryToDb({ ...category, id: category.id, createdAt: new Date().toISOString() })
             }}
-            onDeleteCategory={async (id) => {
-              try {
-                await deleteCategoryFromDb(id)
-              } catch (err) {
-                console.error('Error deleting category:', err)
-              }
-            }}
+            onDeleteCategory={deleteCategoryFromDb}
           />
         ) : viewMode === 'table' ? (
           <div>
-            <HabitTableView habits={habits} onDelete={deleteHabit} onUpdate={updateHabit} />
+            <HabitTableView habits={habits} onDelete={deleteHabit} onUpdate={updateHabit} onDuplicate={duplicateHabit} isSelectionMode={isSelectionMode} selectedHabits={selectedHabits} onToggleSelection={toggleHabitSelection} />
           </div>
         ) : viewMode === 'today' ? (
           <div>
-            <DailyHabitView habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} currentDate={currentDate} setCurrentDate={setCurrentDate} />
+            <DailyHabitView habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} onAdd={addHabit} onDuplicate={duplicateHabit} currentDate={currentDate} setCurrentDate={setCurrentDate} isSelectionMode={isSelectionMode} selectedHabits={selectedHabits} onToggleSelection={toggleHabitSelection} />
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
@@ -557,7 +546,7 @@ function App() {
               ) : (
                 <>
 
-                  <HabitList habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} groupBy={groupBy} />
+                  <HabitList habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} onDuplicate={duplicateHabit} groupBy={groupBy} isSelectionMode={isSelectionMode} selectedHabits={selectedHabits} onToggleSelection={toggleHabitSelection} />
                 </>
               )}
             </div>
@@ -602,14 +591,14 @@ function App() {
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-sm animate-scale-in">
             <div className="text-center mb-6">
               <div className="text-4xl mb-4">🗑️</div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{habitToDelete ? 'Delete Habit?' : 'Delete All Habits?'}</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Delete Habit{selectedHabits.size > 1 ? 's' : ''}?</h3>
               {habitToDelete ? (
                 <>
                   <p className="text-gray-600 dark:text-gray-400 mb-2">Are you sure you want to delete:</p>
                   <p className="font-semibold text-gray-900 dark:text-gray-100">"{habitToDelete.habit || habitToDelete.newHabit}"</p>
                 </>
               ) : (
-                <p className="text-gray-600 dark:text-gray-400 mb-2">Are you sure you want to delete all {habits.length} habits?</p>
+                <p className="text-gray-600 dark:text-gray-400 mb-2">Delete {selectedHabits.size} selected habit{selectedHabits.size > 1 ? 's' : ''}?</p>
               )}
               <p className="text-sm text-red-600 dark:text-red-400 mt-2">This action cannot be undone.</p>
             </div>

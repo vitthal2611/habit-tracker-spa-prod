@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import QuickHabitForm from './QuickHabitForm'
 
-export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, currentDate: propCurrentDate, setCurrentDate: propSetCurrentDate }) {
+export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, onAdd, onDuplicate, currentDate: propCurrentDate, setCurrentDate: propSetCurrentDate, isSelectionMode = false, selectedHabits = new Set(), onToggleSelection }) {
   const [currentDate, setCurrentDate] = useState(propCurrentDate || new Date())
   const [showAll, setShowAll] = useState(false)
   const [completedHabit, setCompletedHabit] = useState(null)
   const [editingHabit, setEditingHabit] = useState(null)
+  const [groupBy, setGroupBy] = useState('none')
 
   useEffect(() => {
     if (propCurrentDate) setCurrentDate(propCurrentDate)
@@ -84,6 +86,34 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, c
 
   const dayHabits = getDayHabits()
   const dateStr = currentDate.toDateString()
+
+  const sortByTime = (habits) => {
+    return [...habits].sort((a, b) => {
+      const timeToMinutes = (time) => {
+        if (!time || time === 'Anytime' || time === '') return 9999
+        const parts = time.split(':')
+        if (parts.length < 2) return 9999
+        const hours = parseInt(parts[0], 10)
+        const minutes = parseInt(parts[1], 10)
+        if (isNaN(hours) || isNaN(minutes)) return 9999
+        return hours * 60 + minutes
+      }
+      return timeToMinutes(a.time) - timeToMinutes(b.time)
+    })
+  }
+
+  const groupHabits = (habits) => {
+    const sorted = sortByTime(habits)
+    if (groupBy === 'none') return { 'All': sorted }
+    return sorted.reduce((acc, habit) => {
+      const key = habit.identity || 'No Identity'
+      if (!acc[key]) acc[key] = []
+      acc[key].push(habit)
+      return acc
+    }, {})
+  }
+
+  const groupedHabits = groupHabits(dayHabits)
   
   const totalScheduled = habits.filter(h => {
     const habitStartDate = new Date(h.createdAt || h.id)
@@ -161,6 +191,34 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, c
         )}
       </div>
 
+      {/* Group By Toggle */}
+      {dayHabits.length > 0 && (
+        <div className="flex justify-center">
+          <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <button
+              onClick={() => setGroupBy('none')}
+              className={`px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm font-medium transition-all ${
+                groupBy === 'none'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              No Grouping
+            </button>
+            <button
+              onClick={() => setGroupBy('identity')}
+              className={`px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm font-medium transition-all ${
+                groupBy === 'identity'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              By Identity
+            </button>
+          </div>
+        </div>
+      )}
+
       {dayHabits.length === 0 ? (
         <div className="text-center py-24 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 rounded-2xl shadow-md border-2 border-emerald-200 dark:border-emerald-800/30 animate-fade-in">
           <div className="text-8xl mb-6 animate-bounce">🎉</div>
@@ -183,8 +241,16 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, c
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
-          {dayHabits.map((habit) => {
+        <div className="space-y-6">
+          {Object.entries(groupedHabits).map(([groupName, groupHabits]) => (
+            <div key={groupName} className="space-y-3">
+              {groupBy !== 'none' && (
+                <div className="px-2">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{groupName}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{groupHabits.length} habit{groupHabits.length !== 1 ? 's' : ''}</p>
+                </div>
+              )}
+              {groupHabits.map((habit) => {
             const isCompleted = habit.completions && habit.completions[dateStr] === true
             const isMissed = habit.completions && habit.completions[dateStr] === false
             
@@ -212,19 +278,37 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, c
                             🔥 {habit.streak}
                           </span>
                         )}
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setEditingHabit(habit); }} 
-                          className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-all"
-                          title="Edit habit"
-                        >
-                          ✎
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); onDelete(habit.id); }} 
-                          className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-all"
-                        >
-                          ×
-                        </button>
+                        {isSelectionMode ? (
+                          <input
+                            type="checkbox"
+                            checked={selectedHabits.has(habit.id)}
+                            onChange={() => onToggleSelection(habit.id)}
+                            className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        ) : (
+                          <>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); onDuplicate && onDuplicate(habit); }} 
+                              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-all"
+                              title="Duplicate habit"
+                            >
+                              ⎘
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setEditingHabit(habit); }} 
+                              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-all"
+                              title="Edit habit"
+                            >
+                              ✎
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); onDelete(habit.id); }} 
+                              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-all"
+                            >
+                              ×
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -388,72 +472,19 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, c
                 )}
               </div>
             )
-          })}
+              })}
+            </div>
+          ))}
         </div>
       )}
 
       {editingHabit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl">
-            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Edit Habit</h2>
-              <button onClick={() => setEditingHabit(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={(e) => {
-              e.preventDefault()
-              const formData = new FormData(e.target)
-              onUpdate({
-                ...editingHabit,
-                identity: formData.get('identity'),
-                currentHabit: formData.get('currentHabit'),
-                newHabit: formData.get('newHabit'),
-                time: formData.get('time'),
-                location: formData.get('location'),
-                createdAt: new Date(formData.get('startDate')).toISOString()
-              })
-              setEditingHabit(null)
-            }} className="p-5 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">I am a</label>
-                <input name="identity" defaultValue={editingHabit.identity} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Starting From</label>
-                <input name="startDate" type="date" defaultValue={new Date(editingHabit.createdAt).toISOString().split('T')[0]} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" required />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">After I</label>
-                  <input name="currentHabit" defaultValue={editingHabit.currentHabit} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">I will</label>
-                  <input name="newHabit" defaultValue={editingHabit.newHabit} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" required />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">At (time)</label>
-                  <input name="time" type="time" defaultValue={editingHabit.time} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">In (location)</label>
-                  <input name="location" defaultValue={editingHabit.location} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-                </div>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setEditingHabit(null)} className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                  Cancel
-                </button>
-                <button type="submit" className="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all">
-                  Update Habit
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <QuickHabitForm
+          habits={habits}
+          onSubmit={onUpdate}
+          onClose={() => setEditingHabit(null)}
+          editingHabit={editingHabit}
+        />
       )}
     </div>
   )

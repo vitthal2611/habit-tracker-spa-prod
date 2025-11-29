@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Trash2, Download } from 'lucide-react'
+import { Trash2, Download, Copy } from 'lucide-react'
 import jsPDF from 'jspdf'
 
-export default function HabitTableView({ habits, onDelete, onUpdate }) {
+export default function HabitTableView({ habits, onDelete, onUpdate, onDuplicate, isSelectionMode = false, selectedHabits = new Set(), onToggleSelection }) {
   const [editingCell, setEditingCell] = useState({ habitId: null, field: null })
   const [editValue, setEditValue] = useState('')
 
@@ -238,13 +238,31 @@ export default function HabitTableView({ habits, onDelete, onUpdate }) {
                   )}
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <button
-                    onClick={() => onDelete(habit.id)}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900 p-2 rounded transition-all"
-                    title="Delete habit"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {isSelectionMode ? (
+                    <input
+                      type="checkbox"
+                      checked={selectedHabits.has(habit.id)}
+                      onChange={() => onToggleSelection(habit.id)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  ) : (
+                    <div className="flex justify-center gap-2">
+                      <button
+                        onClick={() => onDuplicate(habit)}
+                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900 p-2 rounded transition-all"
+                        title="Duplicate habit"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => onDelete(habit.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900 p-2 rounded transition-all"
+                        title="Delete habit"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

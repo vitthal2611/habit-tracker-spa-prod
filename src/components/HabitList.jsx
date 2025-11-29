@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { Check, Clock, MapPin, Link, Trash2, ChevronLeft, ChevronRight, Edit, Download } from 'lucide-react'
+import { Check, Clock, MapPin, Link, Trash2, ChevronLeft, ChevronRight, Edit, Download, Copy } from 'lucide-react'
 import Card from './ui/Card'
 import Button from './ui/Button'
 import Modal from './ui/Modal'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 
-export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupBy = 'none' }) {
+export default function HabitList({ habits, onToggle, onDelete, onUpdate, onDuplicate, groupBy = 'none', isSelectionMode = false, selectedHabits = new Set(), onToggleSelection }) {
   const [weekOffset, setWeekOffset] = useState(0)
   const [editingField, setEditingField] = useState({ habitId: null, field: null })
   const [editValue, setEditValue] = useState('')
@@ -119,10 +119,12 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
   const locations = [...new Set(habits.map(h => h.location).filter(Boolean))]
   const identities = [...new Set(habits.map(h => h.identity).filter(Boolean))]
   
-  const saveEdit = (habitId) => {
+  const saveEdit = async (habitId) => {
     const habit = habits.find(h => h.id === habitId)
     if (habit && editingField.field) {
-      onUpdate({ ...habit, [editingField.field]: editValue })
+      const updatedHabit = { ...habit, [editingField.field]: editValue }
+      console.log('Saving edit:', editingField.field, '=', editValue, 'for habit:', habit.newHabit)
+      await onUpdate(updatedHabit)
     }
     setEditingField({ habitId: null, field: null })
     setEditValue('')
@@ -268,9 +270,25 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
   const sortHabits = (habits, sortBy, sortOrder) => {
     if (sortBy === 'none') return habits
     
-    return [...habits].sort((a, b) => {
-      let aVal, bVal
+    console.log('Sorting by:', sortBy, 'Order:', sortOrder)
+    console.log('Habits before sort:', habits.map(h => ({ habit: h.newHabit, time: h.time })))
+    
+    const sorted = [...habits].sort((a, b) => {
+      if (sortBy === 'time') {
+        const timeToMinutes = (time) => {
+          if (!time || time === 'Anytime' || time === '') return 9999
+          const parts = time.split(':')
+          if (parts.length < 2) return 9999
+          const hours = parseInt(parts[0], 10)
+          const minutes = parseInt(parts[1], 10)
+          if (isNaN(hours) || isNaN(minutes)) return 9999
+          return hours * 60 + minutes
+        }
+        const comparison = timeToMinutes(a.time) - timeToMinutes(b.time)
+        return sortOrder === 'asc' ? comparison : -comparison
+      }
       
+      let aVal, bVal
       switch (sortBy) {
         case 'identity':
           aVal = a.identity || ''
@@ -279,10 +297,6 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
         case 'habit':
           aVal = a.newHabit || ''
           bVal = b.newHabit || ''
-          break
-        case 'time':
-          aVal = a.time || ''
-          bVal = b.time || ''
           break
         case 'location':
           aVal = a.location || ''
@@ -299,6 +313,9 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
       const comparison = aVal.localeCompare(bVal)
       return sortOrder === 'asc' ? comparison : -comparison
     })
+    
+    console.log('Habits after sort:', sorted.map(h => ({ habit: h.newHabit, time: h.time })))
+    return sorted
   }
   
   const handleSort = (column) => {
@@ -310,8 +327,11 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
     }
   }
   
-  const sortedHabits = sortHabits(habits, sortBy, sortOrder)
-  const groupedHabits = groupHabits(sortedHabits, groupBy)
+  const groupedHabits = groupHabits(habits, groupBy)
+  const sortedGroupedHabits = Object.entries(groupedHabits).reduce((acc, [key, habits]) => {
+    acc[key] = sortHabits(habits, groupBy === 'none' ? sortBy : 'time', groupBy === 'none' ? sortOrder : 'asc')
+    return acc
+  }, {})
 
   return (
     <div className="overflow-x-auto" id="habit-list-container">
@@ -353,7 +373,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
         </div>
       ) : (
         <div className="space-y-6">
-        {Object.entries(groupedHabits).map(([groupName, groupHabits]) => (
+        {Object.entries(sortedGroupedHabits).map(([groupName, groupHabits]) => (
           <div key={groupName} className="min-w-full bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             {groupBy !== 'none' && (
               <div className="p-4 bg-blue-50 dark:bg-blue-900 border-b border-gray-200 dark:border-gray-600">
@@ -369,8 +389,12 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
               <button onClick={() => handleSort('habit')} className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase flex items-center hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer text-left">
                 Habit {sortBy === 'habit' && (sortOrder === 'asc' ? '↑' : '↓')}
               </button>
-              <button onClick={() => handleSort('time')} className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase flex items-center hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer text-left">
-                Time {sortBy === 'time' && (sortOrder === 'asc' ? '↑' : '↓')}
+              <button onClick={() => handleSort('time')} className={`text-xs font-semibold uppercase flex items-center cursor-pointer text-left transition-colors ${
+                sortBy === 'time' 
+                  ? 'text-blue-600 dark:text-blue-400 font-bold' 
+                  : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+              }`}>
+                Time {sortBy === 'time' && <span className="ml-1 text-blue-600 dark:text-blue-400">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
               </button>
               <button onClick={() => handleSort('location')} className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase flex items-center hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer text-left">
                 Location {sortBy === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -509,17 +533,35 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
                   })}
                 </div>
                 <div className="flex justify-center items-center space-x-2">
-                  <button
-                    onClick={() => onDelete(habit.id)}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900 p-1 rounded transition-all"
-                    title="Delete habit"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                  <div className="text-center px-2">
-                    <div className="text-lg font-bold text-orange-600 dark:text-orange-400">{getWeekProgress(habit).filter(day => day.completed).length}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">days</div>
-                  </div>
+                  {isSelectionMode ? (
+                    <input
+                      type="checkbox"
+                      checked={selectedHabits.has(habit.id)}
+                      onChange={() => onToggleSelection(habit.id)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  ) : (
+                    <>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onDuplicate && onDuplicate(habit); }}
+                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900 p-1 rounded transition-all"
+                        title="Duplicate habit"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => onDelete(habit.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900 p-1 rounded transition-all"
+                        title="Delete habit"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <div className="text-center px-2">
+                        <div className="text-lg font-bold text-orange-600 dark:text-orange-400">{getWeekProgress(habit).filter(day => day.completed).length}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">days</div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
@@ -541,9 +583,25 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, groupB
                       <div className="text-base font-bold mb-1.5">{formatHabitText(habit)}</div>
                       <div className="text-xs opacity-90 font-medium">{habit.identity || 'No Identity'}</div>
                     </div>
-                    <button onClick={() => onDelete(habit.id)} className="p-2 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0 ml-2" title="Delete">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex gap-1 flex-shrink-0 ml-2">
+                      {isSelectionMode ? (
+                        <input
+                          type="checkbox"
+                          checked={selectedHabits.has(habit.id)}
+                          onChange={() => onToggleSelection(habit.id)}
+                          className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      ) : (
+                        <>
+                          <button onClick={(e) => { e.stopPropagation(); onDuplicate && onDuplicate(habit); }} className="p-2 hover:bg-white/20 rounded-lg transition-colors" title="Duplicate">
+                            <Copy className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => onDelete(habit.id)} className="p-2 hover:bg-white/20 rounded-lg transition-colors" title="Delete">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 

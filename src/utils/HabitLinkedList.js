@@ -140,36 +140,7 @@ class HabitLinkedList {
   fromArray(habits) {
     this.head = this.tail = null
     this.size = 0
-    
-    const habitMap = new Map(habits.map(h => [h.id, h]))
-    const sorted = []
-    const visited = new Set()
-    
-    // Group by habitGroup
-    const groups = { 'Morning': [], 'Afternoon': [], 'Evening': [], 'Night': [], 'Other': [] }
-    habits.forEach(h => {
-      const group = h.habitGroup || 'Other'
-      groups[group].push(h)
-    })
-    
-    // Build chains within each group using prevId/nextId
-    Object.values(groups).forEach(groupHabits => {
-      if (groupHabits.length === 0) return
-      
-      // Find head (no prevId)
-      const heads = groupHabits.filter(h => !h.prevId || !habitMap.has(h.prevId))
-      
-      heads.forEach(head => {
-        let current = head
-        while (current && !visited.has(current.id)) {
-          visited.add(current.id)
-          sorted.push(current)
-          current = current.nextId ? habitMap.get(current.nextId) : null
-        }
-      })
-    })
-    
-    sorted.forEach(habit => this.add(habit))
+    habits.forEach(habit => this.add(habit))
   }
 
   getChain(id) {
