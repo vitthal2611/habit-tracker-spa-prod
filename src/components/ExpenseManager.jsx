@@ -129,99 +129,101 @@ export default function ExpenseManager({ transactions, onAddTransaction, onUpdat
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Expense Manager</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{currentMonth}</p>
+      <div className="space-y-3">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Expense Manager</h2>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Track your income and expenses</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowManageCategories(true)}
+              className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-xs sm:text-sm"
+            >
+              Categories
+            </button>
+            <button
+              onClick={() => setShowAddTransaction(true)}
+              className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-1 text-xs sm:text-sm"
+            >
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />Add
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowManageCategories(true)}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            Manage Categories
-          </button>
-          <button
-            onClick={() => setShowAddTransaction(true)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />Add Transaction
-          </button>
+        <div className="flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2 w-fit mx-auto">
+          <button onClick={() => {
+            const newDate = new Date(budgetMonth)
+            newDate.setMonth(newDate.getMonth() - 1)
+            setBudgetMonth(newDate)
+          }} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">&lt;</button>
+          <span className="font-bold text-sm min-w-[80px] text-center text-gray-900 dark:text-white">{currentMonth}</span>
+          <button onClick={() => {
+            const newDate = new Date(budgetMonth)
+            newDate.setMonth(newDate.getMonth() + 1)
+            setBudgetMonth(newDate)
+          }} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">&gt;</button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-5 border border-green-200 dark:border-green-800">
-          <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
-            <span className="text-sm font-medium text-green-600 dark:text-green-400">Income</span>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 sm:p-5 border border-green-200 dark:border-green-800">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
+            <span className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400">Income</span>
           </div>
-          <div className="text-2xl font-bold text-green-700 dark:text-green-300">₹{monthlyData.income.toLocaleString()}</div>
+          <div className="text-lg sm:text-2xl font-bold text-green-700 dark:text-green-300">₹{monthlyData.income.toLocaleString()}</div>
         </div>
 
-        <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-5 border border-red-200 dark:border-red-800">
-          <div className="flex items-center gap-3 mb-2">
-            <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
-            <span className="text-sm font-medium text-red-600 dark:text-red-400">Expense</span>
+        <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 sm:p-5 border border-red-200 dark:border-red-800">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400" />
+            <span className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-400">Expense</span>
           </div>
-          <div className="text-2xl font-bold text-red-700 dark:text-red-300">₹{monthlyData.expense.toLocaleString()}</div>
+          <div className="text-lg sm:text-2xl font-bold text-red-700 dark:text-red-300">₹{monthlyData.expense.toLocaleString()}</div>
         </div>
 
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-5 border border-blue-200 dark:border-blue-800">
-          <div className="flex items-center gap-3 mb-2">
-            <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Balance</span>
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 sm:p-5 border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center gap-2 mb-2">
+            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+            <span className="text-xs sm:text-sm font-medium text-blue-600 dark:text-blue-400">Balance</span>
           </div>
-          <div className={`text-2xl font-bold ${monthlyData.balance >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-700 dark:text-red-300'}`}>
+          <div className={`text-lg sm:text-2xl font-bold ${monthlyData.balance >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-700 dark:text-red-300'}`}>
             ₹{monthlyData.balance.toLocaleString()}
           </div>
         </div>
 
-        <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-5 border border-purple-200 dark:border-purple-800">
-          <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            <span className="text-sm font-medium text-purple-600 dark:text-purple-400">Mode Balances</span>
+        <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-3 sm:p-5 border border-purple-200 dark:border-purple-800 col-span-2 sm:col-span-1">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+            <span className="text-xs sm:text-sm font-medium text-purple-600 dark:text-purple-400">Payment Modes</span>
           </div>
-          <div className="space-y-1 text-xs">
+          <div className="space-y-1 text-xs max-h-16 sm:max-h-20 overflow-y-auto">
             {modes.map(mode => {
               const modeBalance = monthlyData.transactions
                 .filter(t => t.mode === mode)
                 .reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), 0)
               return modeBalance !== 0 ? (
                 <div key={mode} className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">{mode}:</span>
+                  <span className="text-gray-600 dark:text-gray-400 truncate">{mode}:</span>
                   <span className={`font-semibold ${modeBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>₹{modeBalance.toLocaleString()}</span>
                 </div>
               ) : null
             })}
+            {modes.every(mode => monthlyData.transactions.filter(t => t.mode === mode).length === 0) && (
+              <div className="text-gray-400 text-center py-2">No transactions</div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center gap-3 bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2">
-            <button onClick={() => {
-              const newDate = new Date(budgetMonth)
-              newDate.setMonth(newDate.getMonth() - 1)
-              setBudgetMonth(newDate)
-            }} className="p-2 hover:bg-white/20 rounded-lg transition-colors">&lt;</button>
-            <span className="font-bold text-lg min-w-[100px] text-center">{currentMonth}</span>
-            <button onClick={() => {
-              const newDate = new Date(budgetMonth)
-              newDate.setMonth(newDate.getMonth() + 1)
-              setBudgetMonth(newDate)
-            }} className="p-2 hover:bg-white/20 rounded-lg transition-colors">&gt;</button>
-          </div>
-          <div className="text-center">
-            <h3 className="text-2xl font-bold mb-1">Transaction History</h3>
-            <p className="text-blue-100 text-sm">View all transactions</p>
-          </div>
-        </div>
-      </div>
+
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-end">
+        <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <div>
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">Transactions</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Double-click any cell to edit</p>
+          </div>
           <button
             onClick={async () => {
               await onAddTransaction({
@@ -235,24 +237,24 @@ export default function ExpenseManager({ transactions, onAddTransaction, onUpdat
                 createdAt: new Date().toISOString()
               })
             }}
-            className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 text-sm"
+            className="px-2 sm:px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
           >
-            <Plus className="w-4 h-4" />Add Row
+            <Plus className="w-4 h-4" />Quick Add
           </button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-xs sm:text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">Sr.No</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">Date</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">Particular</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">Income</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">Expense</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">Category</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">Mode</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">Balance</th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-900 dark:text-white">Action</th>
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-semibold text-gray-900 dark:text-white">#</th>
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-semibold text-gray-900 dark:text-white">Date</th>
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-semibold text-gray-900 dark:text-white hidden sm:table-cell">Particular</th>
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-right font-semibold text-gray-900 dark:text-white">Income</th>
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-right font-semibold text-gray-900 dark:text-white">Expense</th>
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-semibold text-gray-900 dark:text-white hidden md:table-cell">Category</th>
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-semibold text-gray-900 dark:text-white hidden lg:table-cell">Mode</th>
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-right font-semibold text-gray-900 dark:text-white hidden sm:table-cell">Balance</th>
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold text-gray-900 dark:text-white">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -277,23 +279,23 @@ export default function ExpenseManager({ transactions, onAddTransaction, onUpdat
 
                 return (
                   <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-4 py-3 text-gray-900 dark:text-white">{i + 1}</td>
-                    <td className="px-4 py-3 text-gray-900 dark:text-white" onDoubleClick={() => { if (txn) { setEditingCell(`${txn.id}-date`); setEditValue(txn.date); } }}>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-gray-900 dark:text-white">{i + 1}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-gray-900 dark:text-white" onDoubleClick={() => { if (txn) { setEditingCell(`${txn.id}-date`); setEditValue(txn.date); } }}>
                       {editingCell === `${txn?.id}-date` ? (
                         <input type="date" value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={() => handleSave('date')} onKeyDown={(e) => e.key === 'Enter' && handleSave('date')} className="w-full px-2 py-1 border rounded dark:bg-gray-700" autoFocus />
                       ) : txn ? new Date(txn.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : ''}
                     </td>
-                    <td className="px-4 py-3 text-gray-900 dark:text-white" onDoubleClick={() => { if (txn) { setEditingCell(`${txn.id}-description`); setEditValue(txn.description); } }}>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-gray-900 dark:text-white hidden sm:table-cell" onDoubleClick={() => { if (txn) { setEditingCell(`${txn.id}-description`); setEditValue(txn.description); } }}>
                       {editingCell === `${txn?.id}-description` ? (
                         <input type="text" value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={() => handleSave('description')} onKeyDown={(e) => e.key === 'Enter' && handleSave('description')} className="w-full px-2 py-1 border rounded dark:bg-gray-700" autoFocus />
                       ) : txn?.description || ''}
                     </td>
-                    <td className="px-4 py-3 text-right text-green-600 dark:text-green-400 font-semibold" onDoubleClick={() => { if (txn) { setEditingCell(`${txn.id}-income`); setEditValue(txn.amount); } }}>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-green-600 dark:text-green-400 font-semibold" onDoubleClick={() => { if (txn) { setEditingCell(`${txn.id}-income`); setEditValue(txn.amount); } }}>
                       {editingCell === `${txn?.id}-income` ? (
                         <input type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={async () => { if (editValue && txn) { await onUpdateTransaction({ ...txn, amount: parseFloat(editValue), type: 'income' }); setEditingCell(null); } }} onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} className="w-full px-2 py-1 border rounded dark:bg-gray-700 text-right" autoFocus />
                       ) : txn?.type === 'income' ? `₹${txn.amount.toLocaleString()}` : ''}
                     </td>
-                    <td className="px-4 py-3 text-right text-red-600 dark:text-red-400 font-semibold" onDoubleClick={() => { if (txn) { setEditingCell(`${txn.id}-expense`); setEditValue(txn.amount); } }}>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-red-600 dark:text-red-400 font-semibold" onDoubleClick={() => { if (txn) { setEditingCell(`${txn.id}-expense`); setEditValue(txn.amount); } }}>
                       {editingCell === `${txn?.id}-expense` ? (
                         <input type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={async () => {
                           if (editValue && txn) {
@@ -341,7 +343,7 @@ export default function ExpenseManager({ transactions, onAddTransaction, onUpdat
                         }} onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} className="w-full px-2 py-1 border rounded dark:bg-gray-700 text-right" autoFocus />
                       ) : txn?.type === 'expense' ? `₹${txn.amount.toLocaleString()}` : ''}
                     </td>
-                    <td className="px-4 py-3 text-gray-900 dark:text-white" onDoubleClick={() => { if (txn) { setEditingCell(`${txn.id}-category`); setEditValue(txn.category); } }}>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-gray-900 dark:text-white hidden md:table-cell" onDoubleClick={() => { if (txn) { setEditingCell(`${txn.id}-category`); setEditValue(txn.category); } }}>
                       {editingCell === `${txn?.id}-category` ? (
                         <select value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={() => handleSave('category')} className="w-full px-2 py-1 border rounded dark:bg-gray-700" autoFocus>
                           <option value="">Select category</option>
@@ -349,7 +351,7 @@ export default function ExpenseManager({ transactions, onAddTransaction, onUpdat
                         </select>
                       ) : txn?.category || ''}
                     </td>
-                    <td className="px-4 py-3 text-gray-900 dark:text-white" onDoubleClick={() => { if (txn) { setEditingCell(`${txn.id}-mode`); setEditValue(txn.mode); } }}>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-gray-900 dark:text-white hidden lg:table-cell" onDoubleClick={() => { if (txn) { setEditingCell(`${txn.id}-mode`); setEditValue(txn.mode); } }}>
                       {editingCell === `${txn?.id}-mode` ? (
                         <select value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={() => handleSave('mode')} className="w-full px-2 py-1 border rounded dark:bg-gray-700" autoFocus>
                           <option value="">Select mode</option>
@@ -357,10 +359,10 @@ export default function ExpenseManager({ transactions, onAddTransaction, onUpdat
                         </select>
                       ) : txn?.mode || ''}
                     </td>
-                    <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-white">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right font-bold text-gray-900 dark:text-white hidden sm:table-cell">
                       {txn ? `₹${balance.toLocaleString()}` : ''}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
                       {txn && (
                         <button onClick={async () => await onDeleteTransaction(txn.id)} className="text-red-500 hover:text-red-700">
                           <Trash2 className="w-4 h-4" />
@@ -378,7 +380,12 @@ export default function ExpenseManager({ transactions, onAddTransaction, onUpdat
       {showAddTransaction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Add Transaction</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Add Transaction</h3>
+              <button onClick={() => setShowAddTransaction(false)} className="text-gray-400 hover:text-gray-600">
+                ✕
+              </button>
+            </div>
             
             <div className="space-y-4">
               <div>
@@ -551,7 +558,15 @@ export default function ExpenseManager({ transactions, onAddTransaction, onUpdat
       {showManageCategories && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Manage Categories</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Manage Categories</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Set budgets and monthly overrides</p>
+              </div>
+              <button onClick={() => setShowManageCategories(false)} className="text-gray-400 hover:text-gray-600">
+                ✕
+              </button>
+            </div>
             
             <div className="space-y-4">
               {categories.map((cat, idx) => (

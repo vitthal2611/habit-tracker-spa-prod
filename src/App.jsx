@@ -350,82 +350,10 @@ function App() {
   const renderDashboard = () => {
     if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-600 border-t-transparent"></div></div>
     return (
-      <div className="space-y-8 animate-fade-in">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Track your daily habits</p>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            {habits.length > 0 && (
-              <>
-                {isSelectionMode ? (
-                  <>
-                    <button onClick={selectAllHabits} className="px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
-                      Select All
-                    </button>
-                    <button onClick={clearSelection} className="px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg">
-                      Cancel
-                    </button>
-                    {selectedHabits.size > 0 && (
-                      <button onClick={deleteSelectedHabits} className="px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
-                        Delete ({selectedHabits.size})
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <button onClick={() => setIsSelectionMode(true)} className="px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg">
-                    Select
-                  </button>
-                )}
-              </>
-            )}
-            <button onClick={() => setShowQuickForm(true)} className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center justify-center gap-2">
-              <Plus className="w-4 h-4" />Add Habit
-            </button>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-2 sm:mb-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Total</span>
-            </div>
-            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{totalHabits}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Active Habits</p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-2 sm:mb-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
-            </div>
-            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{completedToday}<span className="text-lg sm:text-xl text-gray-400">/{totalHabits}</span></h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Completed</p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-2 sm:mb-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Rate</span>
-            </div>
-            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{completionRate}%</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Success Rate</p>
-          </div>
-        </div>
-
+      <div className="space-y-6 animate-fade-in">
         {/* Tab Toggle */}
-        <div className="flex justify-center mb-6">
-          <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full sm:w-auto overflow-x-auto">
+        <div className="mb-6">
+          <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full overflow-x-auto">
             <button
               onClick={() => setActiveTab('habits')}
               className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
@@ -469,10 +397,84 @@ function App() {
           </div>
         </div>
 
+        {/* Stats Cards - Only for Habits */}
+        {activeTab === 'habits' && (
+          <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Habits</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Build better habits daily</p>
+              </div>
+              <div className="flex gap-2 w-full sm:w-auto">
+                {habits.length > 0 && (
+                  <>
+                    {isSelectionMode ? (
+                      <>
+                        <button onClick={selectAllHabits} className="px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
+                          Select All
+                        </button>
+                        <button onClick={clearSelection} className="px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg">
+                          Cancel
+                        </button>
+                        {selectedHabits.size > 0 && (
+                          <button onClick={deleteSelectedHabits} className="px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
+                            Delete ({selectedHabits.size})
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <button onClick={() => setIsSelectionMode(true)} className="px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg">
+                        Select
+                      </button>
+                    )}
+                  </>
+                )}
+                <button onClick={() => setShowQuickForm(true)} className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center justify-center gap-2">
+                  <Plus className="w-4 h-4" />Add Habit
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3 mb-2 sm:mb-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Total</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{totalHabits}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Active Habits</p>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3 mb-2 sm:mb-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{completedToday}<span className="text-lg sm:text-xl text-gray-400">/{totalHabits}</span></h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Completed</p>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3 mb-2 sm:mb-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Rate</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{completionRate}%</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Success Rate</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* View Toggle (only for habits) */}
         {activeTab === 'habits' && (
-          <div className="flex justify-center mb-6">
-            <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full sm:w-auto overflow-x-auto">
+          <div className="mb-6">
+            <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full overflow-x-auto">
               <button
                 onClick={() => { setViewMode('today'); setCurrentDate(new Date()); }}
                 className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 rounded-md text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap ${

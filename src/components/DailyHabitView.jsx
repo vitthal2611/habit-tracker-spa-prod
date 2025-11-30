@@ -135,15 +135,15 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
   const pendingToday = totalScheduled.length - completedToday - missedToday
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 px-4 sm:px-6">
+    <div className="space-y-6">
       {/* Header Section */}
-      <div className="bg-gradient-to-br from-white to-indigo-50/30 dark:from-gray-800 dark:to-indigo-950/20 rounded-2xl p-6 shadow-md border border-indigo-100 dark:border-indigo-900/30">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-gradient-to-br from-white to-indigo-50/30 dark:from-gray-800 dark:to-indigo-950/20 rounded-2xl p-4 sm:p-6 shadow-md border border-indigo-100 dark:border-indigo-900/30">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
           <button onClick={() => navigateDay(-1)} className="p-2.5 rounded-xl bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all shadow-sm">
             <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           </button>
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{formatDate(currentDate)}</div>
+            <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">{formatDate(currentDate)}</div>
             {currentDate.toDateString() === new Date().toDateString() && (
               <span className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-md">
                 <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>TODAY
@@ -156,17 +156,17 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
         </div>
 
         {totalScheduled.length > 0 && (
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white dark:bg-gray-900/50 rounded-xl p-5 text-center shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="text-4xl font-black text-gray-900 dark:text-white mb-1">{totalScheduled.length}</div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="bg-white dark:bg-gray-900/50 rounded-xl p-3 sm:p-5 text-center shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="text-2xl sm:text-4xl font-black text-gray-900 dark:text-white mb-1">{totalScheduled.length}</div>
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</div>
             </div>
-            <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl p-5 text-center shadow-lg">
-              <div className="text-4xl font-black text-white mb-1">{completedToday}</div>
+            <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl p-3 sm:p-5 text-center shadow-lg">
+              <div className="text-2xl sm:text-4xl font-black text-white mb-1">{completedToday}</div>
               <div className="text-xs font-bold text-white/90 uppercase tracking-wide">Done</div>
             </div>
-            <div className="bg-white dark:bg-gray-900/50 rounded-xl p-5 text-center shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="text-4xl font-black text-orange-500 dark:text-orange-400 mb-1">{missedToday}</div>
+            <div className="bg-white dark:bg-gray-900/50 rounded-xl p-3 sm:p-5 text-center shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="text-2xl sm:text-4xl font-black text-orange-500 dark:text-orange-400 mb-1">{missedToday}</div>
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Skipped</div>
             </div>
           </div>
@@ -268,13 +268,13 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                   } ${isCompleted ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-700' : ''}`}>
                     
                     {/* Identity Header */}
-                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-3 flex items-center justify-between">
+                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 sm:px-6 py-3 flex items-center justify-between">
                       <div className="flex-1 text-left">
-                        <span className="text-lg font-bold text-white">{habit.identity}</span>
+                        <span className="text-sm sm:text-lg font-bold text-white truncate">{habit.identity}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2">
                         {habit.streak > 0 && (
-                          <span className="bg-orange-500 text-white text-sm font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                          <span className="bg-orange-500 text-white text-xs sm:text-sm font-bold px-2 sm:px-3 py-1 rounded-full flex items-center gap-1">
                             🔥 {habit.streak}
                           </span>
                         )}
@@ -309,11 +309,11 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                     <div className="p-4 sm:p-6">
                       {/* Mobile Layout */}
                       <div className="block lg:hidden space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-lg sm:text-xl font-bold text-indigo-600 dark:text-indigo-400">
                             {habit.time || '--:--'}
                           </div>
-                          <div className="text-base font-bold text-gray-900 dark:text-white">{habit.newHabit}</div>
+                          <div className="text-sm sm:text-base font-bold text-gray-900 dark:text-white flex-1 text-right">{habit.newHabit}</div>
                         </div>
                         {habit.location && (
                           <div className="text-sm text-gray-500 dark:text-gray-400">📍 {habit.location}</div>
