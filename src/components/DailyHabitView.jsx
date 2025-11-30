@@ -269,7 +269,7 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                     
                     {/* Identity Header */}
                     <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-3 flex items-center justify-between">
-                      <div className="flex-1 text-center">
+                      <div className="flex-1 text-left">
                         <span className="text-lg font-bold text-white">{habit.identity}</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -287,13 +287,6 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                           />
                         ) : (
                           <>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); onDuplicate && onDuplicate(habit); }} 
-                              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-all"
-                              title="Duplicate habit"
-                            >
-                              ⎘
-                            </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); setEditingHabit(habit); }} 
                               className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-all"

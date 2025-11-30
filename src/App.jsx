@@ -8,6 +8,8 @@ import HabitList from './components/HabitList'
 import HabitTableView from './components/HabitTableView'
 import DailyHabitView from './components/DailyHabitView'
 import TodoList from './components/TodoList'
+import ExpenseManager from './components/ExpenseManager'
+import FinancialPlanner from './components/FinancialPlanner'
 import Button from './components/ui/Button'
 import Auth from './components/Auth'
 import { useFirestore } from './hooks/useFirestore'
@@ -33,6 +35,8 @@ function App() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [dbTodos, { addItem: addTodoToDb, updateItem: updateTodoInDb, deleteItem: deleteTodoFromDb }] = useFirestore('todos', [])
   const [dbCategories, { addItem: addCategoryToDb, deleteItem: deleteCategoryFromDb }] = useFirestore('todoCategories', [])
+  const [dbTransactions, { addItem: addTransactionToDb, updateItem: updateTransactionInDb, deleteItem: deleteTransactionFromDb }] = useFirestore('transactions', [])
+  const [dbFinancialPlan, { addItem: addFinancialPlanToDb, updateItem: updateFinancialPlanInDb }] = useFirestore('financialPlan', [])
   const [activeTab, setActiveTab] = useState('habits')
 
   const today = new Date().toDateString()
@@ -286,10 +290,8 @@ function App() {
 
   const updateHabit = async (updatedHabit) => {
     try {
-      console.log('Updating habit:', updatedHabit)
       const oldHabit = habits.find(h => h.id === updatedHabit.id)
       await updateHabitInDb(updatedHabit)
-      console.log('Habit updated in Firebase')
       
       if (oldHabit && oldHabit.newHabit !== updatedHabit.newHabit) {
         const dependentHabits = habits.filter(h => h.currentHabit === oldHabit.newHabit && h.id !== updatedHabit.id)
@@ -332,6 +334,10 @@ function App() {
     })
     return unsubscribe
   }, [])
+
+
+
+
 
   const handleLogout = async () => {
     try {
@@ -419,10 +425,10 @@ function App() {
 
         {/* Tab Toggle */}
         <div className="flex justify-center mb-6">
-          <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full sm:w-auto">
+          <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full sm:w-auto overflow-x-auto">
             <button
               onClick={() => setActiveTab('habits')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
                 activeTab === 'habits'
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400'
@@ -432,13 +438,33 @@ function App() {
             </button>
             <button
               onClick={() => setActiveTab('todos')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
                 activeTab === 'todos'
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400'
               }`}
             >
               <CheckSquare className="w-4 h-4" />To-Do
+            </button>
+            <button
+              onClick={() => setActiveTab('expenses')}
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeTab === 'expenses'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4" />Expenses
+            </button>
+            <button
+              onClick={() => setActiveTab('financial')}
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeTab === 'financial'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />Planning
             </button>
           </div>
         </div>
@@ -482,7 +508,26 @@ function App() {
         )}
 
         {/* Content Section */}
-        {activeTab === 'todos' ? (
+        {activeTab === 'financial' ? (
+          <FinancialPlanner
+            planData={dbFinancialPlan[0] || null}
+            onSave={(plan) => {
+              if (dbFinancialPlan[0]) {
+                updateFinancialPlanInDb({ ...plan, id: dbFinancialPlan[0].id })
+              } else {
+                addFinancialPlanToDb({ ...plan, id: 'plan_main', createdAt: new Date().toISOString() })
+              }
+              showToast('Financial plan saved!')
+            }}
+          />
+        ) : activeTab === 'expenses' ? (
+          <ExpenseManager
+            transactions={dbTransactions}
+            onAddTransaction={addTransactionToDb}
+            onUpdateTransaction={updateTransactionInDb}
+            onDeleteTransaction={deleteTransactionFromDb}
+          />
+        ) : activeTab === 'todos' ? (
           <TodoList 
             todos={dbTodos}
             categories={dbCategories}
@@ -571,7 +616,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation onLogout={handleLogout} />
-      <main className="max-w-6xl mx-auto px-4 py-6">
+      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {renderDashboard()}
       </main>
       {showQuickForm && (

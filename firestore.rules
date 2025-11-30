@@ -10,5 +10,14 @@ service cloud.firestore {
     match /users/{userId}/todoCategories/{categoryId} {
       allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
     }
+    match /users/{userId}/transactions/{transactionId} {
+      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    }
+    match /users/{userId}/expenseCategories/{categoryId} {
+      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    }
+    match /users/{userId}/financialPlan/{planId} {
+      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }

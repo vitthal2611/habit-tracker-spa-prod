@@ -123,7 +123,6 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, onDupl
     const habit = habits.find(h => h.id === habitId)
     if (habit && editingField.field) {
       const updatedHabit = { ...habit, [editingField.field]: editValue }
-      console.log('Saving edit:', editingField.field, '=', editValue, 'for habit:', habit.newHabit)
       await onUpdate(updatedHabit)
     }
     setEditingField({ habitId: null, field: null })
@@ -270,10 +269,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, onDupl
   const sortHabits = (habits, sortBy, sortOrder) => {
     if (sortBy === 'none') return habits
     
-    console.log('Sorting by:', sortBy, 'Order:', sortOrder)
-    console.log('Habits before sort:', habits.map(h => ({ habit: h.newHabit, time: h.time })))
-    
-    const sorted = [...habits].sort((a, b) => {
+    return [...habits].sort((a, b) => {
       if (sortBy === 'time') {
         const timeToMinutes = (time) => {
           if (!time || time === 'Anytime' || time === '') return 9999
@@ -313,9 +309,6 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, onDupl
       const comparison = aVal.localeCompare(bVal)
       return sortOrder === 'asc' ? comparison : -comparison
     })
-    
-    console.log('Habits after sort:', sorted.map(h => ({ habit: h.newHabit, time: h.time })))
-    return sorted
   }
   
   const handleSort = (column) => {
@@ -543,13 +536,6 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, onDupl
                   ) : (
                     <>
                       <button
-                        onClick={(e) => { e.stopPropagation(); onDuplicate && onDuplicate(habit); }}
-                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900 p-1 rounded transition-all"
-                        title="Duplicate habit"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                      <button
                         onClick={() => onDelete(habit.id)}
                         className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900 p-1 rounded transition-all"
                         title="Delete habit"
@@ -593,9 +579,6 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, onDupl
                         />
                       ) : (
                         <>
-                          <button onClick={(e) => { e.stopPropagation(); onDuplicate && onDuplicate(habit); }} className="p-2 hover:bg-white/20 rounded-lg transition-colors" title="Duplicate">
-                            <Copy className="w-4 h-4" />
-                          </button>
                           <button onClick={() => onDelete(habit.id)} className="p-2 hover:bg-white/20 rounded-lg transition-colors" title="Delete">
                             <Trash2 className="w-4 h-4" />
                           </button>

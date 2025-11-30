@@ -83,16 +83,13 @@ export const useFirestore = (collectionName, initialValue = []) => {
 
   const updateItem = async (item) => {
     try {
-      console.log('useFirestore updateItem called with:', item)
       const currentUser = auth.currentUser
       if (!currentUser) throw new Error('User not authenticated')
       if (!item?.id) throw new Error('Item must have an id')
       
       const docId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_')
       const cleanedData = cleanData(item)
-      console.log('Saving to Firebase:', docId, cleanedData)
       await setDoc(doc(db, 'users', currentUser.uid, collectionName, docId), cleanedData)
-      console.log('Firebase save complete')
     } catch (err) {
       console.error('Error updating item:', err)
       setError(err.message)
