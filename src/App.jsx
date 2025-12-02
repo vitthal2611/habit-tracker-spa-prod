@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Target, TrendingUp, Calendar, CheckSquare } from 'lucide-react'
+import { Plus, Target, TrendingUp, Calendar, CheckSquare, DollarSign } from 'lucide-react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from './firebase'
 import Navigation from './components/Navigation'
@@ -10,6 +10,7 @@ import DailyHabitView from './components/DailyHabitView'
 import TodoList from './components/TodoList'
 import ExpenseManager from './components/ExpenseManager'
 import FinancialPlanner from './components/FinancialPlanner'
+import BudgetFlow from './components/BudgetFlow'
 import Button from './components/ui/Button'
 import Auth from './components/Auth'
 import { useFirestore } from './hooks/useFirestore'
@@ -36,7 +37,11 @@ function App() {
   const [dbTodos, { addItem: addTodoToDb, updateItem: updateTodoInDb, deleteItem: deleteTodoFromDb }] = useFirestore('todos', [])
   const [dbCategories, { addItem: addCategoryToDb, deleteItem: deleteCategoryFromDb }] = useFirestore('todoCategories', [])
   const [dbTransactions, { addItem: addTransactionToDb, updateItem: updateTransactionInDb, deleteItem: deleteTransactionFromDb }] = useFirestore('transactions', [])
+  const [dbBudgets, { addItem: addBudgetToDb, updateItem: updateBudgetInDb }] = useFirestore('budgets', [])
   const [dbFinancialPlan, { addItem: addFinancialPlanToDb, updateItem: updateFinancialPlanInDb }] = useFirestore('financialPlan', [])
+  const [dbBudgetFlow, { addItem: addBudgetFlowToDb, updateItem: updateBudgetFlowInDb }] = useFirestore('budgetFlow', [])
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+  const currentMonthBudget = dbBudgetFlow.find(b => b.month === currentMonth)
   const [activeTab, setActiveTab] = useState('habits')
 
   const today = new Date().toDateString()
@@ -394,6 +399,16 @@ function App() {
             >
               <Calendar className="w-4 h-4" />Planning
             </button>
+            <button
+              onClick={() => setActiveTab('budget')}
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeTab === 'budget'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              <DollarSign className="w-4 h-4" />Budget
+            </button>
           </div>
         </div>
 
@@ -510,7 +525,21 @@ function App() {
         )}
 
         {/* Content Section */}
-        {activeTab === 'financial' ? (
+        {activeTab === 'budget' ? (
+          <BudgetFlow
+            budgetData={currentMonthBudget || null}
+            allBudgets={dbBudgetFlow}
+            onSave={(budget) => {
+              const existingBudget = dbBudgetFlow.find(b => b.month === budget.month)
+              if (existingBudget) {
+                updateBudgetFlowInDb({ ...budget, id: existingBudget.id })
+              } else {
+                addBudgetFlowToDb({ ...budget, id: `budget_${budget.month}`, createdAt: new Date().toISOString() })
+              }
+              showToast(`Budget saved for ${new Date(budget.month + '-01').toLocaleDateString('en', { month: 'long', year: 'numeric' })}!`)
+            }}
+          />
+        ) : activeTab === 'financial' ? (
           <FinancialPlanner
             planData={dbFinancialPlan[0] || null}
             onSave={(plan) => {
@@ -528,6 +557,15 @@ function App() {
             onAddTransaction={addTransactionToDb}
             onUpdateTransaction={updateTransactionInDb}
             onDeleteTransaction={deleteTransactionFromDb}
+            budgets={dbBudgets[0]?.data || {}}
+            onSaveBudgets={(budgets) => {
+              if (dbBudgets[0]) {
+                updateBudgetInDb({ ...dbBudgets[0], data: budgets })
+              } else {
+                addBudgetToDb({ id: 'budgets_main', data: budgets, createdAt: new Date().toISOString() })
+              }
+            }}
+            budgetFlowData={dbBudgetFlow}
           />
         ) : activeTab === 'todos' ? (
           <TodoList 
