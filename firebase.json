@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "habit-tracker-spa-prod",
     "public": "dist",
     "ignore": [
       "firebase.json",

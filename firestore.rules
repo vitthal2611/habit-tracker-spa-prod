@@ -19,5 +19,8 @@ service cloud.firestore {
     match /users/{userId}/financialPlan/{planId} {
       allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
     }
+    match /users/{userId}/yearlyBudgets/{budgetId} {
+      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }

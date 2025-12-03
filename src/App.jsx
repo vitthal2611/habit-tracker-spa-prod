@@ -8,13 +8,13 @@ import HabitList from './components/HabitList'
 import HabitTableView from './components/HabitTableView'
 import DailyHabitView from './components/DailyHabitView'
 import TodoList from './components/TodoList'
-import ExpenseManager from './components/ExpenseManager'
-import FinancialPlanner from './components/FinancialPlanner'
-import BudgetFlow from './components/BudgetFlow'
+import YearlyBudget from './components/YearlyBudget'
+import Transactions from './components/Transactions'
 import Button from './components/ui/Button'
 import Auth from './components/Auth'
 import { useFirestore } from './hooks/useFirestore'
 import { useHabitLinkedList } from './hooks/useHabitLinkedList'
+import { DEFAULT_BUDGET_CATEGORIES } from './utils/budgetCategories'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -36,12 +36,10 @@ function App() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [dbTodos, { addItem: addTodoToDb, updateItem: updateTodoInDb, deleteItem: deleteTodoFromDb }] = useFirestore('todos', [])
   const [dbCategories, { addItem: addCategoryToDb, deleteItem: deleteCategoryFromDb }] = useFirestore('todoCategories', [])
-  const [dbTransactions, { addItem: addTransactionToDb, updateItem: updateTransactionInDb, deleteItem: deleteTransactionFromDb }] = useFirestore('transactions', [])
-  const [dbBudgets, { addItem: addBudgetToDb, updateItem: updateBudgetInDb }] = useFirestore('budgets', [])
-  const [dbFinancialPlan, { addItem: addFinancialPlanToDb, updateItem: updateFinancialPlanInDb }] = useFirestore('financialPlan', [])
-  const [dbBudgetFlow, { addItem: addBudgetFlowToDb, updateItem: updateBudgetFlowInDb }] = useFirestore('budgetFlow', [])
-  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
-  const currentMonthBudget = dbBudgetFlow.find(b => b.month === currentMonth)
+  const [dbYearlyBudgets, { addItem: addYearlyBudgetToDb, updateItem: updateYearlyBudgetInDb }] = useFirestore('yearlyBudgets', [])
+  const [dbTransactions, { addItem: addTransactionToDb, deleteItem: deleteTransactionFromDb }] = useFirestore('transactions', [])
+  const currentYear = new Date().getFullYear()
+  const currentYearBudget = dbYearlyBudgets.find(b => b.year === currentYear)
   const [activeTab, setActiveTab] = useState('habits')
 
   const today = new Date().toDateString()
@@ -379,26 +377,7 @@ function App() {
             >
               <CheckSquare className="w-4 h-4" />To-Do
             </button>
-            <button
-              onClick={() => setActiveTab('expenses')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
-                activeTab === 'expenses'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400'
-              }`}
-            >
-              <TrendingUp className="w-4 h-4" />Expenses
-            </button>
-            <button
-              onClick={() => setActiveTab('financial')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
-                activeTab === 'financial'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />Planning
-            </button>
+
             <button
               onClick={() => setActiveTab('budget')}
               className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
@@ -408,6 +387,16 @@ function App() {
               }`}
             >
               <DollarSign className="w-4 h-4" />Budget
+            </button>
+            <button
+              onClick={() => setActiveTab('transactions')}
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeTab === 'transactions'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4" />Transactions
             </button>
           </div>
         </div>
@@ -526,46 +515,46 @@ function App() {
 
         {/* Content Section */}
         {activeTab === 'budget' ? (
-          <BudgetFlow
-            budgetData={currentMonthBudget || null}
-            allBudgets={dbBudgetFlow}
-            onSave={(budget) => {
-              const existingBudget = dbBudgetFlow.find(b => b.month === budget.month)
-              if (existingBudget) {
-                updateBudgetFlowInDb({ ...budget, id: existingBudget.id })
-              } else {
-                addBudgetFlowToDb({ ...budget, id: `budget_${budget.month}`, createdAt: new Date().toISOString() })
-              }
-              showToast(`Budget saved for ${new Date(budget.month + '-01').toLocaleDateString('en', { month: 'long', year: 'numeric' })}!`)
-            }}
-          />
-        ) : activeTab === 'financial' ? (
-          <FinancialPlanner
-            planData={dbFinancialPlan[0] || null}
-            onSave={(plan) => {
-              if (dbFinancialPlan[0]) {
-                updateFinancialPlanInDb({ ...plan, id: dbFinancialPlan[0].id })
-              } else {
-                addFinancialPlanToDb({ ...plan, id: 'plan_main', createdAt: new Date().toISOString() })
-              }
-              showToast('Financial plan saved!')
-            }}
-          />
-        ) : activeTab === 'expenses' ? (
-          <ExpenseManager
+          <YearlyBudget
+            budgetData={currentYearBudget}
             transactions={dbTransactions}
-            onAddTransaction={addTransactionToDb}
-            onUpdateTransaction={updateTransactionInDb}
-            onDeleteTransaction={deleteTransactionFromDb}
-            budgets={dbBudgets[0]?.data || {}}
-            onSaveBudgets={(budgets) => {
-              if (dbBudgets[0]) {
-                updateBudgetInDb({ ...dbBudgets[0], data: budgets })
-              } else {
-                addBudgetToDb({ id: 'budgets_main', data: budgets, createdAt: new Date().toISOString() })
+            dbYearlyBudgets={dbYearlyBudgets}
+            onSave={async (budget) => {
+              try {
+                const budgetData = {
+                  ...budget,
+                  year: budget.year || currentYear,
+                  categories: budget.categories || [],
+                  updatedAt: new Date().toISOString()
+                }
+                
+                // Find existing budget for the specific year
+                const existingBudget = dbYearlyBudgets.find(b => b.year === budgetData.year)
+                
+                if (existingBudget) {
+                  await updateYearlyBudgetInDb({ ...budgetData, id: existingBudget.id })
+                } else {
+                  await addYearlyBudgetToDb({ ...budgetData, id: `budget_${budgetData.year}`, createdAt: new Date().toISOString() })
+                }
+                showToast(`Budget saved for ${budgetData.year}!`)
+              } catch (error) {
+                console.error('Budget save error:', error)
+                showToast(`Failed to save budget: ${error.message}`, 'error')
               }
             }}
-            budgetFlowData={dbBudgetFlow}
+          />
+        ) : activeTab === 'transactions' ? (
+          <Transactions
+            transactions={dbTransactions}
+            budgetCategories={currentYearBudget?.categories || DEFAULT_BUDGET_CATEGORIES}
+            onAdd={(transaction) => {
+              addTransactionToDb(transaction)
+              showToast('Transaction added!')
+            }}
+            onDelete={(id) => {
+              deleteTransactionFromDb(id)
+              showToast('Transaction deleted!')
+            }}
           />
         ) : activeTab === 'todos' ? (
           <TodoList 
