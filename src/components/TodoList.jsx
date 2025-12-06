@@ -35,6 +35,8 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurringPattern, setRecurringPattern] = useState('daily')
   const [recurringDay, setRecurringDay] = useState('Mon')
+  const [recurringStartDate, setRecurringStartDate] = useState('')
+  const [recurringEndDate, setRecurringEndDate] = useState('')
 
   const [showOverdueNotice, setShowOverdueNotice] = useState(false)
   const [overdueCount, setOverdueCount] = useState(0)
@@ -74,6 +76,8 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
           isRecurring: isRecurring,
           recurringPattern: isRecurring ? recurringPattern : null,
           recurringDay: isRecurring && recurringPattern === 'weekly' ? recurringDay : null,
+          recurringStartDate: isRecurring ? recurringStartDate : null,
+          recurringEndDate: isRecurring ? recurringEndDate : null,
           createdAt: new Date().toISOString()
         })
         setNewTodo('')
@@ -82,6 +86,8 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
         setTimeEstimate('')
         setIsRecurring(false)
         setRecurringPattern('daily')
+        setRecurringStartDate('')
+        setRecurringEndDate('')
         setAddSuccess(true)
         setTimeout(() => setAddSuccess(false), 2000)
         setShowQuickAdd(false)
@@ -297,32 +303,55 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
 
           {/* Recurring Pattern */}
           {isRecurring && (
-            <div className="flex gap-2">
-              <select
-                value={recurringPattern}
-                onChange={(e) => setRecurringPattern(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-              >
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-              {recurringPattern === 'weekly' && (
+            <>
+              <div className="flex gap-2">
                 <select
-                  value={recurringDay}
-                  onChange={(e) => setRecurringDay(e.target.value)}
+                  value={recurringPattern}
+                  onChange={(e) => setRecurringPattern(e.target.value)}
                   className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                 >
-                  <option value="Mon">Monday</option>
-                  <option value="Tue">Tuesday</option>
-                  <option value="Wed">Wednesday</option>
-                  <option value="Thu">Thursday</option>
-                  <option value="Fri">Friday</option>
-                  <option value="Sat">Saturday</option>
-                  <option value="Sun">Sunday</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
                 </select>
-              )}
-            </div>
+                {recurringPattern === 'weekly' && (
+                  <select
+                    value={recurringDay}
+                    onChange={(e) => setRecurringDay(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  >
+                    <option value="Mon">Monday</option>
+                    <option value="Tue">Tuesday</option>
+                    <option value="Wed">Wednesday</option>
+                    <option value="Thu">Thursday</option>
+                    <option value="Fri">Friday</option>
+                    <option value="Sat">Saturday</option>
+                    <option value="Sun">Sunday</option>
+                  </select>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={recurringStartDate}
+                    onChange={(e) => setRecurringStartDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={recurringEndDate}
+                    onChange={(e) => setRecurringEndDate(e.target.value)}
+                    min={recurringStartDate}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           {/* Category Selection */}
@@ -747,6 +776,11 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
   const [showSubtasks, setShowSubtasks] = useState(false)
   const [newSubtask, setNewSubtask] = useState('')
   const [editTimeEstimate, setEditTimeEstimate] = useState(todo.timeEstimate || '')
+  const [editIsRecurring, setEditIsRecurring] = useState(todo.isRecurring || false)
+  const [editRecurringPattern, setEditRecurringPattern] = useState(todo.recurringPattern || 'daily')
+  const [editRecurringDay, setEditRecurringDay] = useState(todo.recurringDay || 'Mon')
+  const [editRecurringStartDate, setEditRecurringStartDate] = useState(todo.recurringStartDate || '')
+  const [editRecurringEndDate, setEditRecurringEndDate] = useState(todo.recurringEndDate || '')
   const category = allCategories.find(c => c.id === todo.category) || allCategories.find(c => c.id === 'other') || allCategories[0]
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -755,7 +789,19 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
 
   const handleUpdate = () => {
     if (!editText.trim()) return
-    onUpdate({ ...todo, text: editText.trim(), dueDate: editDate || null, category: editCategory, priority: editPriority, timeEstimate: editTimeEstimate || null })
+    onUpdate({ 
+      ...todo, 
+      text: editText.trim(), 
+      dueDate: editDate || null, 
+      category: editCategory, 
+      priority: editPriority, 
+      timeEstimate: editTimeEstimate || null,
+      isRecurring: editIsRecurring,
+      recurringPattern: editIsRecurring ? editRecurringPattern : null,
+      recurringDay: editIsRecurring && editRecurringPattern === 'weekly' ? editRecurringDay : null,
+      recurringStartDate: editIsRecurring ? editRecurringStartDate : null,
+      recurringEndDate: editIsRecurring ? editRecurringEndDate : null
+    })
     setIsEditing(false)
   }
 
@@ -787,88 +833,7 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
     }
   }
 
-  if (isEditing) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-indigo-300 dark:border-indigo-700 p-3 sm:p-4">
-        <input
-          type="text"
-          value={editText}
-          onChange={(e) => setEditText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="w-full px-3 py-2 mb-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
-          autoFocus
-        />
-        <div className="flex flex-col sm:flex-row gap-2 mb-2">
-          <input
-            type="date"
-            value={editDate}
-            onChange={(e) => setEditDate(e.target.value)}
-            className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-          />
-          <input
-            type="number"
-            value={editTimeEstimate}
-            onChange={(e) => setEditTimeEstimate(e.target.value)}
-            placeholder="30"
-            min="1"
-            className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-          />
-          <select
-            value={editCategory}
-            onChange={(e) => setEditCategory(e.target.value)}
-            className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-          >
-            {allCategories.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex gap-2 mb-2">
-          <button
-            type="button"
-            onClick={() => setEditPriority('high')}
-            className={`flex-1 px-3 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-              editPriority === 'high'
-                ? 'bg-red-500 text-white shadow-md'
-                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-            }`}
-          >
-            🔴 High
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditPriority('medium')}
-            className={`flex-1 px-3 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-              editPriority === 'medium'
-                ? 'bg-yellow-500 text-white shadow-md'
-                : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-            }`}
-          >
-            🟡 Medium
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditPriority('low')}
-            className={`flex-1 px-3 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-              editPriority === 'low'
-                ? 'bg-blue-500 text-white shadow-md'
-                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-            }`}
-          >
-            🔵 Low
-          </button>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={handleUpdate} className="flex-1 px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">
-            Save
-          </button>
-          <button onClick={() => setIsEditing(false)} className="flex-1 px-3 py-2 bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-300 dark:hover:bg-gray-600">
-            Cancel
-          </button>
-        </div>
-      </div>
-    )
-  }
+
 
   const currentStatus = todo.status || (todo.completed ? 'completed' : 'backlog')
   
@@ -904,12 +869,19 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
       return today.toISOString().split('T')[0]
     }
 
+    const nextDate = getNextDate()
+    
+    // Check if next date is within recurrence range
+    if (todo.recurringEndDate && nextDate > todo.recurringEndDate) {
+      return // Don't create next recurrence if past end date
+    }
+
     const newTodo = {
       ...todo,
       id: `todo_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
       status: 'backlog',
       completed: false,
-      dueDate: getNextDate(),
+      dueDate: nextDate,
       completedAt: null,
       startedAt: null,
       subtasks: (todo.subtasks || []).map(st => ({ ...st, completed: false })),
@@ -981,6 +953,7 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
             {todo.isRecurring && (
               <span className="text-xs font-medium px-2 py-0.5 rounded bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400">
                 🔄 {todo.recurringPattern === 'daily' ? 'Daily' : todo.recurringPattern === 'weekly' ? `Every ${todo.recurringDay}` : '1st of month'}
+                {todo.recurringEndDate && ` until ${new Date(todo.recurringEndDate).toLocaleDateString('en', { month: 'short', day: 'numeric' })}`}
               </span>
             )}
             {todo.subtasks && todo.subtasks.length > 0 && (
@@ -1064,6 +1037,180 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
         </div>
       </div>
     </div>
+
+    {/* Edit Modal */}
+    {isEditing && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setIsEditing(false)}>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Edit Task</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Name</label>
+              <input
+                type="text"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                placeholder="Task name..."
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date</label>
+                <input
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div className="w-24">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Time (min)</label>
+                <input
+                  type="number"
+                  value={editTimeEstimate}
+                  onChange={(e) => setEditTimeEstimate(e.target.value)}
+                  placeholder="30"
+                  min="1"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category</label>
+              <select
+                value={editCategory}
+                onChange={(e) => setEditCategory(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              >
+                {allCategories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Priority</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditPriority('high')}
+                  className={`flex-1 px-3 py-2 rounded-lg font-semibold text-sm transition-all ${
+                    editPriority === 'high'
+                      ? 'bg-red-500 text-white shadow-md'
+                      : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                  }`}
+                >
+                  🔴 High
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditPriority('medium')}
+                  className={`flex-1 px-3 py-2 rounded-lg font-semibold text-sm transition-all ${
+                    editPriority === 'medium'
+                      ? 'bg-yellow-500 text-white shadow-md'
+                      : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                  }`}
+                >
+                  🟡 Med
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditPriority('low')}
+                  className={`flex-1 px-3 py-2 rounded-lg font-semibold text-sm transition-all ${
+                    editPriority === 'low'
+                      ? 'bg-blue-500 text-white shadow-md'
+                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                  }`}
+                >
+                  🔵 Low
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="edit-recurring"
+                checked={editIsRecurring}
+                onChange={(e) => setEditIsRecurring(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <label htmlFor="edit-recurring" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                🔄 Recurring Task
+              </label>
+            </div>
+            {editIsRecurring && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Pattern</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={editRecurringPattern}
+                      onChange={(e) => setEditRecurringPattern(e.target.value)}
+                      className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                    </select>
+                    {editRecurringPattern === 'weekly' && (
+                      <select
+                        value={editRecurringDay}
+                        onChange={(e) => setEditRecurringDay(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                      >
+                        <option value="Mon">Monday</option>
+                        <option value="Tue">Tuesday</option>
+                        <option value="Wed">Wednesday</option>
+                        <option value="Thu">Thursday</option>
+                        <option value="Fri">Friday</option>
+                        <option value="Sat">Saturday</option>
+                        <option value="Sun">Sunday</option>
+                      </select>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Start Date</label>
+                    <input
+                      type="date"
+                      value={editRecurringStartDate}
+                      onChange={(e) => setEditRecurringStartDate(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">End Date</label>
+                    <input
+                      type="date"
+                      value={editRecurringEndDate}
+                      onChange={(e) => setEditRecurringEndDate(e.target.value)}
+                      min={editRecurringStartDate}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-gray-700 transition-all font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdate}
+                className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-all font-semibold"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Delete Confirmation */}
     {showDeleteConfirm && (
