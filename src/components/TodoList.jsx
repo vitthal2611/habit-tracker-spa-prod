@@ -156,6 +156,41 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
     return groups
   }
 
+  const calculateTotalTime = (todos) => {
+    let totalMinutes = 0
+    todos.forEach(todo => {
+      if (todo.timeEstimate) {
+        const time = todo.timeEstimate.toLowerCase()
+        if (time.includes('h')) {
+          const hours = parseFloat(time)
+          totalMinutes += hours * 60
+        } else if (time.includes('m')) {
+          totalMinutes += parseFloat(time)
+        }
+      }
+    })
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
+    if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`
+    if (hours > 0) return `${hours}h`
+    if (minutes > 0) return `${minutes}m`
+    return '0m'
+  }
+
+  const getTodayTasks = () => {
+    const today = new Date().toISOString().split('T')[0]
+    return sortedTodos.filter(t => {
+      const status = t.status || (t.completed ? 'completed' : 'backlog')
+      if (status === 'completed') return false
+      if (t.dueDate === today) return true
+      if (!t.dueDate && status === 'in-progress') return true
+      return false
+    })
+  }
+
+  const todayTasks = getTodayTasks()
+  const todayTotalTime = calculateTotalTime(todayTasks)
+
   const backlogGroups = groupByDate(backlogTodos)
   const inProgressGroups = groupByDate(inProgressTodos)
   const completedGroups = groupByDate(completedTodos)
@@ -432,8 +467,20 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
         </div>
       )}
 
-      {/* Focus Mode Toggle */}
-      <div className="flex justify-end">
+      {/* Focus Mode Toggle & Today's Time */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg shadow-sm border border-indigo-200 dark:border-indigo-800 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">📅 Today:</span>
+            <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{todayTasks.length} {todayTasks.length === 1 ? 'task' : 'tasks'}</span>
+            {todayTotalTime && todayTotalTime !== '0m' && (
+              <>
+                <span className="text-slate-400">|</span>
+                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">⏱️ {todayTotalTime}</span>
+              </>
+            )}
+          </div>
+        </div>
         <button
           onClick={() => setFocusMode(!focusMode)}
           className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
@@ -595,6 +642,28 @@ function KanbanColumn({ title, count, color, groups, onUpdate, onToggle, onDelet
     noDate: '📅 No Date'
   }
 
+  const calculateColumnTime = () => {
+    let totalMinutes = 0
+    Object.values(groups).flat().forEach(todo => {
+      if (todo.timeEstimate) {
+        const time = todo.timeEstimate.toLowerCase()
+        if (time.includes('h')) {
+          totalMinutes += parseFloat(time) * 60
+        } else if (time.includes('m')) {
+          totalMinutes += parseFloat(time)
+        }
+      }
+    })
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
+    if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`
+    if (hours > 0) return `${hours}h`
+    if (minutes > 0) return `${minutes}m`
+    return null
+  }
+
+  const columnTime = calculateColumnTime()
+
   const getStatusFromTitle = (title) => {
     if (title.includes('Backlog')) return 'backlog'
     if (title.includes('Progress')) return 'in-progress'
@@ -641,7 +710,12 @@ function KanbanColumn({ title, count, color, groups, onUpdate, onToggle, onDelet
       <div className={`bg-gradient-to-r ${color} rounded-lg px-4 py-3 mb-3 shadow-md`}>
         <h3 className="text-base font-bold text-white flex items-center justify-between">
           <span>{title}</span>
-          <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">{count}</span>
+          <div className="flex items-center gap-2">
+            <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">{count}</span>
+            {columnTime && (
+              <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">⏱️ {columnTime}</span>
+            )}
+          </div>
         </h3>
       </div>
       <div className="space-y-3">
@@ -978,42 +1052,6 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
               + Add subtask
             </button>
           )}
-          
-          {/* Status Actions */}
-          <div className="flex gap-1 sm:gap-2 mt-2">
-            {currentStatus === 'backlog' && (
-              <button
-                onClick={() => moveToStatus('in-progress')}
-                className="text-xs font-semibold px-3 py-1.5 sm:px-2 sm:py-1 rounded bg-blue-500 text-white hover:bg-blue-600 active:scale-95 transition-all"
-              >
-                Start
-              </button>
-            )}
-            {currentStatus === 'in-progress' && (
-              <>
-                <button
-                  onClick={() => moveToStatus('backlog')}
-                  className="text-xs font-semibold px-3 py-1.5 sm:px-2 sm:py-1 rounded bg-slate-400 text-white hover:bg-slate-500 active:scale-95 transition-all"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={() => moveToStatus('completed')}
-                  className="text-xs font-semibold px-3 py-1.5 sm:px-2 sm:py-1 rounded bg-green-500 text-white hover:bg-green-600 active:scale-95 transition-all"
-                >
-                  Complete
-                </button>
-              </>
-            )}
-            {currentStatus === 'completed' && (
-              <button
-                onClick={() => moveToStatus('in-progress')}
-                className="text-xs font-semibold px-3 py-1.5 sm:px-2 sm:py-1 rounded bg-blue-500 text-white hover:bg-blue-600 active:scale-95 transition-all"
-              >
-                Reopen
-              </button>
-            )}
-          </div>
         </div>
 
         <div className="flex gap-1">
