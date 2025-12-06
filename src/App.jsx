@@ -581,7 +581,15 @@ function App() {
             onAdd={addTodoToDb}
             onToggle={async (id) => {
               const todo = dbTodos.find(t => t.id === id)
-              if (todo) await updateTodoInDb({ ...todo, completed: !todo.completed })
+              if (todo) {
+                const newStatus = (todo.status === 'completed' || todo.completed) ? 'backlog' : 'completed'
+                await updateTodoInDb({ 
+                  ...todo, 
+                  completed: newStatus === 'completed',
+                  status: newStatus,
+                  completedAt: newStatus === 'completed' ? new Date().toISOString() : null
+                })
+              }
             }}
             onUpdate={updateTodoInDb}
             onDelete={deleteTodoFromDb}
