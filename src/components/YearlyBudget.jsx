@@ -168,25 +168,7 @@ export default function YearlyBudget({ budgetData, transactions = [], onSave, db
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white">
-          <div className="text-sm opacity-90">Monthly Income</div>
-          <div className="text-2xl font-bold">₹{(monthlyIncome[currentMonth] / 1000).toFixed(0)}k</div>
-        </div>
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white">
-          <div className="text-sm opacity-90">Budget Allocated</div>
-          <div className="text-2xl font-bold">₹{(getTotalMonthlyBudget() / 1000).toFixed(0)}k</div>
-        </div>
-        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-4 text-white">
-          <div className="text-sm opacity-90">Amount Spent</div>
-          <div className="text-2xl font-bold">₹{(getCurrentMonthSpent() / 1000).toFixed(0)}k</div>
-        </div>
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white">
-          <div className="text-sm opacity-90">Remaining</div>
-          <div className="text-2xl font-bold">₹{((monthlyIncome[currentMonth] - getCurrentMonthSpent()) / 1000).toFixed(0)}k</div>
-        </div>
-      </div>
+
 
       {/* Income & Budget Setup */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
@@ -301,97 +283,6 @@ export default function YearlyBudget({ budgetData, transactions = [], onSave, db
           </div>
         </div>}
       </div>
-
-
-
-      {/* Budget Tracking */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Budget vs Spending</h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{months[viewMonth]} {year} performance</p>
-            </div>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setViewMonth(viewMonth === 0 ? 11 : viewMonth - 1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <span className="font-medium text-gray-900 dark:text-white min-w-[80px] text-center">{months[viewMonth]}</span>
-              <button onClick={() => setViewMonth(viewMonth === 11 ? 0 : viewMonth + 1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="p-6">
-          <div className="space-y-4">
-            {categories.map((cat, index) => {
-              const budget = (cat.monthlyBudgets && cat.monthlyBudgets[viewMonth] !== undefined) ? cat.monthlyBudgets[viewMonth] : (cat.monthlyBudget || 0)
-              const spent = getMonthlySpent(cat.name, viewMonth, year)
-              const remaining = budget - spent
-              const utilization = getBudgetUtilization(cat.name, viewMonth)
-              
-              return (
-                <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        cat.type === 'Asset' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 
-                        cat.type === 'Liability' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 
-                        cat.type === 'Income' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                      }`}>
-                        {cat.type}
-                      </div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{cat.name}</h3>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Budget Utilization</div>
-                      <div className={`text-lg font-bold ${
-                        utilization > 100 ? 'text-red-600' : utilization > 80 ? 'text-yellow-600' : 'text-green-600'
-                      }`}>
-                        {utilization.toFixed(0)}%
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-4 mb-3">
-                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">BUDGET</div>
-                      <div className="text-lg font-bold text-blue-700 dark:text-blue-300">₹{budget.toLocaleString('en-IN')}</div>
-                    </div>
-                    <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                      <div className="text-xs text-red-600 dark:text-red-400 font-medium">SPENT</div>
-                      <div className="text-lg font-bold text-red-700 dark:text-red-300">₹{spent.toLocaleString('en-IN')}</div>
-                    </div>
-                    <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <div className="text-xs text-green-600 dark:text-green-400 font-medium">REMAINING</div>
-                      <div className={`text-lg font-bold ${remaining >= 0 ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
-                        ₹{Math.abs(remaining).toLocaleString('en-IN')}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                    <div 
-                      className={`h-3 rounded-full transition-all duration-300 ${
-                        utilization > 100 ? 'bg-red-500' : utilization > 80 ? 'bg-yellow-500' : 'bg-green-500'
-                      }`}
-                      style={{ width: `${Math.min(utilization, 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Cash Flow Quadrant Analysis */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Cash Flow Quadrant Analysis</h2>

@@ -10,6 +10,7 @@ import DailyHabitView from './components/DailyHabitView'
 import TodoList from './components/TodoList'
 import YearlyBudget from './components/YearlyBudget'
 import Transactions from './components/Transactions'
+import Dashboard from './components/Dashboard'
 import Button from './components/ui/Button'
 import Auth from './components/Auth'
 import { useFirestore } from './hooks/useFirestore'
@@ -398,6 +399,16 @@ function App() {
             >
               <TrendingUp className="w-4 h-4" />Transactions
             </button>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeTab === 'dashboard'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />Dashboard
+            </button>
           </div>
         </div>
 
@@ -547,6 +558,7 @@ function App() {
           <Transactions
             transactions={dbTransactions}
             budgetCategories={currentYearBudget?.categories || DEFAULT_BUDGET_CATEGORIES}
+            year={currentYear}
             onAdd={(transaction) => {
               addTransactionToDb(transaction)
               showToast('Transaction added!')
@@ -555,6 +567,12 @@ function App() {
               deleteTransactionFromDb(id)
               showToast('Transaction deleted!')
             }}
+          />
+        ) : activeTab === 'dashboard' ? (
+          <Dashboard
+            transactions={dbTransactions}
+            budgetCategories={currentYearBudget?.categories || DEFAULT_BUDGET_CATEGORIES}
+            year={currentYear}
           />
         ) : activeTab === 'todos' ? (
           <TodoList 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import QuickHabitForm from './QuickHabitForm'
+import Modal from './ui/Modal'
 
 export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, onAdd, onDuplicate, currentDate: propCurrentDate, setCurrentDate: propSetCurrentDate, isSelectionMode = false, selectedHabits = new Set(), onToggleSelection }) {
   const [currentDate, setCurrentDate] = useState(propCurrentDate || new Date())
@@ -8,6 +9,8 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
   const [completedHabit, setCompletedHabit] = useState(null)
   const [editingHabit, setEditingHabit] = useState(null)
   const [groupBy, setGroupBy] = useState('none')
+  const [skipModal, setSkipModal] = useState({ isOpen: false, habitId: null, dateStr: null })
+  const [skipNote, setSkipNote] = useState('')
 
   useEffect(() => {
     if (propCurrentDate) setCurrentDate(propCurrentDate)
@@ -347,7 +350,7 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                             onClick={(e) => { 
                               e.stopPropagation(); 
                               if (!isMissed && currentDateOnly <= new Date().setHours(0,0,0,0)) {
-                                onToggle(habit.id, dateStr)
+                                setSkipModal({ isOpen: true, habitId: habit.id, dateStr })
                               }
                             }}
                             disabled={isMissed || currentDateOnly > new Date().setHours(0,0,0,0)}
@@ -417,7 +420,7 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                             onClick={(e) => { 
                               e.stopPropagation(); 
                               if (!isMissed && currentDateOnly <= new Date().setHours(0,0,0,0)) {
-                                onToggle(habit.id, dateStr)
+                                setSkipModal({ isOpen: true, habitId: habit.id, dateStr })
                               }
                             }}
                             disabled={isMissed || currentDateOnly > new Date().setHours(0,0,0,0)}
@@ -479,6 +482,58 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
           editingHabit={editingHabit}
         />
       )}
+
+      <Modal
+        isOpen={skipModal.isOpen}
+        onClose={() => {
+          setSkipModal({ isOpen: false, habitId: null, dateStr: null })
+          setSkipNote('')
+        }}
+        title="Why are you skipping?"
+      >
+        <div className="space-y-4">
+          <textarea
+            value={skipNote}
+            onChange={(e) => setSkipNote(e.target.value)}
+            placeholder="Add a note about why you're skipping this habit..."
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white resize-none"
+            rows={4}
+            autoFocus
+          />
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setSkipModal({ isOpen: false, habitId: null, dateStr: null })
+                setSkipNote('')
+              }}
+              className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                const habit = habits.find(h => h.id === skipModal.habitId)
+                if (habit) {
+                  const updatedHabit = {
+                    ...habit,
+                    skipNotes: {
+                      ...habit.skipNotes,
+                      [skipModal.dateStr]: skipNote
+                    }
+                  }
+                  onUpdate(updatedHabit)
+                }
+                onToggle(skipModal.habitId, skipModal.dateStr)
+                setSkipModal({ isOpen: false, habitId: null, dateStr: null })
+                setSkipNote('')
+              }}
+              className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all"
+            >
+              Skip Habit
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

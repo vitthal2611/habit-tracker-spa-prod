@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Plus, Minus } from 'lucide-react'
 
-export default function Transactions({ transactions = [], budgetCategories = [], onAdd, onDelete }) {
+export default function Transactions({ transactions = [], budgetCategories = [], onAdd, onDelete, year = new Date().getFullYear() }) {
+  const [viewMonth, setViewMonth] = useState(new Date().getMonth())
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   const [newTransaction, setNewTransaction] = useState({
     date: new Date().toISOString().split('T')[0],
     particular: '',
@@ -10,6 +12,9 @@ export default function Transactions({ transactions = [], budgetCategories = [],
     expense: 0,
     mode: 'Cash'
   })
+  const [modes, setModes] = useState(['Cash', 'Card', 'UPI', 'Bank'])
+  const [newMode, setNewMode] = useState('')
+  const [showModeInput, setShowModeInput] = useState(false)
 
   const addTransaction = () => {
     if (!newTransaction.particular.trim()) {
@@ -54,6 +59,64 @@ export default function Transactions({ transactions = [], budgetCategories = [],
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Transactions</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">Track income and expenses</p>
         </div>
+        <div className="flex items-center gap-1">
+          <button onClick={() => setViewMonth(viewMonth === 0 ? 11 : viewMonth - 1)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <span className="font-medium text-gray-900 dark:text-white min-w-[100px] text-center">{months[viewMonth]} {year}</span>
+          <button onClick={() => setViewMonth(viewMonth === 11 ? 0 : viewMonth + 1)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white">
+          <div className="text-sm opacity-90">Monthly Income</div>
+          <div className="text-2xl font-bold">₹{(transactions.filter(t => {
+            const transactionDate = new Date(t.date)
+            return transactionDate.getFullYear() === year && 
+                   transactionDate.getMonth() === viewMonth &&
+                   t.income > 0
+          }).reduce((sum, t) => sum + (t.income || 0), 0) / 1000).toFixed(0)}k</div>
+        </div>
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white">
+          <div className="text-sm opacity-90">Budget Allocated</div>
+          <div className="text-2xl font-bold">₹{(budgetCategories.reduce((sum, cat) => {
+            if (cat.monthlyBudgets && cat.monthlyBudgets[viewMonth] !== undefined) {
+              return sum + cat.monthlyBudgets[viewMonth]
+            }
+            return sum + (cat.monthlyBudget || 0)
+          }, 0) / 1000).toFixed(0)}k</div>
+        </div>
+        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-4 text-white">
+          <div className="text-sm opacity-90">Amount Spent</div>
+          <div className="text-2xl font-bold">₹{(transactions.filter(t => {
+            const transactionDate = new Date(t.date)
+            return transactionDate.getFullYear() === year && 
+                   transactionDate.getMonth() === viewMonth &&
+                   t.expense > 0
+          }).reduce((sum, t) => sum + (t.expense || 0), 0) / 1000).toFixed(0)}k</div>
+        </div>
+        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white">
+          <div className="text-sm opacity-90">Remaining</div>
+          <div className="text-2xl font-bold">₹{((transactions.filter(t => {
+            const transactionDate = new Date(t.date)
+            return transactionDate.getFullYear() === year && 
+                   transactionDate.getMonth() === viewMonth &&
+                   t.income > 0
+          }).reduce((sum, t) => sum + (t.income || 0), 0) - transactions.filter(t => {
+            const transactionDate = new Date(t.date)
+            return transactionDate.getFullYear() === year && 
+                   transactionDate.getMonth() === viewMonth &&
+                   t.expense > 0
+          }).reduce((sum, t) => sum + (t.expense || 0), 0)) / 1000).toFixed(0)}k</div>
+        </div>
       </div>
 
       {/* Add Transaction */}
@@ -80,38 +143,122 @@ export default function Transactions({ transactions = [], budgetCategories = [],
           />
           <select
             value={newTransaction.category}
-            onChange={(e) => setNewTransaction({...newTransaction, category: e.target.value})}
+            onChange={(e) => {
+              const selectedCategory = budgetCategories.find(cat => cat.name === e.target.value)
+              const isIncomeCategory = selectedCategory?.type === 'Income'
+              setNewTransaction({
+                ...newTransaction, 
+                category: e.target.value,
+                income: isIncomeCategory ? newTransaction.income : 0,
+                expense: isIncomeCategory ? 0 : newTransaction.expense
+              })
+            }}
             className="px-3 py-2 border rounded-lg dark:bg-gray-700"
           >
             <option value="">Select Category</option>
-            {budgetCategories.map((cat, index) => (
-              <option key={index} value={cat.name}>{cat.name}</option>
-            ))}
+            {budgetCategories.map((cat, index) => {
+              const currentMonth = new Date().getMonth()
+              const budget = (cat.monthlyBudgets && cat.monthlyBudgets[currentMonth] !== undefined) ? cat.monthlyBudgets[currentMonth] : (cat.monthlyBudget || 0)
+              const spent = transactions.filter(t => {
+                const transactionDate = new Date(t.date)
+                return transactionDate.getFullYear() === year && 
+                       transactionDate.getMonth() === currentMonth &&
+                       t.category === cat.name &&
+                       t.expense > 0
+              }).reduce((sum, t) => sum + (t.expense || 0), 0)
+              const remaining = budget - spent
+              return (
+                <option key={index} value={cat.name} style={{color: remaining < 0 ? 'red' : 'inherit'}}>
+                  {cat.name} (₹{remaining.toLocaleString('en-IN')} left)
+                </option>
+              )
+            })}
           </select>
           <input
             type="number"
             placeholder="Income"
             value={newTransaction.income || ''}
-            onChange={(e) => setNewTransaction({...newTransaction, income: e.target.value})}
-            className="px-3 py-2 border rounded-lg dark:bg-gray-700"
+            onChange={(e) => setNewTransaction({...newTransaction, income: e.target.value, expense: 0})}
+            className="px-3 py-2 border rounded-lg dark:bg-gray-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            disabled={newTransaction.category && budgetCategories.find(cat => cat.name === newTransaction.category)?.type !== 'Income'}
           />
           <input
             type="number"
             placeholder="Expense"
             value={newTransaction.expense || ''}
-            onChange={(e) => setNewTransaction({...newTransaction, expense: e.target.value})}
-            className="px-3 py-2 border rounded-lg dark:bg-gray-700"
+            onChange={(e) => setNewTransaction({...newTransaction, expense: e.target.value, income: 0})}
+            className="px-3 py-2 border rounded-lg dark:bg-gray-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            disabled={newTransaction.category && budgetCategories.find(cat => cat.name === newTransaction.category)?.type === 'Income'}
           />
-          <select
-            value={newTransaction.mode}
-            onChange={(e) => setNewTransaction({...newTransaction, mode: e.target.value})}
-            className="px-3 py-2 border rounded-lg dark:bg-gray-700"
-          >
-            <option value="Cash">Cash</option>
-            <option value="Card">Card</option>
-            <option value="UPI">UPI</option>
-            <option value="Bank">Bank</option>
-          </select>
+          <div className="relative">
+            <select
+              value={newTransaction.mode}
+              onChange={(e) => {
+                if (e.target.value === 'ADD_NEW') {
+                  setShowModeInput(true)
+                } else {
+                  setNewTransaction({...newTransaction, mode: e.target.value})
+                }
+              }}
+              onDoubleClick={() => {
+                if (newTransaction.mode && modes.length > 1) {
+                  if (confirm(`Delete mode "${newTransaction.mode}"?`)) {
+                    setModes(modes.filter(m => m !== newTransaction.mode))
+                    setNewTransaction({...newTransaction, mode: modes.find(m => m !== newTransaction.mode) || 'Cash'})
+                  }
+                }
+              }}
+              className="px-3 py-2 border rounded-lg dark:bg-gray-700 w-full"
+            >
+              {modes.map(mode => (
+                <option key={mode} value={mode}>{mode}</option>
+              ))}
+              <option value="ADD_NEW">+ Add New Mode</option>
+            </select>
+            {showModeInput && (
+              <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-white dark:bg-gray-800 border rounded-lg shadow-lg z-10">
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    placeholder="New mode"
+                    value={newMode}
+                    onChange={(e) => setNewMode(e.target.value)}
+                    className="flex-1 px-2 py-1 border rounded text-sm dark:bg-gray-700"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newMode.trim()) {
+                        setModes([...modes, newMode.trim()])
+                        setNewTransaction({...newTransaction, mode: newMode.trim()})
+                        setNewMode('')
+                        setShowModeInput(false)
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (newMode.trim()) {
+                        setModes([...modes, newMode.trim()])
+                        setNewTransaction({...newTransaction, mode: newMode.trim()})
+                        setNewMode('')
+                        setShowModeInput(false)
+                      }
+                    }}
+                    className="px-2 py-1 bg-green-500 text-white rounded text-sm"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowModeInput(false)
+                      setNewMode('')
+                    }}
+                    className="px-2 py-1 bg-gray-500 text-white rounded text-sm"
+                  >
+                    <Minus className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           <button
             onClick={addTransaction}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-1"
@@ -123,6 +270,7 @@ export default function Transactions({ transactions = [], budgetCategories = [],
 
       {/* Transactions Table */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border overflow-hidden">
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700">
@@ -138,7 +286,10 @@ export default function Transactions({ transactions = [], budgetCategories = [],
               </tr>
             </thead>
             <tbody>
-              {transactions.map((t, index) => (
+              {transactions.filter(t => {
+                const transactionDate = new Date(t.date)
+                return transactionDate.getFullYear() === year && transactionDate.getMonth() === viewMonth
+              }).map((t, index) => (
                 <tr key={t.id || index} className="border-t hover:bg-gray-50 dark:hover:bg-gray-750">
                   <td className="px-4 py-3">{t.stNo || index + 1}</td>
                   <td className="px-4 py-3">{new Date(t.date).toLocaleDateString()}</td>
@@ -165,7 +316,10 @@ export default function Transactions({ transactions = [], budgetCategories = [],
                   </td>
                 </tr>
               ))}
-              {transactions.length === 0 && (
+              {transactions.filter(t => {
+                const transactionDate = new Date(t.date)
+                return transactionDate.getFullYear() === year && transactionDate.getMonth() === viewMonth
+              }).length === 0 && (
                 <tr>
                   <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
                     No transactions yet. Add your first transaction above.
