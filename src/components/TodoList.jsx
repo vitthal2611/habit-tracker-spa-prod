@@ -160,13 +160,7 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
     let totalMinutes = 0
     todos.forEach(todo => {
       if (todo.timeEstimate) {
-        const time = todo.timeEstimate.toLowerCase()
-        if (time.includes('h')) {
-          const hours = parseFloat(time)
-          totalMinutes += hours * 60
-        } else if (time.includes('m')) {
-          totalMinutes += parseFloat(time)
-        }
+        totalMinutes += parseFloat(todo.timeEstimate) || 0
       }
     })
     const hours = Math.floor(totalMinutes / 60)
@@ -235,10 +229,11 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
                 className="flex-1 sm:flex-none px-3 py-2.5 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
               />
               <input
-                type="text"
+                type="number"
                 value={timeEstimate}
                 onChange={(e) => setTimeEstimate(e.target.value)}
-                placeholder="30m"
+                placeholder="30"
+                min="1"
                 className="w-16 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
               />
               <button
@@ -604,10 +599,11 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
                   className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                 />
                 <input
-                  type="text"
+                  type="number"
                   value={timeEstimate}
                   onChange={(e) => setTimeEstimate(e.target.value)}
-                  placeholder="30m"
+                  placeholder="30"
+                  min="1"
                   className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                 />
               </div>
@@ -646,12 +642,7 @@ function KanbanColumn({ title, count, color, groups, onUpdate, onToggle, onDelet
     let totalMinutes = 0
     Object.values(groups).flat().forEach(todo => {
       if (todo.timeEstimate) {
-        const time = todo.timeEstimate.toLowerCase()
-        if (time.includes('h')) {
-          totalMinutes += parseFloat(time) * 60
-        } else if (time.includes('m')) {
-          totalMinutes += parseFloat(time)
-        }
+        totalMinutes += parseFloat(todo.timeEstimate) || 0
       }
     })
     const hours = Math.floor(totalMinutes / 60)
@@ -815,10 +806,11 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
             className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
           />
           <input
-            type="text"
+            type="number"
             value={editTimeEstimate}
             onChange={(e) => setEditTimeEstimate(e.target.value)}
-            placeholder="30m"
+            placeholder="30"
+            min="1"
             className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
           />
           <select
@@ -983,7 +975,7 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
             )}
             {todo.timeEstimate && (
               <span className="text-xs font-medium px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400">
-                ⏱️ {todo.timeEstimate}
+                ⏱️ {todo.timeEstimate}m
               </span>
             )}
             {todo.isRecurring && (
