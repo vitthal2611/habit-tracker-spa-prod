@@ -166,13 +166,20 @@ export default function YearlyBudget({ budgetData, transactions = [], onSave, db
     }
   }
 
-  const getTotalMonthlyBudget = () => {
+  const getTotalMonthlyBudget = (month = currentMonth) => {
     return categories.reduce((sum, cat) => {
-      if (cat.monthlyBudgets && cat.monthlyBudgets[currentMonth] !== undefined) {
-        return sum + cat.monthlyBudgets[currentMonth]
+      if (cat.type !== 'Expense') return sum
+      if (cat.monthlyBudgets && cat.monthlyBudgets[month] !== undefined) {
+        return sum + cat.monthlyBudgets[month]
       }
       return sum + (cat.monthlyBudget || 0)
     }, 0)
+  }
+
+  const getMonthlyAllocation = (month) => {
+    const income = monthlyIncome[month]
+    const allocated = getTotalMonthlyBudget(month)
+    return { income, allocated, unallocated: income - allocated }
   }
 
   const getCurrentMonthSpent = () => {
@@ -315,6 +322,48 @@ export default function YearlyBudget({ budgetData, transactions = [], onSave, db
                 </div>
               ))}
             </div>}
+          </div>
+
+          {/* Budget Allocation Status */}
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3">Budget Allocation - {months[currentMonth]}</h3>
+            <div className="grid grid-cols-3 gap-4 mb-3">
+              <div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Monthly Income</div>
+                <div className="text-2xl font-bold text-green-600">₹{monthlyIncome[currentMonth].toLocaleString('en-IN')}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Allocated (Expenses)</div>
+                <div className="text-2xl font-bold text-blue-600">₹{getTotalMonthlyBudget(currentMonth).toLocaleString('en-IN')}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Unallocated</div>
+                <div className={`text-2xl font-bold ${getMonthlyAllocation(currentMonth).unallocated === 0 ? 'text-green-600' : getMonthlyAllocation(currentMonth).unallocated > 0 ? 'text-orange-600' : 'text-red-600'}`}>
+                  ₹{Math.abs(getMonthlyAllocation(currentMonth).unallocated).toLocaleString('en-IN')}
+                </div>
+              </div>
+            </div>
+            {getMonthlyAllocation(currentMonth).unallocated !== 0 && (
+              <div className={`p-3 rounded-lg ${getMonthlyAllocation(currentMonth).unallocated > 0 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200' : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200'}`}>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{getMonthlyAllocation(currentMonth).unallocated > 0 ? '⚠️' : '❌'}</span>
+                  <span className="text-sm font-semibold">
+                    {getMonthlyAllocation(currentMonth).unallocated > 0 
+                      ? `You have ₹${getMonthlyAllocation(currentMonth).unallocated.toLocaleString('en-IN')} unallocated. Allocate to expense categories.`
+                      : `Over-allocated by ₹${Math.abs(getMonthlyAllocation(currentMonth).unallocated).toLocaleString('en-IN')}. Reduce expense budgets.`
+                    }
+                  </span>
+                </div>
+              </div>
+            )}
+            {getMonthlyAllocation(currentMonth).unallocated === 0 && (
+              <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">✅</span>
+                  <span className="text-sm font-semibold">Perfectly balanced! All income allocated.</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Monthly Income - Auto-calculated from transactions */}

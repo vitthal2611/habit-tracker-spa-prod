@@ -24,6 +24,7 @@ export default function Transactions({ transactions = [], budgetCategories = [],
   const [filterCategory, setFilterCategory] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [viewAllTransactions, setViewAllTransactions] = useState(false)
+  const [overspendModal, setOverspendModal] = useState({ show: false, category: '', amount: 0, remaining: 0, shortfall: 0 })
 
   const downloadTemplate = () => {
     const template = 'Date,Particular,Category,Income,Expense,Mode\n2024-01-15,Salary,Salary,50000,0,Bank\n2024-01-16,Groceries,Food,0,2500,Cash'
@@ -183,6 +184,41 @@ export default function Transactions({ transactions = [], budgetCategories = [],
     if (newTransaction.income > 0 && newTransaction.expense > 0) {
       alert('Please enter either income OR expense, not both')
       return
+    }
+    
+    // Check budget limit for expenses
+    if (newTransaction.expense > 0) {
+      const category = budgetCategories.find(c => c.name === newTransaction.category)
+      if (category) {
+        const transactionDate = new Date(newTransaction.date)
+        const transactionMonth = transactionDate.getMonth()
+        const transactionYear = transactionDate.getFullYear()
+        
+        // Calculate spent in this category for this month
+        const spent = transactions
+          .filter(t => {
+            const tDate = new Date(t.date)
+            return t.category === newTransaction.category &&
+                   tDate.getMonth() === transactionMonth &&
+                   tDate.getFullYear() === transactionYear &&
+                   t.expense > 0
+          })
+          .reduce((sum, t) => sum + (t.expense || 0), 0)
+        
+        const budget = category.monthlyBudgets?.[transactionMonth] || category.monthlyBudget || 0
+        const remaining = budget - spent
+        
+        if (newTransaction.expense > remaining) {
+          setOverspendModal({
+            show: true,
+            category: newTransaction.category,
+            amount: newTransaction.expense,
+            remaining: remaining,
+            shortfall: newTransaction.expense - remaining
+          })
+          return // Block transaction
+        }
+      }
     }
     
     onAdd({
@@ -359,22 +395,42 @@ export default function Transactions({ transactions = [], budgetCategories = [],
             onChange={(e) => setNewTransaction({...newTransaction, particular: e.target.value})}
             className="px-3 py-2 border rounded-lg dark:bg-gray-700"
           />
-          <select
-            value={newTransaction.category}
-            onChange={(e) => {
-              const selectedCategory = budgetCategories.find(cat => cat.name === e.target.value)
-              const isIncomeCategory = selectedCategory?.type === 'Income'
-              setNewTransaction({
-                ...newTransaction, 
-                category: e.target.value,
-                income: isIncomeCategory ? newTransaction.income : 0,
-                expense: isIncomeCategory ? 0 : newTransaction.expense
-              })
-            }}
-            className="px-3 py-2 border rounded-lg dark:bg-gray-700"
-          >
-            <option value="">Select Category</option>
-            {[...budgetCategories].sort((a, b) => a.name.localeCompare(b.name)).map((cat, index) => {
+          <div className="relative">
+            <select
+              value={newTransaction.category}
+              onChange={(e) => {
+                const selectedCategory = budgetCategories.find(cat => cat.name === e.target.value)
+                const isIncomeCategory = selectedCategory?.type === 'Income'
+                setNewTransaction({
+                  ...newTransaction, 
+                  category: e.target.value,
+                  income: isIncomeCategory ? newTransaction.income : 0,
+                  expense: isIncomeCategory ? 0 : newTransaction.expense
+                })
+              }}
+              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700"
+            >
+              <option value="">Select Category</option>
+              {[...budgetCategories].sort((a, b) => a.name.localeCompare(b.name)).map((cat, index) => {
+                const budget = (cat.monthlyBudgets && cat.monthlyBudgets[viewMonth] !== undefined) ? cat.monthlyBudgets[viewMonth] : (cat.monthlyBudget || 0)
+                const spent = transactions.filter(t => {
+                  const transactionDate = new Date(t.date)
+                  return transactionDate.getFullYear() === year && 
+                         transactionDate.getMonth() === viewMonth &&
+                         t.category === cat.name &&
+                         t.expense > 0
+                }).reduce((sum, t) => sum + (t.expense || 0), 0)
+                const remaining = budget - spent
+                return (
+                  <option key={index} value={cat.name} style={{color: remaining < 0 ? 'red' : 'inherit'}}>
+                    {cat.name} (₹{remaining.toLocaleString('en-IN')} left)
+                  </option>
+                )
+              })}
+            </select>
+            {newTransaction.category && newTransaction.expense > 0 && (() => {
+              const cat = budgetCategories.find(c => c.name === newTransaction.category)
+              if (!cat) return null
               const budget = (cat.monthlyBudgets && cat.monthlyBudgets[viewMonth] !== undefined) ? cat.monthlyBudgets[viewMonth] : (cat.monthlyBudget || 0)
               const spent = transactions.filter(t => {
                 const transactionDate = new Date(t.date)
@@ -384,13 +440,21 @@ export default function Transactions({ transactions = [], budgetCategories = [],
                        t.expense > 0
               }).reduce((sum, t) => sum + (t.expense || 0), 0)
               const remaining = budget - spent
+              const afterTransaction = remaining - newTransaction.expense
               return (
-                <option key={index} value={cat.name} style={{color: remaining < 0 ? 'red' : 'inherit'}}>
-                  {cat.name} (₹{remaining.toLocaleString('en-IN')} left)
-                </option>
+                <div className={`absolute top-full left-0 right-0 mt-1 p-2 rounded-lg text-xs ${
+                  afterTransaction < 0 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 
+                  afterTransaction < budget * 0.2 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300' :
+                  'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                }`}>
+                  <div className="font-semibold">Budget: ₹{budget.toLocaleString('en-IN')} | Spent: ₹{spent.toLocaleString('en-IN')} | Remaining: ₹{remaining.toLocaleString('en-IN')}</div>
+                  <div className="font-bold mt-1">
+                    {afterTransaction >= 0 ? `After this: ₹${afterTransaction.toLocaleString('en-IN')} left` : `⚠️ Exceeds by ₹${Math.abs(afterTransaction).toLocaleString('en-IN')}`}
+                  </div>
+                </div>
               )
-            })}
-          </select>
+            })()}
+          </div>
           <input
             type="number"
             placeholder="Income"
@@ -811,6 +875,53 @@ export default function Transactions({ transactions = [], budgetCategories = [],
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overspend Modal */}
+      {overspendModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-bold text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
+              <span className="text-2xl">⚠️</span> Budget Exceeded
+            </h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              Cannot add ₹{overspendModal.amount.toLocaleString('en-IN')} to <span className="font-semibold">{overspendModal.category}</span>
+            </p>
+            <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg mb-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Budget Remaining:</span>
+                <span className="font-semibold text-green-600">₹{overspendModal.remaining.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Shortfall:</span>
+                <span className="font-semibold text-red-600">₹{overspendModal.shortfall.toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <button 
+                onClick={() => {
+                  setNewTransaction({...newTransaction, expense: overspendModal.remaining})
+                  setOverspendModal({show: false, category: '', amount: 0, remaining: 0, shortfall: 0})
+                }}
+                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+              >
+                Reduce to ₹{overspendModal.remaining.toLocaleString('en-IN')}
+              </button>
+              
+              <button 
+                onClick={() => setOverspendModal({show: false, category: '', amount: 0, remaining: 0, shortfall: 0})}
+                className="w-full px-4 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Cancel Transaction
+              </button>
+            </div>
+            
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
+              💡 Tip: Go to Budget tab to adjust category allocations
+            </p>
           </div>
         </div>
       )}
