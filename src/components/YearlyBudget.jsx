@@ -14,28 +14,69 @@ export default function YearlyBudget({ budgetData, transactions = [], onSave, db
   const [viewYear, setViewYear] = useState(currentYear)
   const [showSetup, setShowSetup] = useState(false)
   const [showIncome, setShowIncome] = useState(false)
+  const [monthRanges, setMonthRanges] = useState(Array(12).fill(null).map((_, i) => ({ 
+    startDate: `${year}-${String(i + 1).padStart(2, '0')}-01`, 
+    endDate: `${year}-${String(i + 1).padStart(2, '0')}-${new Date(year, i + 1, 0).getDate()}` 
+  })))
+  const [showDateRanges, setShowDateRanges] = useState(false)
 
 
   useEffect(() => {
     // Find budget data for selected year
     const yearBudget = dbYearlyBudgets?.find(b => b.year === year)
+    const ranges = yearBudget?.monthRanges || Array(12).fill(null).map((_, i) => ({ 
+      startDate: `${year}-${String(i + 1).padStart(2, '0')}-01`, 
+      endDate: `${year}-${String(i + 1).padStart(2, '0')}-${new Date(year, i + 1, 0).getDate()}` 
+    }))
+    
     if (yearBudget) {
       setCategories(yearBudget.categories || [])
+      setMonthRanges(ranges)
     } else {
       setCategories([])
+      setMonthRanges(ranges)
     }
     
-    // Calculate monthly income from transactions for selected year
+    // Calculate monthly income from transactions based on date ranges
     const calculatedIncome = Array(12).fill(0)
     transactions.forEach(transaction => {
       const transactionDate = new Date(transaction.date)
       if (transactionDate.getFullYear() === year && transaction.income > 0) {
-        const month = transactionDate.getMonth()
+        const dateStr = transactionDate.toISOString().split('T')[0]
+        let month = transactionDate.getMonth()
+        
+        // Find matching month range
+        for (let i = 0; i < 12; i++) {
+          const range = ranges[i]
+          if (range?.startDate && range?.endDate && dateStr >= range.startDate && dateStr <= range.endDate) {
+            month = i
+            break
+          }
+        }
+        
         calculatedIncome[month] += transaction.income
       }
     })
     setMonthlyIncome(calculatedIncome)
   }, [dbYearlyBudgets, transactions, year])
+
+  const getMonthFromDateRange = (date) => {
+    const dateStr = date.toISOString().split('T')[0]
+    
+    for (let i = 0; i < 12; i++) {
+      const range = monthRanges[i]
+      if (!range || !range.startDate || !range.endDate) continue
+      
+      if (dateStr >= range.startDate && dateStr <= range.endDate) return i
+    }
+    return date.getMonth()
+  }
+
+  const updateMonthRange = (monthIndex, field, value) => {
+    const updated = [...monthRanges]
+    updated[monthIndex][field] = value
+    setMonthRanges(updated)
+  }
 
   const addCategory = () => {
     setCategories([...categories, { name: '', monthlyBudgets: Array(12).fill(0), type: 'Expense', priority: categories.length + 1 }])
@@ -92,10 +133,10 @@ export default function YearlyBudget({ budgetData, transactions = [], onSave, db
   const getMonthlySpent = (categoryName, month, selectedYear = year) => {
     const monthTransactions = transactions.filter(t => {
       const transactionDate = new Date(t.date)
-      return transactionDate.getFullYear() === selectedYear && 
-             transactionDate.getMonth() === month &&
-             t.category === categoryName &&
-             t.expense > 0
+      if (transactionDate.getFullYear() !== selectedYear || t.category !== categoryName || t.expense <= 0) return false
+      
+      const budgetMonth = getMonthFromDateRange(transactionDate)
+      return budgetMonth === month
     })
     return monthTransactions.reduce((sum, t) => sum + (t.expense || 0), 0)
   }
@@ -106,16 +147,20 @@ export default function YearlyBudget({ budgetData, transactions = [], onSave, db
     if (saving) return
     setSaving(true)
     try {
-      // Find existing budget for this year or create new one
       const existingBudget = dbYearlyBudgets?.find(b => b.year === year)
       const budgetData = {
         year,
         categories,
+        monthRanges,
         updatedAt: new Date().toISOString(),
         ...(existingBudget && { id: existingBudget.id })
       }
       
+      console.log('💾 Saving budget:', budgetData)
       await onSave(budgetData)
+      console.log('✅ Budget saved successfully')
+    } catch (error) {
+      console.error('❌ Budget save error:', error)
     } finally {
       setSaving(false)
     }
@@ -168,6 +213,50 @@ export default function YearlyBudget({ budgetData, transactions = [], onSave, db
         </div>
       </div>
 
+      {/* Monthly Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 text-white shadow-lg">
+          <div className="text-sm opacity-90 mb-1">Monthly Income</div>
+          <div className="text-2xl font-bold">₹{categories.filter(c => c.type === 'Income').reduce((sum, c) => {
+            if (c.monthlyBudgets && c.monthlyBudgets[currentMonth] !== undefined) {
+              return sum + c.monthlyBudgets[currentMonth]
+            }
+            return sum + (c.monthlyBudget || 0)
+          }, 0).toLocaleString('en-IN')}</div>
+          <div className="text-xs opacity-75 mt-1">Budget for {months[currentMonth]}</div>
+        </div>
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-5 text-white shadow-lg">
+          <div className="text-sm opacity-90 mb-1">Monthly Expense</div>
+          <div className="text-2xl font-bold">₹{categories.filter(c => c.type === 'Expense').reduce((sum, c) => {
+            if (c.monthlyBudgets && c.monthlyBudgets[currentMonth] !== undefined) {
+              return sum + c.monthlyBudgets[currentMonth]
+            }
+            return sum + (c.monthlyBudget || 0)
+          }, 0).toLocaleString('en-IN')}</div>
+          <div className="text-xs opacity-75 mt-1">Budget for {months[currentMonth]}</div>
+        </div>
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white shadow-lg">
+          <div className="text-sm opacity-90 mb-1">Monthly Asset</div>
+          <div className="text-2xl font-bold">₹{categories.filter(c => c.type === 'Asset').reduce((sum, c) => {
+            if (c.monthlyBudgets && c.monthlyBudgets[currentMonth] !== undefined) {
+              return sum + c.monthlyBudgets[currentMonth]
+            }
+            return sum + (c.monthlyBudget || 0)
+          }, 0).toLocaleString('en-IN')}</div>
+          <div className="text-xs opacity-75 mt-1">Budget for {months[currentMonth]}</div>
+        </div>
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-5 text-white shadow-lg">
+          <div className="text-sm opacity-90 mb-1">Monthly Liability</div>
+          <div className="text-2xl font-bold">₹{categories.filter(c => c.type === 'Liability').reduce((sum, c) => {
+            if (c.monthlyBudgets && c.monthlyBudgets[currentMonth] !== undefined) {
+              return sum + c.monthlyBudgets[currentMonth]
+            }
+            return sum + (c.monthlyBudget || 0)
+          }, 0).toLocaleString('en-IN')}</div>
+          <div className="text-xs opacity-75 mt-1">Budget for {months[currentMonth]}</div>
+        </div>
+      </div>
+
 
 
       {/* Income & Budget Setup */}
@@ -186,6 +275,48 @@ export default function YearlyBudget({ budgetData, transactions = [], onSave, db
           </div>
         </div>
         {showSetup && <div className="p-6 space-y-6">
+          {/* Budget Period Date Ranges */}
+          <div>
+            <div className="flex justify-between items-center mb-4 cursor-pointer" onClick={() => setShowDateRanges(!showDateRanges)}>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Budget Period Date Ranges</h3>
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-500" />
+                <div className={`transform transition-transform ${showDateRanges ? 'rotate-180' : ''}`}>
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            {showDateRanges && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              {months.map((month, index) => (
+                <div key={month} className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-300 dark:border-gray-600">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{month} Budget Period</label>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Start Date</label>
+                      <input
+                        type="date"
+                        value={monthRanges[index]?.startDate || ''}
+                        onChange={(e) => updateMonthRange(index, 'startDate', e.target.value)}
+                        className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">End Date</label>
+                      <input
+                        type="date"
+                        value={monthRanges[index]?.endDate || ''}
+                        onChange={(e) => updateMonthRange(index, 'endDate', e.target.value)}
+                        className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>}
+          </div>
+
           {/* Monthly Income - Auto-calculated from transactions */}
           <div>
             <div className="flex justify-between items-center mb-4 cursor-pointer" onClick={() => setShowIncome(!showIncome)}>
@@ -199,16 +330,21 @@ export default function YearlyBudget({ budgetData, transactions = [], onSave, db
                 </div>
               </div>
             </div>
-            {showIncome && <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-              {months.map((month, index) => (
-                <div key={month}>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{month}</label>
-                  <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-                    ₹{monthlyIncome[index].toLocaleString('en-IN')}
+            {showIncome && <>
+              <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-700 dark:text-blue-300">
+                📊 Total transactions: {transactions.length} | Income transactions: {transactions.filter(t => t.income > 0).length}
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                {months.map((month, index) => (
+                  <div key={month}>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{month}</label>
+                    <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                      ₹{monthlyIncome[index].toLocaleString('en-IN')}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>}
+                ))}
+              </div>
+            </>}
           </div>
 
           {/* Budget Categories */}
