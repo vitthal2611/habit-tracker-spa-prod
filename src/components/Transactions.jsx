@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Plus, Minus, Upload, Download, Search, Filter } from 'lucide-react'
+import { Plus, Minus, Upload, Download, Search, Filter, X, Settings } from 'lucide-react'
 
-export default function Transactions({ transactions = [], budgetCategories = [], onAdd, onDelete, year = new Date().getFullYear(), modes = ['Cash', 'Card', 'UPI', 'Bank'], onUpdateModes }) {
+export default function Transactions({ transactions = [], budgetCategories = [], onAdd, onUpdate, onDelete, year = new Date().getFullYear(), modes = ['Cash', 'Card', 'UPI', 'Bank'], onUpdateModes, initialBalances = {}, onUpdateBalances }) {
   const [viewMonth, setViewMonth] = useState(new Date().getMonth())
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   const [newTransaction, setNewTransaction] = useState({
@@ -10,21 +10,31 @@ export default function Transactions({ transactions = [], budgetCategories = [],
     category: '',
     income: 0,
     expense: 0,
-    mode: 'Cash'
+    mode: 'Cash',
+    isTransfer: false,
+    fromAccount: '',
+    toAccount: ''
   })
   const [newMode, setNewMode] = useState('')
   const [showModeInput, setShowModeInput] = useState(false)
   const [showBulkUpload, setShowBulkUpload] = useState(false)
   const [bulkData, setBulkData] = useState('')
-  const [sortBy, setSortBy] = useState('date')
+  const [sortBy, setSortBy] = useState('stNo')
   const [sortOrder, setSortOrder] = useState('desc')
   const [groupByCategory, setGroupByCategory] = useState(true)
   const [editingField, setEditingField] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
+  const [filterMode, setFilterMode] = useState('')
   const [showFilters, setShowFilters] = useState(false)
-  const [viewAllTransactions, setViewAllTransactions] = useState(false)
+  const [viewAllTransactions, setViewAllTransactions] = useState(true)
   const [overspendModal, setOverspendModal] = useState({ show: false, category: '', amount: 0, remaining: 0, shortfall: 0 })
+  const [showAddTransaction, setShowAddTransaction] = useState(false)
+  const [editingTransaction, setEditingTransaction] = useState(null)
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null })
+  const [showModeSettings, setShowModeSettings] = useState(false)
+  const [newModeInput, setNewModeInput] = useState('')
+  const [modeBalances, setModeBalances] = useState({})
 
   const downloadTemplate = () => {
     const template = 'Date,Particular,Category,Income,Expense,Mode\n2024-01-15,Salary,Salary,50000,0,Bank\n2024-01-16,Groceries,Food,0,2500,Cash'
@@ -118,9 +128,12 @@ export default function Transactions({ transactions = [], budgetCategories = [],
     return txns.filter(t => {
       const matchesSearch = !searchTerm || 
         t.particular.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.category?.toLowerCase().includes(searchTerm.toLowerCase())
+        t.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (t.income && t.income.toString().includes(searchTerm)) ||
+        (t.expense && t.expense.toString().includes(searchTerm))
       const matchesCategory = !filterCategory || t.category === filterCategory
-      return matchesSearch && matchesCategory
+      const matchesMode = !filterMode || t.mode === filterMode
+      return matchesSearch && matchesCategory && matchesMode
     })
   }
 
@@ -173,6 +186,65 @@ export default function Transactions({ transactions = [], budgetCategories = [],
       alert('Please enter transaction description')
       return
     }
+    
+    if (newTransaction.isTransfer) {
+      if (!newTransaction.fromAccount || !newTransaction.toAccount) {
+        alert('Please select both accounts')
+        return
+      }
+      if (newTransaction.fromAccount === newTransaction.toAccount) {
+        alert('From and To accounts must be different')
+        return
+      }
+      if (!newTransaction.expense || newTransaction.expense <= 0) {
+        alert('Please enter transfer amount')
+        return
+      }
+      
+      const amount = parseFloat(newTransaction.expense)
+      onAdd({
+        date: newTransaction.date,
+        particular: `Transfer from ${newTransaction.fromAccount} to ${newTransaction.toAccount}`,
+        category: 'Transfer',
+        income: 0,
+        expense: amount,
+        mode: newTransaction.fromAccount,
+        id: `txn_${Date.now()}_debit`,
+        stNo: transactions.length + 1,
+        createdAt: new Date().toISOString(),
+        isTransfer: true,
+        transferType: 'debit'
+      })
+      
+      onAdd({
+        date: newTransaction.date,
+        particular: `Transfer from ${newTransaction.fromAccount} to ${newTransaction.toAccount}`,
+        category: 'Transfer',
+        income: amount,
+        expense: 0,
+        mode: newTransaction.toAccount,
+        id: `txn_${Date.now()}_credit`,
+        stNo: transactions.length + 2,
+        createdAt: new Date().toISOString(),
+        isTransfer: true,
+        transferType: 'credit'
+      })
+      
+      setNewTransaction({
+        date: new Date().toISOString().split('T')[0],
+        particular: '',
+        category: '',
+        income: 0,
+        expense: 0,
+        mode: 'Cash',
+        isTransfer: false,
+        fromAccount: '',
+        toAccount: ''
+      })
+      setShowAddTransaction(false)
+      return
+    }
+    
     if (!newTransaction.category) {
       alert('Please select a category')
       return
@@ -221,22 +293,39 @@ export default function Transactions({ transactions = [], budgetCategories = [],
       }
     }
     
-    onAdd({
-      ...newTransaction,
-      id: `txn_${Date.now()}`,
-      stNo: transactions.length + 1,
-      income: parseFloat(newTransaction.income) || 0,
-      expense: parseFloat(newTransaction.expense) || 0,
-      createdAt: new Date().toISOString()
-    })
+    if (editingTransaction) {
+      onUpdate({
+        ...newTransaction,
+        id: editingTransaction.id,
+        stNo: editingTransaction.stNo,
+        income: parseFloat(newTransaction.income) || 0,
+        expense: parseFloat(newTransaction.expense) || 0,
+        createdAt: editingTransaction.createdAt,
+        updatedAt: new Date().toISOString()
+      })
+    } else {
+      onAdd({
+        ...newTransaction,
+        id: `txn_${Date.now()}`,
+        stNo: transactions.length + 1,
+        income: parseFloat(newTransaction.income) || 0,
+        expense: parseFloat(newTransaction.expense) || 0,
+        createdAt: new Date().toISOString()
+      })
+    }
     setNewTransaction({
       date: new Date().toISOString().split('T')[0],
       particular: '',
       category: '',
       income: 0,
       expense: 0,
-      mode: 'Cash'
+      mode: 'Cash',
+      isTransfer: false,
+      fromAccount: '',
+      toAccount: ''
     })
+    setShowAddTransaction(false)
+    setEditingTransaction(null)
   }
 
   return (
@@ -247,6 +336,19 @@ export default function Transactions({ transactions = [], budgetCategories = [],
           <p className="text-sm text-gray-500 dark:text-gray-400">Track income and expenses</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <button 
+            onClick={() => setShowAddTransaction(true)}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />Add Transaction
+          </button>
+          <button 
+            onClick={() => setShowModeSettings(true)}
+            className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            title="Configure Payment Modes"
+          >
+            <Settings className="w-4 h-4" />Modes
+          </button>
           <button 
             onClick={() => setShowFilters(!showFilters)}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
@@ -275,14 +377,24 @@ export default function Transactions({ transactions = [], budgetCategories = [],
           </button>
           <div className="flex items-center gap-1">
             <button 
-              onClick={() => setViewAllTransactions(!viewAllTransactions)}
+              onClick={() => setViewAllTransactions(true)}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 viewAllTransactions 
                   ? 'bg-purple-600 text-white hover:bg-purple-700' 
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
-              {viewAllTransactions ? 'Current Month' : 'All Transactions'}
+              All
+            </button>
+            <button 
+              onClick={() => setViewAllTransactions(false)}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                !viewAllTransactions 
+                  ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              Month
             </button>
             {!viewAllTransactions && (
               <>
@@ -311,7 +423,7 @@ export default function Transactions({ transactions = [], budgetCategories = [],
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by particular or category..."
+                placeholder="Search by particular, category, or amount..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700"
@@ -327,9 +439,43 @@ export default function Transactions({ transactions = [], budgetCategories = [],
                 <option key={idx} value={cat.name}>{cat.name}</option>
               ))}
             </select>
+            <select
+              value={filterMode}
+              onChange={(e) => setFilterMode(e.target.value)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700"
+            >
+              <option value="">All Modes</option>
+              {modes.map(mode => (
+                <option key={mode} value={mode}>{mode}</option>
+              ))}
+            </select>
           </div>
         </div>
       )}
+
+      {/* Mode Balances */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+        {modes.map(mode => {
+          const modeTransactions = transactions.filter(t => t.mode === mode)
+          const income = modeTransactions.reduce((sum, t) => sum + (t.income || 0), 0)
+          const expense = modeTransactions.reduce((sum, t) => sum + (t.expense || 0), 0)
+          const balance = (initialBalances[mode] || 0) + income - expense
+          
+          return (
+            <button
+              key={mode}
+              onClick={() => {
+                setFilterMode(filterMode === mode ? '' : mode)
+                setShowFilters(true)
+              }}
+              className={`rounded-xl p-4 text-white text-left transition-all ${balance >= 0 ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-red-500 to-red-600'} ${filterMode === mode ? 'ring-4 ring-white dark:ring-gray-900' : 'hover:opacity-90'}`}
+            >
+              <div className="text-sm opacity-90">{mode}</div>
+              <div className="text-2xl font-bold">₹{balance.toFixed(2)}</div>
+            </button>
+          )
+        })}
+      </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -368,188 +514,304 @@ export default function Transactions({ transactions = [], budgetCategories = [],
         </div>
       </div>
 
-      {/* Add Transaction */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Add Transaction</h3>
-          <div className="flex gap-2">
-            <button onClick={downloadTemplate} className="px-3 py-1 bg-green-600 text-white rounded text-sm flex items-center gap-1">
-              <Download className="w-3 h-3" />Template
-            </button>
-            <button onClick={() => setShowBulkUpload(true)} className="px-3 py-1 bg-blue-600 text-white rounded text-sm flex items-center gap-1">
-              <Upload className="w-3 h-3" />Bulk Upload
-            </button>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-7 gap-3">
-          <input
-            type="date"
-            value={newTransaction.date}
-            onChange={(e) => setNewTransaction({...newTransaction, date: e.target.value})}
-            className="px-3 py-2 border rounded-lg dark:bg-gray-700"
-          />
-          <input
-            type="text"
-            placeholder="Particular"
-            value={newTransaction.particular}
-            onChange={(e) => setNewTransaction({...newTransaction, particular: e.target.value})}
-            className="px-3 py-2 border rounded-lg dark:bg-gray-700"
-          />
-          <div className="relative">
-            <select
-              value={newTransaction.category}
-              onChange={(e) => {
-                const selectedCategory = budgetCategories.find(cat => cat.name === e.target.value)
-                const isIncomeCategory = selectedCategory?.type === 'Income'
-                setNewTransaction({
-                  ...newTransaction, 
-                  category: e.target.value,
-                  income: isIncomeCategory ? newTransaction.income : 0,
-                  expense: isIncomeCategory ? 0 : newTransaction.expense
-                })
-              }}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700"
-            >
-              <option value="">Select Category</option>
-              {[...budgetCategories].sort((a, b) => a.name.localeCompare(b.name)).map((cat, index) => {
-                const budget = (cat.monthlyBudgets && cat.monthlyBudgets[viewMonth] !== undefined) ? cat.monthlyBudgets[viewMonth] : (cat.monthlyBudget || 0)
-                const spent = transactions.filter(t => {
-                  const transactionDate = new Date(t.date)
-                  return transactionDate.getFullYear() === year && 
-                         transactionDate.getMonth() === viewMonth &&
-                         t.category === cat.name &&
-                         t.expense > 0
-                }).reduce((sum, t) => sum + (t.expense || 0), 0)
-                const remaining = budget - spent
-                return (
-                  <option key={index} value={cat.name} style={{color: remaining < 0 ? 'red' : 'inherit'}}>
-                    {cat.name} (₹{remaining.toLocaleString('en-IN')} left)
-                  </option>
-                )
-              })}
-            </select>
-            {newTransaction.category && newTransaction.expense > 0 && (() => {
-              const cat = budgetCategories.find(c => c.name === newTransaction.category)
-              if (!cat) return null
-              const budget = (cat.monthlyBudgets && cat.monthlyBudgets[viewMonth] !== undefined) ? cat.monthlyBudgets[viewMonth] : (cat.monthlyBudget || 0)
-              const spent = transactions.filter(t => {
-                const transactionDate = new Date(t.date)
-                return transactionDate.getFullYear() === year && 
-                       transactionDate.getMonth() === viewMonth &&
-                       t.category === cat.name &&
-                       t.expense > 0
-              }).reduce((sum, t) => sum + (t.expense || 0), 0)
-              const remaining = budget - spent
-              const afterTransaction = remaining - newTransaction.expense
-              return (
-                <div className={`absolute top-full left-0 right-0 mt-1 p-2 rounded-lg text-xs ${
-                  afterTransaction < 0 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 
-                  afterTransaction < budget * 0.2 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300' :
-                  'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                }`}>
-                  <div className="font-semibold">Budget: ₹{budget.toLocaleString('en-IN')} | Spent: ₹{spent.toLocaleString('en-IN')} | Remaining: ₹{remaining.toLocaleString('en-IN')}</div>
-                  <div className="font-bold mt-1">
-                    {afterTransaction >= 0 ? `After this: ₹${afterTransaction.toLocaleString('en-IN')} left` : `⚠️ Exceeds by ₹${Math.abs(afterTransaction).toLocaleString('en-IN')}`}
+      {/* Add/Edit Transaction Modal */}
+      {showAddTransaction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{editingTransaction ? 'Edit Transaction' : 'Add Transaction'}</h3>
+              <div className="flex gap-2">
+                <button onClick={downloadTemplate} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm flex items-center gap-1">
+                  <Download className="w-3 h-3" />Template
+                </button>
+                <button onClick={() => setShowBulkUpload(true)} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center gap-1">
+                  <Upload className="w-3 h-3" />Bulk
+                </button>
+                <button onClick={() => { setShowAddTransaction(false); setEditingTransaction(null); }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <form onSubmit={(e) => { e.preventDefault(); addTransaction(); }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date</label>
+                  <input
+                    type="date"
+                    value={newTransaction.date}
+                    onChange={(e) => setNewTransaction({...newTransaction, date: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+                  <div className="relative">
+                    <select
+                      value={newTransaction.category}
+                      onChange={(e) => {
+                        const selectedCategory = budgetCategories.find(cat => cat.name === e.target.value)
+                        const isIncomeCategory = selectedCategory?.type === 'Income'
+                        setNewTransaction({
+                          ...newTransaction, 
+                          category: e.target.value,
+                          income: isIncomeCategory ? newTransaction.income : 0,
+                          expense: isIncomeCategory ? 0 : newTransaction.expense
+                        })
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                      disabled={newTransaction.isTransfer}
+                    >
+                      <option value="">Select Category</option>
+                      {[...budgetCategories].sort((a, b) => a.name.localeCompare(b.name)).map((cat, index) => {
+                        const budget = (cat.monthlyBudgets && cat.monthlyBudgets[viewMonth] !== undefined) ? cat.monthlyBudgets[viewMonth] : (cat.monthlyBudget || 0)
+                        const spent = transactions.filter(t => {
+                          const transactionDate = new Date(t.date)
+                          return transactionDate.getFullYear() === year && 
+                                 transactionDate.getMonth() === viewMonth &&
+                                 t.category === cat.name &&
+                                 t.expense > 0
+                        }).reduce((sum, t) => sum + (t.expense || 0), 0)
+                        const remaining = budget - spent
+                        return (
+                          <option key={index} value={cat.name} style={{color: remaining < 0 ? 'red' : 'inherit'}}>
+                            {cat.name} (₹{remaining.toLocaleString('en-IN')} left)
+                          </option>
+                        )
+                      })}
+                    </select>
+                    {newTransaction.category && newTransaction.expense > 0 && (() => {
+                      const cat = budgetCategories.find(c => c.name === newTransaction.category)
+                      if (!cat) return null
+                      const budget = (cat.monthlyBudgets && cat.monthlyBudgets[viewMonth] !== undefined) ? cat.monthlyBudgets[viewMonth] : (cat.monthlyBudget || 0)
+                      const spent = transactions.filter(t => {
+                        const transactionDate = new Date(t.date)
+                        return transactionDate.getFullYear() === year && 
+                               transactionDate.getMonth() === viewMonth &&
+                               t.category === cat.name &&
+                               t.expense > 0
+                      }).reduce((sum, t) => sum + (t.expense || 0), 0)
+                      const remaining = budget - spent
+                      const afterTransaction = remaining - newTransaction.expense
+                      return (
+                        <div className={`mt-2 p-2 rounded-lg text-xs ${
+                          afterTransaction < 0 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 
+                          afterTransaction < budget * 0.2 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300' :
+                          'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                        }`}>
+                          <div className="font-semibold">Budget: ₹{budget.toLocaleString('en-IN')} | Spent: ₹{spent.toLocaleString('en-IN')} | Remaining: ₹{remaining.toLocaleString('en-IN')}</div>
+                          <div className="font-bold mt-1">
+                            {afterTransaction >= 0 ? `After this: ₹${afterTransaction.toLocaleString('en-IN')} left` : `⚠️ Exceeds by ₹${Math.abs(afterTransaction).toLocaleString('en-IN')}`}
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
-              )
-            })()}
-          </div>
-          <input
-            type="number"
-            placeholder="Income"
-            value={newTransaction.income || ''}
-            onChange={(e) => setNewTransaction({...newTransaction, income: e.target.value, expense: 0})}
-            className="px-3 py-2 border rounded-lg dark:bg-gray-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            disabled={newTransaction.category && budgetCategories.find(cat => cat.name === newTransaction.category)?.type !== 'Income'}
-          />
-          <input
-            type="number"
-            placeholder="Expense"
-            value={newTransaction.expense || ''}
-            onChange={(e) => setNewTransaction({...newTransaction, expense: e.target.value, income: 0})}
-            className="px-3 py-2 border rounded-lg dark:bg-gray-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            disabled={newTransaction.category && budgetCategories.find(cat => cat.name === newTransaction.category)?.type === 'Income'}
-          />
-          <div className="relative">
-            <select
-              value={newTransaction.mode}
-              onChange={(e) => {
-                if (e.target.value === 'ADD_NEW') {
-                  setShowModeInput(true)
-                } else {
-                  setNewTransaction({...newTransaction, mode: e.target.value})
-                }
-              }}
-              onDoubleClick={() => {
-                if (newTransaction.mode && modes.length > 1) {
-                  if (confirm(`Delete mode "${newTransaction.mode}"?`)) {
-                    setModes(modes.filter(m => m !== newTransaction.mode))
-                    setNewTransaction({...newTransaction, mode: modes.find(m => m !== newTransaction.mode) || 'Cash'})
-                  }
-                }
-              }}
-              className="px-3 py-2 border rounded-lg dark:bg-gray-700 w-full"
-            >
-              {modes.map(mode => (
-                <option key={mode} value={mode}>{mode}</option>
-              ))}
-              <option value="ADD_NEW">+ Add New Mode</option>
-            </select>
-            {showModeInput && (
-              <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-white dark:bg-gray-800 border rounded-lg shadow-lg z-10">
-                <div className="flex gap-1">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Particular</label>
                   <input
                     type="text"
-                    placeholder="New mode"
-                    value={newMode}
-                    onChange={(e) => setNewMode(e.target.value)}
-                    className="flex-1 px-2 py-1 border rounded text-sm dark:bg-gray-700"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newMode.trim()) {
-                        const updatedModes = [...modes, newMode.trim()]
-                        if (onUpdateModes) onUpdateModes(updatedModes)
-                        setNewTransaction({...newTransaction, mode: newMode.trim()})
-                        setNewMode('')
-                        setShowModeInput(false)
-                      }
-                    }}
+                    placeholder="Description"
+                    value={newTransaction.particular}
+                    onChange={(e) => setNewTransaction({...newTransaction, particular: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700"
                   />
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 mb-3">
+                    <input
+                      type="checkbox"
+                      checked={newTransaction.isTransfer}
+                      onChange={(e) => setNewTransaction({...newTransaction, isTransfer: e.target.checked, category: 'Transfer', income: 0, expense: 0})}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Account Transfer</span>
+                  </label>
+                </div>
+                {newTransaction.isTransfer ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">From Account</label>
+                        <select
+                          value={newTransaction.fromAccount}
+                          onChange={(e) => {
+                            if (e.target.value === 'ADD_NEW') {
+                              const newAcc = prompt('Enter new account name:')
+                              if (newAcc && newAcc.trim()) {
+                                const updatedModes = [...modes, newAcc.trim()]
+                                if (onUpdateModes) onUpdateModes(updatedModes)
+                                setNewTransaction({...newTransaction, fromAccount: newAcc.trim()})
+                              }
+                            } else {
+                              setNewTransaction({...newTransaction, fromAccount: e.target.value})
+                            }
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                        >
+                          <option value="">Select Account</option>
+                          {modes.map(mode => <option key={mode} value={mode}>{mode}</option>)}
+                          <option value="ADD_NEW">+ Add New Account</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">To Account</label>
+                        <select
+                          value={newTransaction.toAccount}
+                          onChange={(e) => {
+                            if (e.target.value === 'ADD_NEW') {
+                              const newAcc = prompt('Enter new account name:')
+                              if (newAcc && newAcc.trim()) {
+                                const updatedModes = [...modes, newAcc.trim()]
+                                if (onUpdateModes) onUpdateModes(updatedModes)
+                                setNewTransaction({...newTransaction, toAccount: newAcc.trim()})
+                              }
+                            } else {
+                              setNewTransaction({...newTransaction, toAccount: e.target.value})
+                            }
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                        >
+                          <option value="">Select Account</option>
+                          {modes.map(mode => <option key={mode} value={mode}>{mode}</option>)}
+                          <option value="ADD_NEW">+ Add New Account</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount</label>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={newTransaction.expense || ''}
+                        onChange={(e) => setNewTransaction({...newTransaction, expense: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Income</label>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={newTransaction.income || ''}
+                        onChange={(e) => setNewTransaction({...newTransaction, income: e.target.value, expense: 0})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        disabled={newTransaction.category && budgetCategories.find(cat => cat.name === newTransaction.category)?.type !== 'Income'}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Expense</label>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={newTransaction.expense || ''}
+                        onChange={(e) => setNewTransaction({...newTransaction, expense: e.target.value, income: 0})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        disabled={newTransaction.category && budgetCategories.find(cat => cat.name === newTransaction.category)?.type === 'Income'}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Payment Mode</label>
+                  <div className="relative">
+                    <select
+                      value={newTransaction.mode}
+                      onChange={(e) => {
+                        if (e.target.value === 'ADD_NEW') {
+                          setShowModeInput(true)
+                        } else {
+                          setNewTransaction({...newTransaction, mode: e.target.value})
+                        }
+                      }}
+                      onDoubleClick={() => {
+                        if (newTransaction.mode && modes.length > 1) {
+                          if (confirm(`Delete mode "${newTransaction.mode}"?`)) {
+                            const updatedModes = modes.filter(m => m !== newTransaction.mode)
+                            if (onUpdateModes) onUpdateModes(updatedModes)
+                            setNewTransaction({...newTransaction, mode: updatedModes[0] || 'Cash'})
+                          }
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                    >
+                      {modes.map(mode => (
+                        <option key={mode} value={mode}>{mode}</option>
+                      ))}
+                      <option value="ADD_NEW">+ Add New Mode</option>
+                    </select>
+                    {showModeInput && (
+                      <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-white dark:bg-gray-800 border rounded-lg shadow-lg z-10">
+                        <div className="flex gap-1">
+                          <input
+                            type="text"
+                            placeholder="New mode"
+                            value={newMode}
+                            onChange={(e) => setNewMode(e.target.value)}
+                            className="flex-1 px-2 py-1 border rounded text-sm dark:bg-gray-700"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && newMode.trim()) {
+                                const updatedModes = [...modes, newMode.trim()]
+                                if (onUpdateModes) onUpdateModes(updatedModes)
+                                setNewTransaction({...newTransaction, mode: newMode.trim()})
+                                setNewMode('')
+                                setShowModeInput(false)
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (newMode.trim()) {
+                                const updatedModes = [...modes, newMode.trim()]
+                                if (onUpdateModes) onUpdateModes(updatedModes)
+                                setNewTransaction({...newTransaction, mode: newMode.trim()})
+                                setNewMode('')
+                                setShowModeInput(false)
+                              }
+                            }}
+                            className="px-2 py-1 bg-green-500 text-white rounded text-sm"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowModeInput(false)
+                              setNewMode('')
+                            }}
+                            className="px-2 py-1 bg-gray-500 text-white rounded text-sm"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-2">
                   <button
-                    onClick={() => {
-                      if (newMode.trim()) {
-                        const updatedModes = [...modes, newMode.trim()]
-                        if (onUpdateModes) onUpdateModes(updatedModes)
-                        setNewTransaction({...newTransaction, mode: newMode.trim()})
-                        setNewMode('')
-                        setShowModeInput(false)
-                      }
-                    }}
-                    className="px-2 py-1 bg-green-500 text-white rounded text-sm"
+                    type="button"
+                    onClick={() => { setShowAddTransaction(false); setEditingTransaction(null); }}
+                    className="flex-1 px-4 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                   >
-                    <Plus className="w-3 h-3" />
+                    Cancel
                   </button>
                   <button
-                    onClick={() => {
-                      setShowModeInput(false)
-                      setNewMode('')
-                    }}
-                    className="px-2 py-1 bg-gray-500 text-white rounded text-sm"
+                    type="submit"
+                    className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
                   >
-                    <Minus className="w-3 h-3" />
+                    <Plus className="w-4 h-4" />{editingTransaction ? 'Update' : 'Add'} Transaction
                   </button>
                 </div>
-              </div>
-            )}
+              </form>
+            </div>
           </div>
-          <button
-            onClick={addTransaction}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-1"
-          >
-            <Plus className="w-4 h-4" />Add
-          </button>
         </div>
-      </div>
+      )}
 
       {/* Transactions Table */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border overflow-hidden">
@@ -673,12 +935,36 @@ export default function Transactions({ transactions = [], budgetCategories = [],
                               </td>
                               <td className="px-4 py-2">{t.mode}</td>
                               <td className="px-4 py-2 text-center">
-                                <button
-                                  onClick={() => onDelete(t.id)}
-                                  className="px-2 py-1 bg-red-500 text-white rounded text-xs"
-                                >
-                                  <Minus className="w-3 h-3" />
-                                </button>
+                                <div className="flex gap-1 justify-center">
+                                  <button
+                                    onClick={() => {
+                                      setEditingTransaction(t)
+                                      setNewTransaction({
+                                        date: t.date,
+                                        particular: t.particular,
+                                        category: t.category || '',
+                                        income: t.income || 0,
+                                        expense: t.expense || 0,
+                                        mode: t.mode,
+                                        isTransfer: t.isTransfer || false,
+                                        fromAccount: t.fromAccount || '',
+                                        toAccount: t.toAccount || ''
+                                      })
+                                      setShowAddTransaction(true)
+                                    }}
+                                    className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+                                    title="Edit"
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteConfirm({ show: true, id: t.id })}
+                                    className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                                    title="Delete"
+                                  >
+                                    <Minus className="w-3 h-3" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -785,12 +1071,36 @@ export default function Transactions({ transactions = [], budgetCategories = [],
                     </td>
                     <td className="px-4 py-3">{t.mode}</td>
                     <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => onDelete(t.id)}
-                        className="px-2 py-1 bg-red-500 text-white rounded text-xs"
-                      >
-                        <Minus className="w-3 h-3" />
-                      </button>
+                      <div className="flex gap-1 justify-center">
+                        <button
+                          onClick={() => {
+                            setEditingTransaction(t)
+                            setNewTransaction({
+                              date: t.date,
+                              particular: t.particular,
+                              category: t.category || '',
+                              income: t.income || 0,
+                              expense: t.expense || 0,
+                              mode: t.mode,
+                              isTransfer: t.isTransfer || false,
+                              fromAccount: t.fromAccount || '',
+                              toAccount: t.toAccount || ''
+                            })
+                            setShowAddTransaction(true)
+                          }}
+                          className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+                          title="Edit"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm({ show: true, id: t.id })}
+                          className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                          title="Delete"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -875,6 +1185,142 @@ export default function Transactions({ transactions = [], budgetCategories = [],
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Delete Transaction?</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm({ show: false, id: null })}
+                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onDelete(deleteConfirm.id)
+                  setDeleteConfirm({ show: false, id: null })
+                }}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mode Settings Modal */}
+      {showModeSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Payment Modes</h3>
+              <button onClick={() => setShowModeSettings(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="New mode name"
+                  value={newModeInput}
+                  onChange={(e) => setNewModeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newModeInput.trim()) {
+                      if (!modes.includes(newModeInput.trim())) {
+                        onUpdateModes([...modes, newModeInput.trim()])
+                        setNewModeInput('')
+                      } else {
+                        alert('Mode already exists')
+                      }
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                />
+                <button
+                  onClick={() => {
+                    if (newModeInput.trim()) {
+                      if (!modes.includes(newModeInput.trim())) {
+                        onUpdateModes([...modes, newModeInput.trim()])
+                        setNewModeInput('')
+                      } else {
+                        alert('Mode already exists')
+                      }
+                    }
+                  }}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {modes.map((mode, idx) => {
+                const modeTransactions = transactions.filter(t => t.mode === mode)
+                const income = modeTransactions.reduce((sum, t) => sum + (t.income || 0), 0)
+                const expense = modeTransactions.reduce((sum, t) => sum + (t.expense || 0), 0)
+                const currentBalance = (initialBalances[mode] || 0) + income - expense
+                
+                return (
+                  <div key={idx} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-900 dark:text-white">{mode}</span>
+                      <button
+                        onClick={() => {
+                          if (modes.length > 1) {
+                            if (confirm(`Delete "${mode}"?`)) {
+                              onUpdateModes(modes.filter(m => m !== mode))
+                              const newBalances = {...initialBalances}
+                              delete newBalances[mode]
+                              if (onUpdateBalances) onUpdateBalances(newBalances)
+                            }
+                          } else {
+                            alert('Cannot delete the last payment mode')
+                          }
+                        }}
+                        className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-sm"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-600 dark:text-gray-400">Initial Balance:</label>
+                      <input
+                        type="number"
+                        value={initialBalances[mode] || 0}
+                        onChange={(e) => {
+                          const newBalances = {...initialBalances, [mode]: parseFloat(e.target.value) || 0}
+                          if (onUpdateBalances) onUpdateBalances(newBalances)
+                        }}
+                        className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-600"
+                      />
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                      Current: <span className={`font-semibold ${currentBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ₹{currentBalance.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            
+            <button
+              onClick={() => setShowModeSettings(false)}
+              className="w-full mt-4 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

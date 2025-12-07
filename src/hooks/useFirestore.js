@@ -69,14 +69,26 @@ export const useFirestore = (collectionName, initialValue = []) => {
   const addItem = async (item) => {
     try {
       const currentUser = auth.currentUser
-      if (!currentUser) throw new Error('User not authenticated')
-      if (!item?.id) throw new Error('Item must have an id')
+      if (!currentUser) {
+        const error = new Error('Please sign in to save data')
+        setError(error.message)
+        throw error
+      }
+      if (!item?.id) {
+        const error = new Error('Item must have an id')
+        setError(error.message)
+        throw error
+      }
       
       const docId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_')
       await setDoc(doc(db, 'users', currentUser.uid, collectionName, docId), cleanData(item))
+      setError(null) // Clear any previous errors
     } catch (err) {
       console.error('Error adding item:', err)
-      setError(err.message)
+      const friendlyMessage = err.code === 'permission-denied' 
+        ? 'Permission denied. Please check your authentication.'
+        : err.message
+      setError(friendlyMessage)
       throw err
     }
   }
@@ -84,15 +96,27 @@ export const useFirestore = (collectionName, initialValue = []) => {
   const updateItem = async (item) => {
     try {
       const currentUser = auth.currentUser
-      if (!currentUser) throw new Error('User not authenticated')
-      if (!item?.id) throw new Error('Item must have an id')
+      if (!currentUser) {
+        const error = new Error('Please sign in to save data')
+        setError(error.message)
+        throw error
+      }
+      if (!item?.id) {
+        const error = new Error('Item must have an id')
+        setError(error.message)
+        throw error
+      }
       
       const docId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_')
       const cleanedData = cleanData(item)
       await setDoc(doc(db, 'users', currentUser.uid, collectionName, docId), cleanedData)
+      setError(null) // Clear any previous errors
     } catch (err) {
       console.error('Error updating item:', err)
-      setError(err.message)
+      const friendlyMessage = err.code === 'permission-denied' 
+        ? 'Permission denied. Please check your authentication.'
+        : err.message
+      setError(friendlyMessage)
       throw err
     }
   }
@@ -100,14 +124,26 @@ export const useFirestore = (collectionName, initialValue = []) => {
   const deleteItem = async (id) => {
     try {
       const currentUser = auth.currentUser
-      if (!currentUser) throw new Error('User not authenticated')
-      if (!id) throw new Error('Item id is required')
+      if (!currentUser) {
+        const error = new Error('Please sign in to delete data')
+        setError(error.message)
+        throw error
+      }
+      if (!id) {
+        const error = new Error('Item id is required')
+        setError(error.message)
+        throw error
+      }
       
       const docId = String(id).replace(/[^a-zA-Z0-9_-]/g, '_')
       await deleteDoc(doc(db, 'users', currentUser.uid, collectionName, docId))
+      setError(null) // Clear any previous errors
     } catch (err) {
       console.error('Error deleting item:', err)
-      setError(err.message)
+      const friendlyMessage = err.code === 'permission-denied' 
+        ? 'Permission denied. Please check your authentication.'
+        : err.message
+      setError(friendlyMessage)
       throw err
     }
   }

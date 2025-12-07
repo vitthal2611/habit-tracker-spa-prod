@@ -1,5 +1,6 @@
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun, User } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { auth } from '../firebase'
 
 export default function Navigation({ onLogout }) {
   const [isDark, setIsDark] = useState(() => {
@@ -26,7 +27,15 @@ export default function Navigation({ onLogout }) {
         <div className="flex justify-between items-center h-14 sm:h-16">
           <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Habit Tracker</h1>
           
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-3">
+            {auth.currentUser && (
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {auth.currentUser.email}
+                </span>
+              </div>
+            )}
             <button
               onClick={() => setIsDark(!isDark)}
               className="p-2.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors touch-manipulation"

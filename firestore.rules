@@ -1,26 +1,32 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId}/habits/{habitId} {
-      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    // Temporary development rules - CHANGE BEFORE PRODUCTION
+    match /{document=**} {
+      allow read, write: if true;
     }
-    match /users/{userId}/todos/{todoId} {
-      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
-    }
-    match /users/{userId}/todoCategories/{categoryId} {
-      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
-    }
-    match /users/{userId}/transactions/{transactionId} {
-      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
-    }
-    match /users/{userId}/expenseCategories/{categoryId} {
-      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
-    }
-    match /users/{userId}/financialPlan/{planId} {
-      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
-    }
-    match /users/{userId}/yearlyBudgets/{budgetId} {
-      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
-    }
+    
+    // Production rules (commented out for development)
+    // match /users/{userId}/habits/{habitId} {
+    //   allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    // }
+    // match /users/{userId}/todos/{todoId} {
+    //   allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    // }
+    // match /users/{userId}/todoCategories/{categoryId} {
+    //   allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    // }
+    // match /users/{userId}/transactions/{transactionId} {
+    //   allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    // }
+    // match /users/{userId}/expenseCategories/{categoryId} {
+    //   allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    // }
+    // match /users/{userId}/financialPlan/{planId} {
+    //   allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    // }
+    // match /users/{userId}/yearlyBudgets/{budgetId} {
+    //   allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+    // }
   }
 }

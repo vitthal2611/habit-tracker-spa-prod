@@ -38,10 +38,14 @@ function App() {
   const [dbTodos, { addItem: addTodoToDb, updateItem: updateTodoInDb, deleteItem: deleteTodoFromDb }] = useFirestore('todos', [])
   const [dbCategories, { addItem: addCategoryToDb, deleteItem: deleteCategoryFromDb }] = useFirestore('todoCategories', [])
   const [dbYearlyBudgets, { addItem: addYearlyBudgetToDb, updateItem: updateYearlyBudgetInDb }] = useFirestore('yearlyBudgets', [])
-  const [dbTransactions, { addItem: addTransactionToDb, deleteItem: deleteTransactionFromDb }] = useFirestore('transactions', [])
+  const [dbTransactions, { addItem: addTransactionToDb, updateItem: updateTransactionInDb, deleteItem: deleteTransactionFromDb }] = useFirestore('transactions', [])
+  const [dbSettings, { addItem: addSettingToDb, updateItem: updateSettingInDb }] = useFirestore('settings', [])
   const currentYear = new Date().getFullYear()
   const currentYearBudget = dbYearlyBudgets.find(b => b.year === currentYear)
   const [activeTab, setActiveTab] = useState('habits')
+  
+  const paymentModes = dbSettings.find(s => s.id === 'paymentModes')?.modes || ['Cash', 'Card', 'UPI', 'Bank']
+  const initialBalances = dbSettings.find(s => s.id === 'initialBalances')?.balances || {}
 
   const today = new Date().toDateString()
   
@@ -559,9 +563,31 @@ function App() {
             transactions={dbTransactions}
             budgetCategories={currentYearBudget?.categories || DEFAULT_BUDGET_CATEGORIES}
             year={currentYear}
+            modes={paymentModes}
+            initialBalances={initialBalances}
+            onUpdateModes={async (modes) => {
+              const existing = dbSettings.find(s => s.id === 'paymentModes')
+              if (existing) {
+                await updateSettingInDb({ id: 'paymentModes', modes })
+              } else {
+                await addSettingToDb({ id: 'paymentModes', modes })
+              }
+            }}
+            onUpdateBalances={async (balances) => {
+              const existing = dbSettings.find(s => s.id === 'initialBalances')
+              if (existing) {
+                await updateSettingInDb({ id: 'initialBalances', balances })
+              } else {
+                await addSettingToDb({ id: 'initialBalances', balances })
+              }
+            }}
             onAdd={(transaction) => {
               addTransactionToDb(transaction)
               showToast('Transaction added!')
+            }}
+            onUpdate={(transaction) => {
+              updateTransactionInDb(transaction)
+              showToast('Transaction updated!')
             }}
             onDelete={(id) => {
               deleteTransactionFromDb(id)

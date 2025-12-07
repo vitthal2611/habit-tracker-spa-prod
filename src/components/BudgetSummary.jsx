@@ -260,15 +260,40 @@ export default function BudgetSummary({ budgetData, transactions = [], year = ne
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Budget</span>
-                <span className="font-semibold text-green-600">₹{(totalIncome / 1000).toFixed(0)}k</span>
+                <span 
+                  className="font-semibold text-green-600 cursor-pointer hover:underline"
+                  onClick={() => {
+                    const text = `₹${totalIncome.toLocaleString('en-IN')}`
+                    navigator.clipboard.writeText(text)
+                  }}
+                  title="Click to copy"
+                >
+                  ₹{(totalIncome / 1000).toFixed(0)}k
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Actual</span>
-                <span className="font-semibold text-green-700">₹{(totalActualIncome / 1000).toFixed(0)}k</span>
+                <span 
+                  className="font-semibold text-green-700 cursor-pointer hover:underline"
+                  onClick={() => {
+                    const text = `₹${totalActualIncome.toLocaleString('en-IN')}`
+                    navigator.clipboard.writeText(text)
+                  }}
+                  title="Click to copy"
+                >
+                  ₹{(totalActualIncome / 1000).toFixed(0)}k
+                </span>
               </div>
               <div className="flex justify-between pt-2 border-t">
                 <span className="text-sm font-medium">Variance</span>
-                <span className={`font-bold ${totalActualIncome >= totalIncome ? 'text-green-600' : 'text-orange-600'}`}>
+                <span 
+                  className={`font-bold cursor-pointer hover:underline ${totalActualIncome >= totalIncome ? 'text-green-600' : 'text-orange-600'}`}
+                  onClick={() => {
+                    const text = `₹${(totalActualIncome - totalIncome).toLocaleString('en-IN')}`
+                    navigator.clipboard.writeText(text)
+                  }}
+                  title="Click to copy"
+                >
                   {totalActualIncome >= totalIncome ? '+' : ''}₹{((totalActualIncome - totalIncome) / 1000).toFixed(0)}k
                 </span>
               </div>
@@ -279,15 +304,40 @@ export default function BudgetSummary({ budgetData, transactions = [], year = ne
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Budget</span>
-                <span className="font-semibold text-red-600">₹{(totalExpense / 1000).toFixed(0)}k</span>
+                <span 
+                  className="font-semibold text-red-600 cursor-pointer hover:underline"
+                  onClick={() => {
+                    const text = `₹${totalExpense.toLocaleString('en-IN')}`
+                    navigator.clipboard.writeText(text)
+                  }}
+                  title="Click to copy"
+                >
+                  ₹{(totalExpense / 1000).toFixed(0)}k
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Actual</span>
-                <span className="font-semibold text-red-700">₹{(totalActualExpense / 1000).toFixed(0)}k</span>
+                <span 
+                  className="font-semibold text-red-700 cursor-pointer hover:underline"
+                  onClick={() => {
+                    const text = `₹${totalActualExpense.toLocaleString('en-IN')}`
+                    navigator.clipboard.writeText(text)
+                  }}
+                  title="Click to copy"
+                >
+                  ₹{(totalActualExpense / 1000).toFixed(0)}k
+                </span>
               </div>
               <div className="flex justify-between pt-2 border-t">
                 <span className="text-sm font-medium">Variance</span>
-                <span className={`font-bold ${totalActualExpense <= totalExpense ? 'text-green-600' : 'text-red-600'}`}>
+                <span 
+                  className={`font-bold cursor-pointer hover:underline ${totalActualExpense <= totalExpense ? 'text-green-600' : 'text-red-600'}`}
+                  onClick={() => {
+                    const text = `₹${(totalActualExpense - totalExpense).toLocaleString('en-IN')}`
+                    navigator.clipboard.writeText(text)
+                  }}
+                  title="Click to copy"
+                >
                   {totalActualExpense <= totalExpense ? '' : '+'}₹{((totalActualExpense - totalExpense) / 1000).toFixed(0)}k
                 </span>
               </div>
