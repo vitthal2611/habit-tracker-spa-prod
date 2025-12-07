@@ -21,7 +21,7 @@ export default function Transactions({ transactions = [], budgetCategories = [],
   const [bulkData, setBulkData] = useState('')
   const [sortBy, setSortBy] = useState('stNo')
   const [sortOrder, setSortOrder] = useState('desc')
-  const [groupByCategory, setGroupByCategory] = useState(true)
+  const [groupByCategory, setGroupByCategory] = useState(false)
   const [editingField, setEditingField] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
@@ -165,7 +165,7 @@ export default function Transactions({ transactions = [], budgetCategories = [],
   }
 
   const exportTransactions = () => {
-    const filtered = transactions.filter(t => {
+    const filtered = viewAllTransactions ? transactions : transactions.filter(t => {
       const transactionDate = new Date(t.date)
       return transactionDate.getFullYear() === year && transactionDate.getMonth() === viewMonth
     })
@@ -177,7 +177,7 @@ export default function Transactions({ transactions = [], budgetCategories = [],
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `transactions-${months[viewMonth]}-${year}.csv`
+    a.download = viewAllTransactions ? `transactions-all-time.csv` : `transactions-${months[viewMonth]}-${year}.csv`
     a.click()
   }
 
@@ -328,133 +328,111 @@ export default function Transactions({ transactions = [], budgetCategories = [],
     setEditingTransaction(null)
   }
 
+  const filteredTransactions = transactions.filter(t => {
+    if (viewAllTransactions) return true
+    const transactionDate = new Date(t.date)
+    return transactionDate.getFullYear() === year && transactionDate.getMonth() === viewMonth
+  })
+
+  const totalIncome = filteredTransactions.filter(t => {
+    const cat = budgetCategories.find(c => c.name === t.category)
+    return cat?.type === 'Income' && t.income > 0
+  }).reduce((sum, t) => sum + (parseFloat(t.income) || 0), 0)
+  
+  const totalExpense = filteredTransactions.filter(t => {
+    const cat = budgetCategories.find(c => c.name === t.category)
+    return cat?.type === 'Expense' && t.expense > 0
+  }).reduce((sum, t) => sum + (parseFloat(t.expense) || 0), 0)
+  
+  const savings = filteredTransactions.filter(t => {
+    const cat = budgetCategories.find(c => c.name === t.category)
+    return cat?.type === 'Asset' && t.expense > 0
+  }).reduce((sum, t) => sum + (parseFloat(t.expense) || 0), 0)
+  
+  const liability = filteredTransactions.filter(t => {
+    const cat = budgetCategories.find(c => c.name === t.category)
+    return cat?.type === 'Liability' && t.expense > 0
+  }).reduce((sum, t) => sum + (parseFloat(t.expense) || 0), 0)
+  
+  const netWorth = modes.reduce((sum, mode) => {
+    const modeTransactions = filteredTransactions.filter(t => t.mode === mode)
+    const income = modeTransactions.reduce((s, t) => s + (t.income || 0), 0)
+    const expense = modeTransactions.reduce((s, t) => s + (t.expense || 0), 0)
+    const balance = viewAllTransactions 
+      ? (initialBalances[mode] || 0) + income - expense
+      : income - expense
+    return sum + balance
+  }, 0)
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Transactions</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Track income and expenses</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Track your income and expenses</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           <button 
             onClick={() => setShowAddTransaction(true)}
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
           >
-            <Plus className="w-5 h-5" />Add Transaction
+            <Plus className="w-5 h-5" />Add
           </button>
           <button 
             onClick={() => setShowModeSettings(true)}
-            className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-            title="Configure Payment Modes"
+            className="p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+            title="Settings"
           >
-            <Settings className="w-4 h-4" />Modes
+            <Settings className="w-5 h-5" />
           </button>
-          <button 
-            onClick={() => setShowFilters(!showFilters)}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
-              showFilters 
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-            }`}
-          >
-            <Filter className="w-4 h-4" />{showFilters ? 'Hide' : 'Filter'}
-          </button>
-          <button 
-            onClick={exportTransactions}
-            className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
-          >
-            <Download className="w-4 h-4" />Export
-          </button>
-          <button 
-            onClick={() => setGroupByCategory(!groupByCategory)}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              groupByCategory 
-                ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-            }`}
-          >
-            {groupByCategory ? 'Ungroup' : 'Group by Category'}
-          </button>
-          <div className="flex items-center gap-1">
-            <button 
-              onClick={() => setViewAllTransactions(true)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                viewAllTransactions 
-                  ? 'bg-purple-600 text-white hover:bg-purple-700' 
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-              }`}
-            >
-              All
-            </button>
-            <button 
-              onClick={() => setViewAllTransactions(false)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                !viewAllTransactions 
-                  ? 'bg-purple-600 text-white hover:bg-purple-700' 
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-              }`}
-            >
-              Month
-            </button>
-            {!viewAllTransactions && (
-              <>
-                <button onClick={() => setViewMonth(viewMonth === 0 ? 11 : viewMonth - 1)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <span className="font-medium text-gray-900 dark:text-white min-w-[100px] text-center">{months[viewMonth]} {year}</span>
-                <button onClick={() => setViewMonth(viewMonth === 11 ? 0 : viewMonth + 1)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </>
-            )}
-          </div>
         </div>
       </div>
 
-      {/* Search & Filter */}
-      {showFilters && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by particular, category, or amount..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700"
-              />
-            </div>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700"
-            >
-              <option value="">All Categories</option>
-              {[...budgetCategories].sort((a, b) => a.name.localeCompare(b.name)).map((cat, idx) => (
-                <option key={idx} value={cat.name}>{cat.name}</option>
-              ))}
-            </select>
-            <select
-              value={filterMode}
-              onChange={(e) => setFilterMode(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700"
-            >
-              <option value="">All Modes</option>
-              {modes.map(mode => (
-                <option key={mode} value={mode}>{mode}</option>
-              ))}
-            </select>
-          </div>
+      {/* Hero Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 text-white">
+          <div className="text-sm opacity-90 mb-1">💰 Income</div>
+          <div className="text-3xl font-bold">₹{(totalIncome / 1000).toFixed(0)}k</div>
+          <div className="text-xs opacity-75 mt-1">{filteredTransactions.filter(t => {
+            const cat = budgetCategories.find(c => c.name === t.category)
+            return cat?.type === 'Income' && t.income > 0
+          }).length} transactions</div>
         </div>
-      )}
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-5 text-white">
+          <div className="text-sm opacity-90 mb-1">💸 Expense</div>
+          <div className="text-3xl font-bold">₹{(totalExpense / 1000).toFixed(0)}k</div>
+          <div className="text-xs opacity-75 mt-1">{filteredTransactions.filter(t => {
+            const cat = budgetCategories.find(c => c.name === t.category)
+            return cat?.type === 'Expense' && t.expense > 0
+          }).length} transactions</div>
+        </div>
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white">
+          <div className="text-sm opacity-90 mb-1">💵 Assets</div>
+          <div className="text-3xl font-bold">₹{(savings / 1000).toFixed(0)}k</div>
+          <div className="text-xs opacity-75 mt-1">{filteredTransactions.filter(t => {
+            const cat = budgetCategories.find(c => c.name === t.category)
+            return cat?.type === 'Asset' && t.expense > 0
+          }).length} transactions</div>
+        </div>
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-5 text-white">
+          <div className="text-sm opacity-90 mb-1">📉 Liability</div>
+          <div className="text-3xl font-bold">₹{(liability / 1000).toFixed(0)}k</div>
+          <div className="text-xs opacity-75 mt-1">{filteredTransactions.filter(t => {
+            const cat = budgetCategories.find(c => c.name === t.category)
+            return cat?.type === 'Liability' && t.expense > 0
+          }).length} transactions</div>
+        </div>
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-5 text-white">
+          <div className="text-sm opacity-90 mb-1">🏦 Balance</div>
+          <div className="text-3xl font-bold">₹{(netWorth / 1000).toFixed(0)}k</div>
+          <div className="text-xs opacity-75 mt-1">All accounts</div>
+        </div>
+      </div>
 
-      {/* Mode Balances */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+      {/* Compact Account Chips */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2">
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Accounts:</span>
         {modes.map(mode => {
           const modeTransactions = transactions.filter(t => t.mode === mode)
           const income = modeTransactions.reduce((sum, t) => sum + (t.income || 0), 0)
@@ -464,53 +442,84 @@ export default function Transactions({ transactions = [], budgetCategories = [],
           return (
             <button
               key={mode}
-              onClick={() => {
-                setFilterMode(filterMode === mode ? '' : mode)
-                setShowFilters(true)
-              }}
-              className={`rounded-xl p-4 text-white text-left transition-all ${balance >= 0 ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-red-500 to-red-600'} ${filterMode === mode ? 'ring-4 ring-white dark:ring-gray-900' : 'hover:opacity-90'}`}
+              onClick={() => setFilterMode(filterMode === mode ? '' : mode)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                filterMode === mode
+                  ? 'bg-indigo-600 text-white'
+                  : balance >= 0
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
+                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
+              }`}
             >
-              <div className="text-sm opacity-90">{mode}</div>
-              <div className="text-2xl font-bold">₹{balance.toFixed(2)}</div>
+              {mode} ₹{(balance / 1000).toFixed(1)}k
             </button>
           )
         })}
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white">
-          <div className="text-sm opacity-90">{viewAllTransactions ? 'Total' : 'Monthly'} Income</div>
-          <div className="text-2xl font-bold">₹{(transactions.filter(t => {
-            const transactionDate = new Date(t.date)
-            return (viewAllTransactions || (transactionDate.getFullYear() === year && transactionDate.getMonth() === viewMonth)) && t.income > 0
-          }).reduce((sum, t) => sum + (t.income || 0), 0) / 1000).toFixed(0)}k</div>
-        </div>
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white">
-          <div className="text-sm opacity-90">Budget Allocated</div>
-          <div className="text-2xl font-bold">₹{(budgetCategories.reduce((sum, cat) => {
-            if (cat.monthlyBudgets && cat.monthlyBudgets[viewMonth] !== undefined) {
-              return sum + cat.monthlyBudgets[viewMonth]
-            }
-            return sum + (cat.monthlyBudget || 0)
-          }, 0) / 1000).toFixed(0)}k</div>
-        </div>
-        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-4 text-white">
-          <div className="text-sm opacity-90">{viewAllTransactions ? 'Total' : 'Amount'} Spent</div>
-          <div className="text-2xl font-bold">₹{(transactions.filter(t => {
-            const transactionDate = new Date(t.date)
-            return (viewAllTransactions || (transactionDate.getFullYear() === year && transactionDate.getMonth() === viewMonth)) && t.expense > 0
-          }).reduce((sum, t) => sum + (t.expense || 0), 0) / 1000).toFixed(0)}k</div>
-        </div>
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white">
-          <div className="text-sm opacity-90">Remaining</div>
-          <div className="text-2xl font-bold">₹{((transactions.filter(t => {
-            const transactionDate = new Date(t.date)
-            return (viewAllTransactions || (transactionDate.getFullYear() === year && transactionDate.getMonth() === viewMonth)) && t.income > 0
-          }).reduce((sum, t) => sum + (t.income || 0), 0) - transactions.filter(t => {
-            const transactionDate = new Date(t.date)
-            return (viewAllTransactions || (transactionDate.getFullYear() === year && transactionDate.getMonth() === viewMonth)) && t.expense > 0
-          }).reduce((sum, t) => sum + (t.expense || 0), 0)) / 1000).toFixed(0)}k</div>
+      {/* Smart Filter Bar */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700"
+            />
+          </div>
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700"
+          >
+            <option value="">All Categories</option>
+            {[...budgetCategories].sort((a, b) => a.name.localeCompare(b.name)).map((cat, idx) => (
+              <option key={idx} value={cat.name}>{cat.name}</option>
+            ))}
+          </select>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setViewAllTransactions(true)}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                viewAllTransactions 
+                  ? 'bg-indigo-600 text-white' 
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              All Time
+            </button>
+            <button 
+              onClick={() => setViewAllTransactions(false)}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                !viewAllTransactions 
+                  ? 'bg-indigo-600 text-white' 
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              {months[viewMonth]}
+            </button>
+          </div>
+          <div className="flex gap-1">
+            <button onClick={exportTransactions} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" title="Export">
+              <Download className="w-4 h-4" />
+            </button>
+            <button onClick={() => setGroupByCategory(!groupByCategory)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" title="Group">
+              <Filter className="w-4 h-4" />
+            </button>
+            {!viewAllTransactions && (
+              <>
+                <button onClick={() => setViewMonth(viewMonth === 0 ? 11 : viewMonth - 1)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <button onClick={() => setViewMonth(viewMonth === 11 ? 0 : viewMonth + 1)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -979,28 +988,19 @@ export default function Transactions({ transactions = [], budgetCategories = [],
             <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th onClick={() => handleSort('stNo')} className="px-4 py-3 text-left cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
-                    St.No {sortBy === 'stNo' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </th>
                   <th onClick={() => handleSort('date')} className="px-4 py-3 text-left cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
                     Date {sortBy === 'date' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </th>
                   <th onClick={() => handleSort('particular')} className="px-4 py-3 text-left cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
-                    Particular {sortBy === 'particular' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    Description {sortBy === 'particular' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </th>
                   <th onClick={() => handleSort('category')} className="px-4 py-3 text-left cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
                     Category {sortBy === 'category' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th onClick={() => handleSort('income')} className="px-4 py-3 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
-                    Income {sortBy === 'income' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </th>
                   <th onClick={() => handleSort('expense')} className="px-4 py-3 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
-                    Expense {sortBy === 'expense' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    Amount {sortBy === 'expense' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th onClick={() => handleSort('mode')} className="px-4 py-3 text-left cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
-                    Mode {sortBy === 'mode' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th className="px-4 py-3 text-center">Action</th>
+                  <th className="px-4 py-3 text-center w-20"></th>
                 </tr>
               </thead>
               <tbody>
@@ -1009,69 +1009,29 @@ export default function Transactions({ transactions = [], budgetCategories = [],
                   const transactionDate = new Date(t.date)
                   return transactionDate.getFullYear() === year && transactionDate.getMonth() === viewMonth
                 }))).map((t, index) => (
-                  <tr key={t.id || index} className="border-t hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-4 py-3">{t.stNo || index + 1}</td>
-                    <td className="px-4 py-3" onDoubleClick={() => setEditingField(`${t.id}-date`)}>
-                      {editingField === `${t.id}-date` ? (
-                        <input
-                          type="date"
-                          value={t.date}
-                          onChange={(e) => {
-                            const updatedTransaction = {...t, date: e.target.value}
-                            onDelete(t.id)
-                            onAdd(updatedTransaction)
-                          }}
-                          onBlur={() => setEditingField(null)}
-                          autoFocus
-                          className="px-2 py-1 border rounded text-xs dark:bg-gray-700 w-full"
-                        />
-                      ) : (
-                        <span>{new Date(t.date).toLocaleDateString()}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3" onDoubleClick={() => setEditingField(`${t.id}-particular`)}>
-                      {editingField === `${t.id}-particular` ? (
-                        <input
-                          type="text"
-                          value={t.particular}
-                          onChange={(e) => {
-                            const updatedTransaction = {...t, particular: e.target.value}
-                            onDelete(t.id)
-                            onAdd(updatedTransaction)
-                          }}
-                          onBlur={() => setEditingField(null)}
-                          autoFocus
-                          className="px-2 py-1 border rounded text-xs dark:bg-gray-700 w-full"
-                        />
-                      ) : (
-                        <span>{t.particular}</span>
-                      )}
+                  <tr key={t.id || index} className="border-t hover:bg-gray-50 dark:hover:bg-gray-750 group">
+                    <td className="px-4 py-3">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">{new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                      <div className="text-xs text-gray-500">{new Date(t.date).getFullYear()}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <select
-                        value={t.category || 'Uncategorized'}
-                        onChange={(e) => {
-                          const updatedTransaction = {...t, category: e.target.value}
-                          onDelete(t.id)
-                          onAdd(updatedTransaction)
-                        }}
-                        className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs border-0"
-                      >
-                        <option value="Uncategorized">Uncategorized</option>
-                        {[...budgetCategories].sort((a, b) => a.name.localeCompare(b.name)).map((cat, idx) => (
-                          <option key={idx} value={cat.name}>{cat.name}</option>
-                        ))}
-                      </select>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">{t.particular}</div>
+                      <div className="text-xs text-gray-500 flex items-center gap-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{t.mode}</span>
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-right text-green-600">
-                      {t.income > 0 ? `₹${t.income.toLocaleString()}` : '-'}
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                        {t.category || 'Uncategorized'}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-red-600">
-                      {t.expense > 0 ? `₹${t.expense.toLocaleString()}` : '-'}
+                    <td className="px-4 py-3 text-right">
+                      <div className={`text-sm font-semibold ${t.income > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {t.income > 0 ? '+' : '-'}₹{(t.income > 0 ? t.income : t.expense).toLocaleString()}
+                      </div>
                     </td>
-                    <td className="px-4 py-3">{t.mode}</td>
                     <td className="px-4 py-3 text-center">
-                      <div className="flex gap-1 justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 justify-center">
                         <button
                           onClick={() => {
                             setEditingTransaction(t)
@@ -1088,14 +1048,14 @@ export default function Transactions({ transactions = [], budgetCategories = [],
                             })
                             setShowAddTransaction(true)
                           }}
-                          className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+                          className="p-1.5 bg-blue-500 text-white rounded hover:bg-blue-600"
                           title="Edit"
                         >
                           ✏️
                         </button>
                         <button
                           onClick={() => setDeleteConfirm({ show: true, id: t.id })}
-                          className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                          className="p-1.5 bg-red-500 text-white rounded hover:bg-red-600"
                           title="Delete"
                         >
                           <Minus className="w-3 h-3" />
@@ -1110,56 +1070,20 @@ export default function Transactions({ transactions = [], budgetCategories = [],
                   return transactionDate.getFullYear() === year && transactionDate.getMonth() === viewMonth
                 }).length === 0 && (
                   <tr>
-                    <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
-                      No transactions yet. Add your first transaction above.
+                    <td colSpan="5" className="px-4 py-16 text-center">
+                      <div className="text-6xl mb-4">📊</div>
+                      <div className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No transactions yet</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">Start tracking your finances today</div>
+                      <button onClick={() => setShowAddTransaction(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors inline-flex items-center gap-2">
+                        <Plus className="w-4 h-4" />Add First Transaction
+                      </button>
                     </td>
                   </tr>
                 )}
-                {budgetCategories.length === 0 && (
-                  <tr>
-                    <td colSpan="8" className="px-4 py-8 text-center text-yellow-600 bg-yellow-50">
-                      ⚠️ No budget categories found. Please create budget categories first in the Budget tab.
-                    </td>
-                  </tr>
-                )}
+
               </tbody>
             </table>
           )}
-        </div>
-      </div>
-
-      {/* Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
-          <div className="text-sm text-green-600 dark:text-green-400">Total Income</div>
-          <div className="text-xl font-bold text-green-700 dark:text-green-300">
-            ₹{transactions.reduce((sum, t) => sum + (parseFloat(t.income) || 0), 0).toLocaleString()}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            {transactions.filter(t => t.income > 0).length} transactions
-          </div>
-        </div>
-        <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-200 dark:border-red-800">
-          <div className="text-sm text-red-600 dark:text-red-400">Total Expense</div>
-          <div className="text-xl font-bold text-red-700 dark:text-red-300">
-            ₹{transactions.reduce((sum, t) => sum + (parseFloat(t.expense) || 0), 0).toLocaleString()}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            {transactions.filter(t => t.expense > 0).length} transactions
-          </div>
-        </div>
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
-          <div className="text-sm text-blue-600 dark:text-blue-400">Net Balance</div>
-          <div className={`text-xl font-bold ${
-            (transactions.reduce((sum, t) => sum + (parseFloat(t.income) || 0) - (parseFloat(t.expense) || 0), 0)) >= 0 
-            ? 'text-green-700 dark:text-green-300' 
-            : 'text-red-700 dark:text-red-300'
-          }`}>
-            ₹{(transactions.reduce((sum, t) => sum + (parseFloat(t.income) || 0) - (parseFloat(t.expense) || 0), 0)).toLocaleString()}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            {transactions.length} total transactions
-          </div>
         </div>
       </div>
 
