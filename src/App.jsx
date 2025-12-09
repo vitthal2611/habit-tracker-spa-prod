@@ -8,6 +8,7 @@ import HabitList from './components/HabitList'
 import HabitTableView from './components/HabitTableView'
 import DailyHabitView from './components/DailyHabitView'
 import TodoList from './components/TodoList'
+import EisenhowerMatrix from './components/EisenhowerMatrix'
 import YearlyBudget from './components/YearlyBudget'
 import Transactions from './components/Transactions'
 import Dashboard from './components/Dashboard'
@@ -601,28 +602,22 @@ function App() {
             year={currentYear}
           />
         ) : activeTab === 'todos' ? (
-          <TodoList 
+          <EisenhowerMatrix 
             todos={dbTodos}
-            categories={dbCategories}
             onAdd={addTodoToDb}
             onToggle={async (id) => {
               const todo = dbTodos.find(t => t.id === id)
               if (todo) {
-                const newStatus = (todo.status === 'completed' || todo.completed) ? 'backlog' : 'completed'
                 await updateTodoInDb({ 
                   ...todo, 
-                  completed: newStatus === 'completed',
-                  status: newStatus,
-                  completedAt: newStatus === 'completed' ? new Date().toISOString() : null
+                  completed: !todo.completed,
+                  completedAt: !todo.completed ? new Date().toISOString() : null
                 })
               }
             }}
             onUpdate={updateTodoInDb}
             onDelete={deleteTodoFromDb}
-            onAddCategory={async (category) => {
-              await addCategoryToDb({ ...category, id: category.id, createdAt: new Date().toISOString() })
-            }}
-            onDeleteCategory={deleteCategoryFromDb}
+            allCategories={[...DEFAULT_BUDGET_CATEGORIES.map(c => ({ id: c.name.toLowerCase(), name: c.name, color: 'bg-blue-500' }))].slice(0, 5)}
           />
         ) : viewMode === 'table' ? (
           <div>
