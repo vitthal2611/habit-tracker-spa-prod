@@ -138,7 +138,7 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
   const pendingToday = totalScheduled.length - completedToday - missedToday
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-3xl mx-auto space-y-4 px-4">
       {/* Header Section */}
       <div className="bg-gradient-to-br from-white to-indigo-50/30 dark:from-gray-800 dark:to-indigo-950/20 rounded-2xl p-4 sm:p-6 shadow-md border border-indigo-100 dark:border-indigo-900/30">
         <div className="flex items-center justify-between mb-4 sm:mb-6">

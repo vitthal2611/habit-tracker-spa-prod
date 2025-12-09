@@ -697,7 +697,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation onLogout={handleLogout} />
-      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <main className="max-w-3xl mx-auto px-4 py-4 sm:py-6">
         {renderDashboard()}
       </main>
       {showQuickForm && (
