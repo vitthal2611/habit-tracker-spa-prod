@@ -8,6 +8,9 @@ import HabitList from './components/HabitList'
 import HabitTableView from './components/HabitTableView'
 import DailyHabitView from './components/DailyHabitView'
 import EisenhowerMatrix from './components/EisenhowerMatrix'
+import StickyAddButton from './components/ui/StickyAddButton'
+
+import EnhancedDashboard from './components/EnhancedDashboard'
 import Auth from './components/Auth'
 import { useFirestore } from './hooks/useFirestore'
 import { useHabitLinkedList } from './hooks/useHabitLinkedList'
@@ -17,9 +20,6 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true)
   const [dbHabits, { addItem: addHabitToDb, updateItem: updateHabitInDb, deleteItem: deleteHabitFromDb, loading }] = useFirestore('habits', [])
   const { habits, removeHabit: removeFromList } = useHabitLinkedList(dbHabits)
-
-  // Removed auto-sync to prevent overwriting manual edits
-  
 
   const [showQuickForm, setShowQuickForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -36,16 +36,18 @@ function App() {
   const today = new Date().toDateString()
   
   const getTodayMetrics = () => {
+    const todayDate = new Date()
+    todayDate.setHours(0, 0, 0, 0)
+    const dayName = todayDate.toLocaleDateString('en', { weekday: 'short' })
+    const dateKey = todayDate.toISOString().split('T')[0]
+    
     const todayHabits = habits.filter(h => {
       const habitStartDate = new Date(h.createdAt || h.id)
-      const todayDate = new Date()
+      if (isNaN(habitStartDate.getTime())) return false
       habitStartDate.setHours(0, 0, 0, 0)
-      todayDate.setHours(0, 0, 0, 0)
       
       if (todayDate < habitStartDate) return false
       
-      const dayName = new Date().toLocaleDateString('en', { weekday: 'short' })
-      const dateKey = new Date().toISOString().split('T')[0]
       const isScheduledByDay = !h.schedule || h.schedule.length === 0 || h.schedule.includes(dayName)
       const isScheduledByDate = h.specificDates && h.specificDates.includes(dateKey)
       return isScheduledByDay || isScheduledByDate
@@ -57,26 +59,26 @@ function App() {
   }
   
   const getWeeklyMetrics = () => {
-    const weekDays = 7
+    const today = new Date()
+    const dayOfWeek = today.getDay()
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
     let totalScheduled = 0
     let totalCompleted = 0
     
-    for (let i = 0; i < weekDays; i++) {
-      const date = new Date()
-      const dayOfWeek = date.getDay()
-      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-      date.setDate(date.getDate() + mondayOffset + i)
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today)
+      date.setDate(today.getDate() + mondayOffset + i)
+      date.setHours(0, 0, 0, 0)
       const dateStr = date.toDateString()
       const dayName = date.toLocaleDateString('en', { weekday: 'short' })
       const dateKey = date.toISOString().split('T')[0]
       
       habits.forEach(h => {
         const habitStartDate = new Date(h.createdAt || h.id)
-        const checkDate = new Date(date)
+        if (isNaN(habitStartDate.getTime())) return
         habitStartDate.setHours(0, 0, 0, 0)
-        checkDate.setHours(0, 0, 0, 0)
         
-        if (checkDate < habitStartDate) return
+        if (date < habitStartDate) return
         
         const isScheduledByDay = !h.schedule || h.schedule.length === 0 || h.schedule.includes(dayName)
         const isScheduledByDate = h.specificDates && h.specificDates.includes(dateKey)
@@ -99,59 +101,6 @@ function App() {
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3000)
-  }
-
-  const generateTestData = async () => {
-    const testHabits = [
-      { identity: 'healthy person', current: 'wake up', new: 'drink water', time: '06:00', location: 'kitchen' },
-      { identity: 'healthy person', current: 'drink water', new: 'stretch', time: '06:05', location: 'bedroom' },
-      { identity: 'healthy person', current: 'stretch', new: 'meditate', time: '06:15', location: 'living room' },
-      { identity: 'fit person', current: 'meditate', new: 'exercise', time: '06:30', location: 'gym' },
-      { identity: 'fit person', current: 'exercise', new: 'shower', time: '07:30', location: 'bathroom' },
-      { identity: 'organized person', current: 'shower', new: 'make bed', time: '08:00', location: 'bedroom' },
-      { identity: 'organized person', current: 'make bed', new: 'plan day', time: '08:10', location: 'desk' },
-      { identity: 'productive person', current: 'plan day', new: 'check emails', time: '08:30', location: 'office' },
-      { identity: 'productive person', current: 'check emails', new: 'deep work', time: '09:00', location: 'office' },
-      { identity: 'focused person', current: 'deep work', new: 'take break', time: '11:00', location: 'outside' },
-      { identity: 'healthy person', current: 'take break', new: 'eat lunch', time: '12:00', location: 'kitchen' },
-      { identity: 'healthy person', current: 'eat lunch', new: 'walk', time: '12:30', location: 'park' },
-      { identity: 'productive person', current: 'walk', new: 'work session', time: '13:00', location: 'office' },
-      { identity: 'learner', current: 'work session', new: 'read', time: '15:00', location: 'library' },
-      { identity: 'learner', current: 'read', new: 'take notes', time: '15:30', location: 'desk' },
-      { identity: 'creative person', current: 'take notes', new: 'brainstorm', time: '16:00', location: 'office' },
-      { identity: 'creative person', current: 'brainstorm', new: 'write', time: '16:30', location: 'desk' },
-      { identity: 'social person', current: 'write', new: 'call friend', time: '17:00', location: 'phone' },
-      { identity: 'organized person', current: 'call friend', new: 'tidy up', time: '17:30', location: 'home' },
-      { identity: 'healthy person', current: 'tidy up', new: 'cook dinner', time: '18:00', location: 'kitchen' },
-      { identity: 'mindful person', current: 'cook dinner', new: 'eat mindfully', time: '19:00', location: 'dining room' },
-      { identity: 'family person', current: 'eat mindfully', new: 'family time', time: '19:30', location: 'living room' },
-      { identity: 'learner', current: 'family time', new: 'study', time: '20:00', location: 'desk' },
-      { identity: 'creative person', current: 'study', new: 'hobby time', time: '20:30', location: 'studio' },
-      { identity: 'organized person', current: 'hobby time', new: 'prepare tomorrow', time: '21:00', location: 'bedroom' },
-      { identity: 'grateful person', current: 'prepare tomorrow', new: 'journal', time: '21:15', location: 'desk' },
-      { identity: 'mindful person', current: 'journal', new: 'gratitude practice', time: '21:30', location: 'bedroom' },
-      { identity: 'healthy person', current: 'gratitude practice', new: 'skincare routine', time: '21:45', location: 'bathroom' },
-      { identity: 'reader', current: 'skincare routine', new: 'read book', time: '22:00', location: 'bed' },
-      { identity: 'healthy person', current: 'read book', new: 'sleep', time: '22:30', location: 'bedroom' }
-    ]
-
-    for (const habit of testHabits) {
-      const habitData = {
-        identity: habit.identity,
-        currentHabit: habit.current,
-        newHabit: habit.new,
-        time: habit.time,
-        location: habit.location,
-        schedule: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        id: `habit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        streak: 0,
-        completions: {},
-        createdAt: new Date().toISOString()
-      }
-      await addHabitToDb(habitData)
-      await new Promise(resolve => setTimeout(resolve, 50))
-    }
-    showToast('30 test habits added!')
   }
 
   const addHabit = async (habit) => {
@@ -210,8 +159,9 @@ function App() {
       
       const toggleDate = new Date(dateStr)
       const habitCreatedDate = new Date(habit.createdAt || habit.id)
+      if (isNaN(habitCreatedDate.getTime())) return
       
-      for (let i = 0; i < 365; i++) {
+      for (let i = 0; i < 100; i++) {
         const date = new Date(toggleDate)
         date.setDate(date.getDate() - i)
         
@@ -318,20 +268,20 @@ function App() {
       showToast('Failed to duplicate', 'error')
     }
   }
-  
-
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user)
-      setAuthLoading(false)
+      try {
+        setUser(user)
+        setAuthLoading(false)
+      } catch (error) {
+        console.error('Authentication error:', error)
+        setAuthLoading(false)
+        showToast('Authentication error occurred', 'error')
+      }
     })
     return unsubscribe
   }, [])
-
-
-
-
 
   const handleLogout = async () => {
     try {
@@ -350,7 +300,7 @@ function App() {
           <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full overflow-x-auto">
             <button
               onClick={() => setActiveTab('habits')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
                 activeTab === 'habits'
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400'
@@ -360,7 +310,7 @@ function App() {
             </button>
             <button
               onClick={() => setActiveTab('todos')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
                 activeTab === 'todos'
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400'
@@ -368,119 +318,30 @@ function App() {
             >
               <CheckSquare className="w-4 h-4" />To-Do
             </button>
+
           </div>
         </div>
 
-        {/* Stats Cards - Only for Habits */}
+        {/* Enhanced Dashboard - Only for Habits */}
         {activeTab === 'habits' && (
-          <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Habits</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Build better habits daily</p>
-              </div>
-              <div className="flex gap-2 w-full sm:w-auto">
-                {habits.length > 0 && (
-                  <>
-                    {isSelectionMode ? (
-                      <>
-                        <button onClick={selectAllHabits} className="px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
-                          Select All
-                        </button>
-                        <button onClick={clearSelection} className="px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg">
-                          Cancel
-                        </button>
-                        {selectedHabits.size > 0 && (
-                          <button onClick={deleteSelectedHabits} className="px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
-                            Delete ({selectedHabits.size})
-                          </button>
-                        )}
-                      </>
-                    ) : (
-                      <button onClick={() => setIsSelectionMode(true)} className="px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg">
-                        Select
-                      </button>
-                    )}
-                  </>
-                )}
-                <button onClick={() => setShowQuickForm(true)} className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center justify-center gap-2">
-                  <Plus className="w-4 h-4" />Add Habit
-                </button>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Total</span>
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{totalHabits}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Active Habits</p>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{completedToday}<span className="text-lg sm:text-xl text-gray-400">/{totalHabits}</span></h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Completed</p>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Rate</span>
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{completionRate}%</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Success Rate</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* View Toggle (only for habits) */}
-        {activeTab === 'habits' && (
-          <div className="mb-6">
-            <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full overflow-x-auto">
-              <button
-                onClick={() => { setViewMode('today'); setCurrentDate(new Date()); }}
-                className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 rounded-md text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap ${
-                  viewMode === 'today'
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}
-              >
-                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />Today
-              </button>
-              <button
-                onClick={() => setViewMode('weekly')}
-                className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 rounded-md text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap ${
-                  viewMode === 'weekly'
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}
-              >
-                <Target className="w-3 h-3 sm:w-4 sm:h-4" />Weekly
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 rounded-md text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap ${
-                  viewMode === 'table'
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}
-              >
-                <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />Table
-              </button>
-            </div>
-          </div>
+          <EnhancedDashboard 
+            habits={habits}
+            totalHabits={totalHabits}
+            completedToday={completedToday}
+            completionRate={completionRate}
+            onAddHabit={() => setShowQuickForm(true)}
+            viewMode={viewMode}
+            setViewMode={(mode) => {
+              setViewMode(mode)
+              if (mode === 'today') setCurrentDate(new Date())
+            }}
+            isSelectionMode={isSelectionMode}
+            selectedHabits={selectedHabits}
+            onSelectAll={selectAllHabits}
+            onClearSelection={clearSelection}
+            onDeleteSelected={deleteSelectedHabits}
+            setIsSelectionMode={setIsSelectionMode}
+          />
         )}
 
         {/* Content Section */}
@@ -555,7 +416,6 @@ function App() {
                 </div>
               ) : (
                 <>
-
                   <HabitList habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} onDuplicate={duplicateHabit} groupBy={groupBy} isSelectionMode={isSelectionMode} selectedHabits={selectedHabits} onToggleSelection={toggleHabitSelection} />
                 </>
               )}
@@ -579,11 +439,18 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen dashboard-gradient">
       <Navigation onLogout={handleLogout} />
-      <main className="max-w-3xl mx-auto px-4 py-4 sm:py-6">
+      <main className="max-w-6xl mx-auto px-4 py-4 sm:py-6 pb-20 sm:pb-6">
         {renderDashboard()}
       </main>
+      
+      {/* Mobile Sticky Add Button - Only show on mobile when habits exist */}
+      {habits.length > 0 && (
+        <div className="block sm:hidden">
+          <StickyAddButton onClick={() => setShowQuickForm(true)} />
+        </div>
+      )}
       {showQuickForm && (
         <QuickHabitForm
           habits={habits}
@@ -616,13 +483,13 @@ function App() {
             <div className="flex space-x-3">
               <button 
                 onClick={() => { setShowDeleteConfirm(false); setHabitToDelete(null); }}
-                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-xs font-bold uppercase tracking-wide"
               >
                 Cancel
               </button>
               <button 
                 onClick={confirmDelete}
-                className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-medium"
+                className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors text-xs font-bold uppercase tracking-wide shadow-md hover:shadow-lg"
               >
                 Delete
               </button>

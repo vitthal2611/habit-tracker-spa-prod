@@ -12,6 +12,8 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
     twoMinVersion: editingHabit.twoMinVersion || '',
     time: editingHabit.time || '',
     location: editingHabit.location || '',
+    cue: editingHabit.cue || '',
+    reward: editingHabit.reward || '',
     startDate: editingHabit.createdAt ? new Date(editingHabit.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     schedule: editingHabit.schedule || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   } : {
@@ -21,6 +23,8 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
     twoMinVersion: '',
     time: '',
     location: '',
+    cue: '',
+    reward: '',
     startDate: new Date().toISOString().split('T')[0],
     schedule: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   })
@@ -37,7 +41,7 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.newHabit || !form.identity) return
+    if (!form.newHabit || !form.identity || !form.twoMinVersion) return
     
     setLoading(true)
 
@@ -51,6 +55,8 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
       twoMinVersion: form.twoMinVersion,
       time: form.time,
       location: form.location,
+      cue: form.cue,
+      reward: form.reward,
       stackAfter: stackAfterHabit?.id,
       schedule: form.schedule,
       createdAt: new Date(form.startDate).toISOString()
@@ -61,6 +67,8 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
       twoMinVersion: form.twoMinVersion,
       time: form.time,
       location: form.location,
+      cue: form.cue,
+      reward: form.reward,
       stackAfter: stackAfterHabit?.id,
       schedule: form.schedule,
       id: `habit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -70,7 +78,7 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
     }
 
     await onSubmit(habitData)
-    setForm({ identity: '', currentHabit: '', newHabit: '', twoMinVersion: '', time: '', location: '', startDate: new Date().toISOString().split('T')[0], schedule: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] })
+    setForm({ identity: '', currentHabit: '', newHabit: '', twoMinVersion: '', time: '', location: '', cue: '', reward: '', startDate: new Date().toISOString().split('T')[0], schedule: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] })
     setCustomCurrent(false)
     setLoading(false)
     onClose()
@@ -80,7 +88,7 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{editingHabit ? 'Edit Habit' : 'Quick Add Habit'}</h2>
+          <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white uppercase tracking-wide">{editingHabit ? 'Edit Habit' : 'Quick Add Habit'}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
@@ -88,7 +96,7 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4">
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">I am a</label>
+            <label className="block text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 mb-2">I am a</label>
             <input
               list="identities"
               value={form.identity}
@@ -106,7 +114,7 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
           </div>
 
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Starting From</label>
+            <label className="block text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 mb-2">Starting From</label>
             <input
               type="date"
               value={form.startDate}
@@ -117,7 +125,7 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
           </div>
 
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">After I {existingHabits.length === 0 && '(optional)'}</label>
+            <label className="block text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 mb-2">After I {existingHabits.length === 0 && '(optional)'}</label>
               {customCurrent ? (
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input
@@ -160,7 +168,7 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
           </div>
 
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">I will</label>
+            <label className="block text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 mb-2">I will</label>
             <input
               type="text"
               value={form.newHabit}
@@ -171,20 +179,27 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
             />
           </div>
 
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">2-Minute Version</label>
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-xl p-4">
+            <div className="flex items-start gap-2 mb-2">
+              <span className="text-2xl">⚡</span>
+              <div>
+                <label className="block text-sm font-bold text-yellow-900 dark:text-yellow-200 mb-1">2-Minute Version (REQUIRED)</label>
+                <p className="text-xs text-yellow-800 dark:text-yellow-300 mb-2">Make it so easy you can't say no. Start small!</p>
+              </div>
+            </div>
             <input
               type="text"
               value={form.twoMinVersion}
               onChange={(e) => setForm(prev => ({ ...prev, twoMinVersion: e.target.value }))}
-              placeholder="e.g., drink one sip of water"
-              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="e.g., put on workout shoes, open book to page 1"
+              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-white dark:bg-gray-800 border-2 border-yellow-400 dark:border-yellow-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              required
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">At (time)</label>
+              <label className="block text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 mb-2">At (time)</label>
               <input
                 type="time"
                 value={form.time}
@@ -193,8 +208,8 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
               />
             </div>
 
-            <div className="sm:col-span-2">
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">In (location)</label>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 mb-2">In (location)</label>
               <input
                 type="text"
                 value={form.location}
@@ -205,8 +220,32 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
             </div>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 mb-2">👀 Obvious Cue</label>
+              <input
+                type="text"
+                value={form.cue}
+                onChange={(e) => setForm(prev => ({ ...prev, cue: e.target.value }))}
+                placeholder="e.g., put book on pillow"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 mb-2">🎁 Immediate Reward</label>
+              <input
+                type="text"
+                value={form.reward}
+                onChange={(e) => setForm(prev => ({ ...prev, reward: e.target.value }))}
+                placeholder="e.g., check off habit, feel proud"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Repeat on</label>
+            <label className="block text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 mb-2">Repeat on</label>
             <div className="flex flex-wrap gap-2">
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                 <button
@@ -220,9 +259,9 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
                         : [...prev.schedule, day]
                     }))
                   }}
-                  className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+                  className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all ${
                     form.schedule.includes(day)
-                      ? 'bg-indigo-600 text-white shadow-md'
+                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
                       : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                   }`}
                 >
@@ -236,7 +275,8 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-3 sm:p-4 text-white">
               <p className="text-xs font-semibold mb-1 opacity-80">HABIT STATEMENT</p>
               <p className="text-sm sm:text-base font-bold">
-                After I {form.currentHabit}, I will {form.newHabit}
+                After I {form.currentHabit}<br />
+                I will {form.newHabit}
                 {form.time && ` at ${form.time}`}
                 {form.location && ` in ${form.location}`}
               </p>
@@ -257,14 +297,14 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wide bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wide bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
             >
               {loading ? (editingHabit ? 'Updating...' : 'Adding...') : (editingHabit ? 'Update Habit' : 'Add Habit')}
             </button>

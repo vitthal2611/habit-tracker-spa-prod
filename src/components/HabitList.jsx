@@ -15,7 +15,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, onDupl
   const today = new Date().toDateString()
 
   const getConsistencyDays = (habit) => {
-    if (!habit.completions || Object.keys(habit.completions).filter(date => habit.completions[date]).length === 0) return 0
+    if (!habit.completions || Object.keys(habit.completions).filter(date => habit.completions[date] === true).length === 0) return 0
     
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -23,11 +23,11 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, onDupl
     let streak = 0
     let checkDate = new Date(today)
     
-    for (let i = 0; i < 365; i++) {
+    for (let i = 0; i < 100; i++) {
       const dateStr = checkDate.toDateString()
-      if (habit.completions[dateStr]) {
+      if (habit.completions[dateStr] === true) {
         streak++
-      } else {
+      } else if (habit.completions[dateStr] === false) {
         break
       }
       checkDate.setDate(checkDate.getDate() - 1)
@@ -273,11 +273,12 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, onDupl
       if (sortBy === 'time') {
         const timeToMinutes = (time) => {
           if (!time || time === 'Anytime' || time === '') return 9999
+          if (!/^\d{1,2}:\d{2}$/.test(time)) return 9999
           const parts = time.split(':')
-          if (parts.length < 2) return 9999
+          if (parts.length !== 2) return 9999
           const hours = parseInt(parts[0], 10)
           const minutes = parseInt(parts[1], 10)
-          if (isNaN(hours) || isNaN(minutes)) return 9999
+          if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return 9999
           return hours * 60 + minutes
         }
         const comparison = timeToMinutes(a.time) - timeToMinutes(b.time)
@@ -509,7 +510,7 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, onDupl
                       <button
                         onClick={() => day.isScheduled && !isFuture && toggleDayCompletion(habit.id, day.dateKey)}
                         disabled={!day.isScheduled || isFuture}
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
+                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all touch-manipulation ${
                           !day.isScheduled || isFuture
                             ? 'bg-gray-100 text-gray-300 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed'
                             : day.completed 
@@ -590,6 +591,17 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, onDupl
 
                 {/* Details Section */}
                 <div className="p-4 space-y-3 bg-gray-50 dark:bg-gray-900/50">
+                  {habit.twoMinVersion && (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-3 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg">⚡</span>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-yellow-900 dark:text-yellow-200 mb-1">Start with 2 minutes</div>
+                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{habit.twoMinVersion}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {/* Time & Location */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2.5 rounded-lg">
@@ -607,53 +619,64 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, onDupl
                       </div>
                     </div>
                   </div>
+                  {(habit.cue || habit.reward) && (
+                    <div className="grid grid-cols-2 gap-3">
+                      {habit.cue && (
+                        <div className="bg-white dark:bg-gray-800 p-2.5 rounded-lg">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">👀 Cue</div>
+                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{habit.cue}</div>
+                        </div>
+                      )}
+                      {habit.reward && (
+                        <div className="bg-white dark:bg-gray-800 p-2.5 rounded-lg">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">🎁 Reward</div>
+                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{habit.reward}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                  {/* Duration & Current Habit */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {habit.duration && (
-                      <div className="bg-white dark:bg-gray-800 p-2.5 rounded-lg">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Duration</div>
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{habit.duration}</div>
-                      </div>
-                    )}
-                    {habit.habit && (
-                      <div className="bg-white dark:bg-gray-800 p-2.5 rounded-lg">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Current</div>
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{habit.habit}</div>
-                      </div>
-                    )}
-                  </div>
+
 
                   {/* Habit Stacking */}
                   {stackedHabit && (
-                    <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <div className="flex items-start gap-2">
-                        <Link className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                        <div className="min-w-0">
-                          <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Stacked After</div>
-                          <div className="text-sm text-gray-900 dark:text-gray-100 font-medium">{stackedHabit.newHabit || stackedHabit.habit}</div>
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 p-4 rounded-xl border-2 border-blue-300 dark:border-blue-700 shadow-sm">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Link className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Habit Stack</span>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="bg-white/60 dark:bg-gray-800/60 p-3 rounded-lg">
+                          <div className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-1.5">After I</div>
+                          <div className="text-base text-gray-900 dark:text-gray-100 font-semibold">{stackedHabit.newHabit || stackedHabit.habit}</div>
+                        </div>
+                        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-3 rounded-lg shadow-md">
+                          <div className="text-xs font-bold text-white/90 mb-1.5">I will</div>
+                          <div className="text-base text-white font-bold">{formatHabitText(habit)}</div>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Schedule */}
-                  {habit.schedule && habit.schedule.length > 0 && (
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Schedule</div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                          <span key={day} className={`px-2 py-1 text-xs font-medium rounded ${
-                            habit.schedule.includes(day)
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
+                  {/* This Week Progress */}
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-3 font-semibold">This Week</div>
+                    <div className="flex justify-between gap-2">
+                      {getWeekProgress(habit).map((day, i) => (
+                        <div key={i} className="flex flex-col items-center">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${
+                            day.completed
+                              ? 'bg-green-500 text-white shadow-md'
+                              : day.isScheduled
+                              ? 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-300 dark:text-gray-600'
                           }`}>
-                            {day}
-                          </span>
-                        ))}
-                      </div>
+                            {day.completed ? '✓' : day.day}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Metrics */}
@@ -663,11 +686,11 @@ export default function HabitList({ habits, onToggle, onDelete, onUpdate, onDupl
                     <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Streak</div>
                   </div>
                   <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{completedThisWeek}/7</div>
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{completedThisWeek}/{weekProgress.filter(d => d.isScheduled).length}</div>
                     <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Week</div>
                   </div>
                   <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{Math.round((completedThisWeek/7)*100)}%</div>
+                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{weekProgress.filter(d => d.isScheduled).length > 0 ? Math.round((completedThisWeek/weekProgress.filter(d => d.isScheduled).length)*100) : 0}%</div>
                     <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Rate</div>
                   </div>
                 </div>

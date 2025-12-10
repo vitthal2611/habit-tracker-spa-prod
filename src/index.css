@@ -22,28 +22,67 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95;
-    min-height: 44px;
-    min-width: 44px;
+    @apply inline-flex items-center justify-center px-5 py-3 text-sm font-bold uppercase tracking-wide rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95;
+    min-height: 48px;
+    min-width: 48px;
     touch-action: manipulation;
     -webkit-user-select: none;
     user-select: none;
   }
   
   .btn-primary {
-    @apply bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 focus:ring-blue-500 shadow-md hover:shadow-lg;
+    @apply bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 focus:ring-indigo-500 shadow-md hover:shadow-lg;
   }
   
   .btn-secondary {
     @apply bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600;
   }
   
+  .btn-success {
+    @apply bg-green-500 text-white hover:bg-green-600 focus:ring-green-500 shadow-md hover:shadow-lg;
+  }
+  
+  .btn-warning {
+    @apply bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-500 shadow-md hover:shadow-lg;
+  }
+  
+  .btn-info {
+    @apply bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-500 shadow-md hover:shadow-lg;
+  }
+  
+  .btn-accent {
+    @apply bg-yellow-400 text-gray-900 hover:bg-yellow-500 focus:ring-yellow-400 shadow-md hover:shadow-lg;
+  }
+  
   .input {
-    @apply w-full px-4 py-3 text-base border-2 border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 hover:border-gray-400 dark:hover:border-gray-500;
+    @apply w-full px-4 py-3 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 hover:border-gray-400 dark:hover:border-gray-500;
+    min-height: 48px;
   }
   
   .card {
     @apply bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300;
+    padding: 20px;
+  }
+  
+  /* Typography Classes */
+  .text-identity {
+    @apply text-xs font-medium uppercase tracking-wide;
+  }
+  
+  .text-trigger {
+    @apply text-sm;
+  }
+  
+  .text-action {
+    @apply text-xl font-black;
+  }
+  
+  .text-meta {
+    @apply text-sm;
+  }
+  
+  .text-label {
+    @apply text-xs font-bold uppercase tracking-wide;
   }
   
   .card:hover {
@@ -76,6 +115,30 @@
   
   .gradient-text {
     @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+  }
+  
+  .dashboard-gradient {
+    @apply bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900;
+  }
+  
+  .card-gradient {
+    @apply bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900;
+  }
+  
+  .progress-gradient {
+    @apply bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500;
+  }
+  
+  .shadow-soft {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  .shadow-medium {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+  
+  .shadow-strong {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
 }
 
@@ -124,4 +187,303 @@
 
 .animate-bounce-in {
   animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Enhanced Dashboard Animations */
+@keyframes progress-fill {
+  from { width: 0%; }
+  to { width: var(--progress-width); }
+}
+
+@keyframes card-hover {
+  from { transform: translateY(0) scale(1); }
+  to { transform: translateY(-4px) scale(1.02); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+}
+
+@keyframes mobile-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes gentle-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-2px); }
+}
+
+.animate-progress-fill {
+  animation: progress-fill 1s ease-out;
+}
+
+.animate-card-hover {
+  animation: card-hover 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+.animate-mobile-bounce {
+  animation: mobile-bounce 0.3s ease-out;
+}
+
+.animate-gentle-float {
+  animation: gentle-float 3s ease-in-out infinite;
+}
+
+/* Mobile-First Dashboard Styles */
+.dashboard-card {
+  @apply transition-all duration-300 ease-out;
+  /* Ensure minimum tap target size */
+  min-height: 120px;
+}
+
+.dashboard-card:hover {
+  @apply transform -translate-y-1 shadow-2xl;
+}
+
+@media (min-width: 640px) {
+  .dashboard-card:hover {
+    @apply scale-105;
+  }
+}
+
+.progress-bar {
+  @apply transition-all duration-1000 ease-out;
+  /* Ensure visibility on mobile */
+  min-height: 16px;
+}
+
+@media (min-width: 640px) {
+  .progress-bar {
+    min-height: 24px;
+  }
+}
+
+.segmented-control {
+  @apply transition-all duration-200 ease-out;
+  /* Ensure touch-friendly size */
+  min-height: 48px;
+  min-width: 48px;
+}
+
+.category-card {
+  @apply transition-all duration-300 ease-out;
+  /* Mobile-friendly minimum size */
+  min-height: 160px;
+}
+
+.category-card:hover {
+  @apply transform shadow-xl;
+}
+
+@media (min-width: 1024px) {
+  .category-card:hover {
+    @apply scale-105;
+  }
+}
+
+/* Mobile-Optimized Utilities */
+.mobile-safe-text {
+  font-size: clamp(14px, 4vw, 18px);
+  line-height: 1.5;
+}
+
+.mobile-tap-target {
+  min-height: 44px;
+  min-width: 44px;
+  @apply flex items-center justify-center;
+}
+
+.mobile-padding {
+  @apply px-4 py-3;
+}
+
+@media (min-width: 640px) {
+  .mobile-padding {
+    @apply px-6 py-4;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mobile-padding {
+    @apply px-8 py-6;
+  }
+}
+
+/* Enhanced Responsive Grid */
+.responsive-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .responsive-grid {
+    gap: 1.5rem;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid {
+    gap: 2rem;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Touch-Friendly Interactions */
+.touch-friendly {
+  @apply select-none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.touch-friendly:active {
+  @apply scale-95;
+  transition: transform 0.1s ease-out;
+}
+
+/* Improved Focus States for Accessibility */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800;
+}
+
+/* Mobile-First Typography Scale */
+.heading-mobile {
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.subheading-mobile {
+  font-size: clamp(1rem, 3vw, 1.25rem);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.body-mobile {
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+  line-height: 1.6;
+}
+
+/* Enhanced Shadow System for Mobile */
+.shadow-mobile {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+@media (min-width: 640px) {
+  .shadow-mobile {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+}
+
+@media (min-width: 1024px) {
+  .shadow-mobile {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+}
+
+/* Mobile-Specific Overrides */
+@media (max-width: 639px) {
+  .mobile-full-width {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+  }
+  
+  .mobile-edge-to-edge {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0;
+  }
+  
+  .mobile-sticky-bottom {
+    position: sticky;
+    bottom: 0;
+    z-index: 30;
+  }
+}
+
+/* Improved Mobile Scrolling */
+@media (max-width: 639px) {
+  .mobile-scroll-container {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+}
+
+/* Mobile-First Button Sizing */
+.btn-mobile {
+  @apply px-6 py-4 text-base font-semibold rounded-xl min-h-[48px] touch-friendly;
+}
+
+@media (min-width: 640px) {
+  .btn-mobile {
+    @apply px-8 py-3 text-sm;
+  }
+}
+
+/* Enhanced Mobile Card Spacing */
+.card-mobile {
+  @apply p-4 rounded-2xl;
+}
+
+@media (min-width: 640px) {
+  .card-mobile {
+    @apply p-6 rounded-3xl;
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-mobile {
+    @apply p-8;
+  }
+}
+
+/* Mobile-Optimized Icon Sizes */
+.icon-mobile {
+  @apply w-5 h-5;
+}
+
+@media (min-width: 640px) {
+  .icon-mobile {
+    @apply w-6 h-6;
+  }
+}
+
+/* Responsive Text Scaling */
+.text-responsive-xl {
+  font-size: clamp(1.25rem, 4vw, 1.875rem);
+}
+
+.text-responsive-lg {
+  font-size: clamp(1.125rem, 3vw, 1.5rem);
+}
+
+.text-responsive-base {
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+}
+
+.text-responsive-sm {
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+}
+
+/* Mobile-Safe Animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-progress-fill,
+  .animate-card-hover,
+  .animate-pulse-glow,
+  .animate-mobile-bounce,
+  .animate-gentle-float {
+    animation: none;
+  }
+  
+  .dashboard-card:hover,
+  .category-card:hover {
+    transform: none;
+  }
 }

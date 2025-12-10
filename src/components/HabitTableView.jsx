@@ -5,6 +5,7 @@ import jsPDF from 'jspdf'
 export default function HabitTableView({ habits, onDelete, onUpdate, onDuplicate, isSelectionMode = false, selectedHabits = new Set(), onToggleSelection }) {
   const [editingCell, setEditingCell] = useState({ habitId: null, field: null })
   const [editValue, setEditValue] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const sortedHabits = [...habits].sort((a, b) => {
     const timeA = a.time || '00:00'
@@ -88,17 +89,36 @@ export default function HabitTableView({ habits, onDelete, onUpdate, onDuplicate
     doc.save('Habit-Tracker-Table.pdf')
   }
 
+  const filteredHabits = sortedHabits.filter(h => 
+    h.newHabit?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    h.identity?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    h.location?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   return (
     <div className="overflow-x-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Habit Details Table</h2>
-        <button
-          onClick={downloadPDF}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-        >
-          <Download className="w-4 h-4" />
-          Download PDF
-        </button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <input
+            type="text"
+            placeholder="Search habits..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 sm:w-64 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            onClick={downloadPDF}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+          >
+            <Download className="w-4 h-4" />
+            PDF
+          </button>
+        </div>
+      </div>
+
+      <div className="lg:hidden bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-400 dark:border-yellow-600 rounded-lg p-4 mb-4">
+        <p className="text-sm text-yellow-900 dark:text-yellow-200">📱 Table view is optimized for desktop. Switch to Weekly or Today view for better mobile experience.</p>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-x-auto">
@@ -108,7 +128,7 @@ export default function HabitTableView({ habits, onDelete, onUpdate, onDuplicate
               <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Step</th>
               <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Cue</th>
               <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Action</th>
-              <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Specificity</th>
+
               <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Timing</th>
               <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Location</th>
               <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Comments/Suggestions</th>
@@ -116,7 +136,7 @@ export default function HabitTableView({ habits, onDelete, onUpdate, onDuplicate
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {sortedHabits.map((habit, index) => (
+            {filteredHabits.map((habit, index) => (
               <tr key={habit.id} className={index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900' : 'bg-white dark:bg-gray-800'}>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                   {editingCell.habitId === habit.id && editingCell.field === 'step' ? (
@@ -176,9 +196,7 @@ export default function HabitTableView({ habits, onDelete, onUpdate, onDuplicate
                     </div>
                   )}
                 </td>
-                <td className="px-4 py-3 text-sm text-green-600 dark:text-green-400 font-medium">
-                  Clear, specific
-                </td>
+
                 <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                   {editingCell.habitId === habit.id && editingCell.field === 'time' ? (
                     <input
@@ -269,6 +287,13 @@ export default function HabitTableView({ habits, onDelete, onUpdate, onDuplicate
           </tbody>
         </table>
       </div>
+
+      {filteredHabits.length === 0 && searchQuery && (
+        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg mt-4">
+          <div className="text-gray-400 mb-2">No habits found</div>
+          <p className="text-gray-600 dark:text-gray-400">Try a different search term</p>
+        </div>
+      )}
 
       {sortedHabits.length === 0 && (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg mt-4">
