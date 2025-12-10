@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Target, TrendingUp, Calendar, CheckSquare, DollarSign } from 'lucide-react'
+import { Plus, Target, TrendingUp, Calendar, CheckSquare } from 'lucide-react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from './firebase'
 import Navigation from './components/Navigation'
@@ -7,16 +7,10 @@ import QuickHabitForm from './components/QuickHabitForm'
 import HabitList from './components/HabitList'
 import HabitTableView from './components/HabitTableView'
 import DailyHabitView from './components/DailyHabitView'
-import TodoList from './components/TodoList'
 import EisenhowerMatrix from './components/EisenhowerMatrix'
-import YearlyBudget from './components/YearlyBudget'
-import Transactions from './components/Transactions'
-import Dashboard from './components/Dashboard'
-import Button from './components/ui/Button'
 import Auth from './components/Auth'
 import { useFirestore } from './hooks/useFirestore'
 import { useHabitLinkedList } from './hooks/useHabitLinkedList'
-import { DEFAULT_BUDGET_CATEGORIES } from './utils/budgetCategories'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -37,16 +31,7 @@ function App() {
   const [viewMode, setViewMode] = useState('today')
   const [currentDate, setCurrentDate] = useState(new Date())
   const [dbTodos, { addItem: addTodoToDb, updateItem: updateTodoInDb, deleteItem: deleteTodoFromDb }] = useFirestore('todos', [])
-  const [dbCategories, { addItem: addCategoryToDb, deleteItem: deleteCategoryFromDb }] = useFirestore('todoCategories', [])
-  const [dbYearlyBudgets, { addItem: addYearlyBudgetToDb, updateItem: updateYearlyBudgetInDb }] = useFirestore('yearlyBudgets', [])
-  const [dbTransactions, { addItem: addTransactionToDb, updateItem: updateTransactionInDb, deleteItem: deleteTransactionFromDb }] = useFirestore('transactions', [])
-  const [dbSettings, { addItem: addSettingToDb, updateItem: updateSettingInDb }] = useFirestore('settings', [])
-  const currentYear = new Date().getFullYear()
-  const currentYearBudget = dbYearlyBudgets.find(b => b.year === currentYear)
   const [activeTab, setActiveTab] = useState('habits')
-  
-  const paymentModes = dbSettings.find(s => s.id === 'paymentModes')?.modes || ['Cash', 'Card', 'UPI', 'Bank']
-  const initialBalances = dbSettings.find(s => s.id === 'initialBalances')?.balances || {}
 
   const today = new Date().toDateString()
   
@@ -383,37 +368,6 @@ function App() {
             >
               <CheckSquare className="w-4 h-4" />To-Do
             </button>
-
-            <button
-              onClick={() => setActiveTab('budget')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
-                activeTab === 'budget'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400'
-              }`}
-            >
-              <DollarSign className="w-4 h-4" />Budget
-            </button>
-            <button
-              onClick={() => setActiveTab('transactions')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
-                activeTab === 'transactions'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400'
-              }`}
-            >
-              <TrendingUp className="w-4 h-4" />Transactions
-            </button>
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
-                activeTab === 'dashboard'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />Dashboard
-            </button>
           </div>
         </div>
 
@@ -530,78 +484,7 @@ function App() {
         )}
 
         {/* Content Section */}
-        {activeTab === 'budget' ? (
-          <YearlyBudget
-            budgetData={currentYearBudget}
-            transactions={dbTransactions}
-            dbYearlyBudgets={dbYearlyBudgets}
-            onSave={async (budget) => {
-              try {
-                const budgetData = {
-                  ...budget,
-                  year: budget.year || currentYear,
-                  categories: budget.categories || [],
-                  updatedAt: new Date().toISOString()
-                }
-                
-                // Find existing budget for the specific year
-                const existingBudget = dbYearlyBudgets.find(b => b.year === budgetData.year)
-                
-                if (existingBudget) {
-                  await updateYearlyBudgetInDb({ ...budgetData, id: existingBudget.id })
-                } else {
-                  await addYearlyBudgetToDb({ ...budgetData, id: `budget_${budgetData.year}`, createdAt: new Date().toISOString() })
-                }
-                showToast(`Budget saved for ${budgetData.year}!`)
-              } catch (error) {
-                console.error('Budget save error:', error)
-                showToast(`Failed to save budget: ${error.message}`, 'error')
-              }
-            }}
-          />
-        ) : activeTab === 'transactions' ? (
-          <Transactions
-            transactions={dbTransactions}
-            budgetCategories={currentYearBudget?.categories || DEFAULT_BUDGET_CATEGORIES}
-            year={currentYear}
-            modes={paymentModes}
-            initialBalances={initialBalances}
-            onUpdateModes={async (modes) => {
-              const existing = dbSettings.find(s => s.id === 'paymentModes')
-              if (existing) {
-                await updateSettingInDb({ id: 'paymentModes', modes })
-              } else {
-                await addSettingToDb({ id: 'paymentModes', modes })
-              }
-            }}
-            onUpdateBalances={async (balances) => {
-              const existing = dbSettings.find(s => s.id === 'initialBalances')
-              if (existing) {
-                await updateSettingInDb({ id: 'initialBalances', balances })
-              } else {
-                await addSettingToDb({ id: 'initialBalances', balances })
-              }
-            }}
-            onAdd={(transaction) => {
-              addTransactionToDb(transaction)
-              showToast('Transaction added!')
-            }}
-            onUpdate={(transaction) => {
-              updateTransactionInDb(transaction)
-              showToast('Transaction updated!')
-            }}
-            onDelete={(id) => {
-              deleteTransactionFromDb(id)
-              showToast('Transaction deleted!')
-            }}
-          />
-        ) : activeTab === 'dashboard' ? (
-          <Dashboard
-            transactions={dbTransactions}
-            budgetCategories={currentYearBudget?.categories || DEFAULT_BUDGET_CATEGORIES}
-            year={currentYear}
-          />
-        ) : activeTab === 'todos' ? (
+        {activeTab === 'todos' ? (
           <EisenhowerMatrix 
             todos={dbTodos}
             onAdd={addTodoToDb}
@@ -617,7 +500,13 @@ function App() {
             }}
             onUpdate={updateTodoInDb}
             onDelete={deleteTodoFromDb}
-            allCategories={[...DEFAULT_BUDGET_CATEGORIES.map(c => ({ id: c.name.toLowerCase(), name: c.name, color: 'bg-blue-500' }))].slice(0, 5)}
+            allCategories={[
+              { id: 'work', name: 'Work', color: 'bg-blue-500' },
+              { id: 'personal', name: 'Personal', color: 'bg-green-500' },
+              { id: 'health', name: 'Health', color: 'bg-red-500' },
+              { id: 'learning', name: 'Learning', color: 'bg-purple-500' },
+              { id: 'other', name: 'Other', color: 'bg-gray-500' }
+            ]}
           />
         ) : viewMode === 'table' ? (
           <div>
