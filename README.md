@@ -10,7 +10,9 @@ A beautiful, single-page React application for tracking habits with smooth navig
 - **Dynamic Dropdowns** - Add new options directly in dropdowns
 - **Progress Tracking** - Weekly, monthly, yearly views with visual progress bars
 - **Dark/Light Mode** - System preference detection with smooth transitions
-- **Local Storage** - All data persists in browser storage between sessions
+- **Advanced Data Storage** - Separate keys per module, validation, backup/restore, export/import
+- **Sync Status Indicators** - Real-time data sync status with visual feedback
+- **Data Migration** - Automatic schema upgrades for seamless updates
 - **Responsive Design** - Mobile-first, works on all devices
 - **Smooth Animations** - Fade-in, slide-up, scale effects
 
@@ -39,11 +41,16 @@ src/
 │   │   ├── Dropdown.jsx # Dropdown with add new functionality
 │   │   └── Toggle.jsx   # Toggle switch for dark mode
 │   ├── Navigation.jsx   # Top navigation with tabs
+│   ├── DataManager.jsx  # Data export/import/backup UI
+│   ├── SyncStatusIndicator.jsx # Sync status display
 │   ├── HabitForm.jsx    # Habit creation form
 │   └── HabitList.jsx    # Habit display and management
 ├── hooks/
-│   ├── useLocalStorage.js # Local storage hook
+│   ├── useLocalStorage.js # Local storage hook with validation
 │   └── useHabitLinkedList.js # Habit linked list logic
+├── utils/
+│   ├── dataStorage.js   # Core storage utilities
+│   └── dataStorageTests.js # Test utilities
 └── App.jsx              # Main SPA component
 ```
 
@@ -93,7 +100,21 @@ All components use Tailwind utility classes with consistent spacing, colors, and
 - **Habit Stacking** - Chain habits together for better formation
 - **Dynamic Forms** - Add dropdown options without leaving the form
 - **Visual Progress** - Color-coded weekly progress indicators
+- **Data Management** - Export/import data, create backups, restore from backups
+- **Data Validation** - Automatic validation prevents corrupted data
+- **Sync Status** - Real-time indicators show when data is saved
 - **Responsive** - Mobile-optimized with touch-friendly interactions
 - **Accessible** - Keyboard navigation and screen reader support
+
+## 💾 Data Management
+
+Click the database icon in the navigation to:
+- **Export** all data or module-specific data to JSON
+- **Import** data from backup files
+- **Create backups** stored in browser (keeps last 5)
+- **Restore** from any previous backup
+- **Monitor sync status** with real-time indicators
+
+See [DATA-STORAGE-GUIDE.md](DATA-STORAGE-GUIDE.md) for detailed documentation.
 
 Built with modern React patterns, Tailwind CSS, and focus on user experience.

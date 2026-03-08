@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, X, Check, Circle, Edit2, Calendar } from 'lucide-react'
+import { Plus, X, Check, Circle, Edit2, Calendar, Search, Filter, Tag, TrendingUp, Clock, AlertCircle } from 'lucide-react'
 
 const DEFAULT_CATEGORIES = [
   { id: 'work', name: 'Work', color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-900/20' },
@@ -26,6 +26,13 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
   const [selectedColor, setSelectedColor] = useState(0)
   const [focusMode, setFocusMode] = useState(false)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [filterPriority, setFilterPriority] = useState('all')
+  const [filterDateRange, setFilterDateRange] = useState({ start: '', end: '' })
+  const [showFilters, setShowFilters] = useState(false)
+  const [selectedTags, setSelectedTags] = useState([])
+  const [newTag, setNewTag] = useState('')
   
   const allCategories = [...DEFAULT_CATEGORIES, ...(categories || [])]
 
@@ -73,6 +80,7 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
           priority: priority,
           timeEstimate: timeEstimate || null,
           subtasks: [],
+          tags: selectedTags,
           isRecurring: isRecurring,
           recurringPattern: isRecurring ? recurringPattern : null,
           recurringDay: isRecurring && recurringPattern === 'weekly' ? recurringDay : null,
@@ -84,6 +92,7 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
         setDueDate('')
         setPriority('medium')
         setTimeEstimate('')
+        setSelectedTags([])
         setIsRecurring(false)
         setRecurringPattern('daily')
         setRecurringStartDate('')
@@ -97,9 +106,18 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
     }
   }
 
-  const filteredTodos = filterCategory === 'all' 
-    ? todos 
-    : todos.filter(todo => todo.category === filterCategory)
+  const filteredTodos = todos.filter(todo => {
+    if (filterCategory !== 'all' && todo.category !== filterCategory) return false
+    if (filterStatus !== 'all') {
+      const status = todo.status || (todo.completed ? 'completed' : 'backlog')
+      if (status !== filterStatus) return false
+    }
+    if (filterPriority !== 'all' && todo.priority !== filterPriority) return false
+    if (filterDateRange.start && todo.dueDate && todo.dueDate < filterDateRange.start) return false
+    if (filterDateRange.end && todo.dueDate && todo.dueDate > filterDateRange.end) return false
+    if (searchQuery && !todo.text.toLowerCase().includes(searchQuery.toLowerCase())) return false
+    return true
+  })
 
   const sortedTodos = [...filteredTodos].sort((a, b) => {
     if (!a.dueDate && !b.dueDate) return 0
@@ -195,6 +213,30 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
   const inProgressGroups = groupByDate(inProgressTodos)
   const completedGroups = groupByDate(completedTodos)
 
+  const getTaskStats = () => {
+    const today = new Date().toISOString().split('T')[0]
+    const total = todos.length
+    const completed = todos.filter(t => t.completed || t.status === 'completed').length
+    const overdue = todos.filter(t => !t.completed && t.dueDate && t.dueDate < today).length
+    const todayCount = todos.filter(t => t.dueDate === today && !t.completed).length
+    return { total, completed, overdue, today: todayCount }
+  }
+
+  const stats = getTaskStats()
+
+  const allTags = [...new Set(todos.flatMap(t => t.tags || []))]
+
+  const addTag = () => {
+    if (newTag.trim() && !selectedTags.includes(newTag.trim())) {
+      setSelectedTags([...selectedTags, newTag.trim()])
+      setNewTag('')
+    }
+  }
+
+  const removeTag = (tag) => {
+    setSelectedTags(selectedTags.filter(t => t !== tag))
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-4 px-4">
       {/* Overdue Notice */}
@@ -213,9 +255,93 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
           <span className="font-semibold">Task added!</span>
         </div>
       )}
+      {/* Task Statistics */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center justify-between mb-2">
+            <Circle className="w-5 h-5 opacity-80" />
+            <span className="text-2xl font-black">{stats.total}</span>
+          </div>
+          <p className="text-xs font-semibold opacity-90">Total Tasks</p>
+        </div>
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center justify-between mb-2">
+            <Check className="w-5 h-5 opacity-80" />
+            <span className="text-2xl font-black">{stats.completed}</span>
+          </div>
+          <p className="text-xs font-semibold opacity-90">Completed</p>
+        </div>
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center justify-between mb-2">
+            <AlertCircle className="w-5 h-5 opacity-80" />
+            <span className="text-2xl font-black">{stats.overdue}</span>
+          </div>
+          <p className="text-xs font-semibold opacity-90">Overdue</p>
+        </div>
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center justify-between mb-2">
+            <Clock className="w-5 h-5 opacity-80" />
+            <span className="text-2xl font-black">{stats.today}</span>
+          </div>
+          <p className="text-xs font-semibold opacity-90">Due Today</p>
+        </div>
+      </div>
+
+      {/* Search & Filters */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 mb-4">
+        <div className="flex gap-2 mb-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search tasks..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-4 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all ${showFilters ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-slate-300'}`}
+          >
+            <Filter className="w-5 h-5" />
+            Filters
+          </button>
+        </div>
+        {showFilters && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-200 dark:border-gray-700 animate-fade-in">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Status</label>
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="all">All Status</option>
+                <option value="backlog">Backlog</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Priority</label>
+              <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="all">All Priorities</option>
+                <option value="high">🔴 High</option>
+                <option value="medium">🟡 Medium</option>
+                <option value="low">🔵 Low</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Date Range</label>
+              <div className="flex gap-1">
+                <input type="date" value={filterDateRange.start} onChange={(e) => setFilterDateRange({...filterDateRange, start: e.target.value})} className="flex-1 px-2 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <input type="date" value={filterDateRange.end} onChange={(e) => setFilterDateRange({...filterDateRange, end: e.target.value})} className="flex-1 px-2 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-4">To-Do List</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-4">Add New Task</h2>
         
         {/* Add Todo Form */}
         <form onSubmit={handleAdd} className="space-y-3">
@@ -387,6 +513,47 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
             >
               + New Category
             </button>
+          </div>
+
+          {/* Tags Selection */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+              <Tag className="w-4 h-4" />
+              Tags
+            </label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {selectedTags.map(tag => (
+                <span key={tag} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-semibold">
+                  {tag}
+                  <button type="button" onClick={() => removeTag(tag)} className="hover:text-red-500">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                placeholder="Add tag..."
+                className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <button type="button" onClick={addTag} className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 font-semibold text-sm">
+                Add
+              </button>
+            </div>
+            {allTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                <span className="text-xs text-slate-500 dark:text-slate-400">Suggestions:</span>
+                {allTags.filter(t => !selectedTags.includes(t)).slice(0, 5).map(tag => (
+                  <button key={tag} type="button" onClick={() => setSelectedTags([...selectedTags, tag])} className="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-gray-600">
+                    + {tag}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </form>
       </div>
@@ -781,6 +948,8 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
   const [editRecurringDay, setEditRecurringDay] = useState(todo.recurringDay || 'Mon')
   const [editRecurringStartDate, setEditRecurringStartDate] = useState(todo.recurringStartDate || '')
   const [editRecurringEndDate, setEditRecurringEndDate] = useState(todo.recurringEndDate || '')
+  const [editTags, setEditTags] = useState(todo.tags || [])
+  const [newEditTag, setNewEditTag] = useState('')
   const category = allCategories.find(c => c.id === todo.category) || allCategories.find(c => c.id === 'other') || allCategories[0]
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -796,6 +965,7 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
       category: editCategory, 
       priority: editPriority, 
       timeEstimate: editTimeEstimate || null,
+      tags: editTags,
       isRecurring: editIsRecurring,
       recurringPattern: editIsRecurring ? editRecurringPattern : null,
       recurringDay: editIsRecurring && editRecurringPattern === 'weekly' ? editRecurringDay : null,
@@ -902,9 +1072,9 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
     <div 
       draggable={window.innerWidth >= 1024}
       onDragStart={handleDragStart}
-      className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3 transition-all hover:shadow-md lg:cursor-move ${
+      className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3 transition-all hover:shadow-md hover:scale-[1.02] lg:cursor-move animate-fade-in ${
       currentStatus === 'completed' ? 'opacity-60' : ''
-    } ${isOverdue ? 'border-red-300 dark:border-red-700' : ''}`}>
+    } ${isOverdue ? 'border-red-300 dark:border-red-700 border-2' : ''}`}>
       <div className="flex items-start gap-2">
         <button
           onClick={() => moveToStatus(currentStatus === 'completed' ? 'in-progress' : 'completed')}
@@ -964,6 +1134,12 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
                 ☑️ {todo.subtasks.filter(st => st.completed).length}/{todo.subtasks.length}
               </button>
             )}
+            {todo.tags && todo.tags.map(tag => (
+              <span key={tag} className="text-xs font-medium px-2 py-0.5 rounded bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30 text-pink-700 dark:text-pink-400 flex items-center gap-1">
+                <Tag className="w-3 h-3" />
+                {tag}
+              </span>
+            ))}
           </div>
           
           {/* Subtasks */}
@@ -1124,6 +1300,52 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
                   }`}
                 >
                   🔵 Low
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                <Tag className="w-4 h-4" />
+                Tags
+              </label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {editTags.map(tag => (
+                  <span key={tag} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 text-xs font-semibold">
+                    {tag}
+                    <button type="button" onClick={() => setEditTags(editTags.filter(t => t !== tag))} className="hover:text-red-500">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newEditTag}
+                  onChange={(e) => setNewEditTag(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      if (newEditTag.trim() && !editTags.includes(newEditTag.trim())) {
+                        setEditTags([...editTags, newEditTag.trim()])
+                        setNewEditTag('')
+                      }
+                    }
+                  }}
+                  placeholder="Add tag..."
+                  className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newEditTag.trim() && !editTags.includes(newEditTag.trim())) {
+                      setEditTags([...editTags, newEditTag.trim()])
+                      setNewEditTag('')
+                    }
+                  }}
+                  className="px-4 py-2 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 rounded-lg hover:bg-pink-200 dark:hover:bg-pink-900/50 font-semibold text-sm"
+                >
+                  Add
                 </button>
               </div>
             </div>

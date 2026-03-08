@@ -1,17 +1,14 @@
 import { useState, useEffect } from 'react'
+import { getData, setData as saveData, markAsChanged } from '../utils/dataStorage'
 
 export const useLocalStorage = (key, initialValue = []) => {
-  const [data, setData] = useState(() => {
-    try {
-      const item = localStorage.getItem(key)
-      return item ? JSON.parse(item) : initialValue
-    } catch {
-      return initialValue
-    }
-  })
+  const [data, setData] = useState(() => getData(key, initialValue))
 
   useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(data))
+    const success = saveData(key, data)
+    if (success) {
+      markAsChanged()
+    }
   }, [key, data])
 
   const addItem = (item) => {

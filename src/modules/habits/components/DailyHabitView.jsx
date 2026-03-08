@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import QuickHabitForm from './QuickHabitForm'
-import Modal from './ui/Modal'
+import Modal from '../../../components/ui/Modal'
 
 export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, onAdd, onDuplicate, currentDate: propCurrentDate, setCurrentDate: propSetCurrentDate, isSelectionMode = false, selectedHabits = new Set(), onToggleSelection }) {
   const [currentDate, setCurrentDate] = useState(propCurrentDate || new Date())

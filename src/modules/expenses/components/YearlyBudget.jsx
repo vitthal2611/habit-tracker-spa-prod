@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Calendar, DollarSign, Plus, Minus } from 'lucide-react'
-import { DEFAULT_BUDGET_CATEGORIES } from '../utils/budgetCategories'
+import { DEFAULT_BUDGET_CATEGORIES } from '../../../utils/budgetCategories'
 
 export default function YearlyBudget({ budgetData, transactions = [], onSave, dbYearlyBudgets = [] }) {
   const currentYear = new Date().getFullYear()

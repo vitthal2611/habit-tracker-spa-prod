@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Check, Clock, MapPin, Link, Trash2, ChevronLeft, ChevronRight, Edit, Download, Copy } from 'lucide-react'
-import Card from './ui/Card'
-import Button from './ui/Button'
-import Modal from './ui/Modal'
+import Card from '../../../components/ui/Card'
+import Button from '../../../components/ui/Button'
+import Modal from '../../../components/ui/Modal'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 
