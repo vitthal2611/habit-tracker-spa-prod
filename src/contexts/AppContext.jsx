@@ -1,7 +1,15 @@
-import { createContext, useReducer, useEffect } from 'react'
+import { createContext, useReducer, useEffect, useRef, useCallback } from 'react'
 import { appReducer, initialState, ACTIONS } from '../reducers/appReducer'
 
 export const AppContext = createContext()
+
+const debounce = (func, delay) => {
+  let timeoutId
+  return (...args) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => func(...args), delay)
+  }
+}
 
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(appReducer, initialState, (initial) => {
@@ -31,62 +39,91 @@ export function AppProvider({ children }) {
     }
   })
 
-  // Sync to localStorage on state changes
+  const writeQueue = useRef({})
+  const isSyncing = useRef(false)
+
+  const debouncedSave = useCallback(
+    debounce((key, value) => {
+      try {
+        localStorage.setItem(key, JSON.stringify(value))
+        delete writeQueue.current[key]
+      } catch (error) {
+        console.error(`Error saving ${key}:`, error)
+      }
+    }, 500),
+    []
+  )
+
+  // Sync to localStorage with debouncing
   useEffect(() => {
-    try {
-      localStorage.setItem('habits', JSON.stringify(state.habits))
-    } catch (error) {
-      console.error('Error saving habits:', error)
-    }
-  }, [state.habits])
+    writeQueue.current.habits = state.habits
+    debouncedSave('habits', state.habits)
+  }, [state.habits, debouncedSave])
 
   useEffect(() => {
-    try {
-      localStorage.setItem('todos', JSON.stringify(state.todos))
-    } catch (error) {
-      console.error('Error saving todos:', error)
-    }
-  }, [state.todos])
+    writeQueue.current.todos = state.todos
+    debouncedSave('todos', state.todos)
+  }, [state.todos, debouncedSave])
 
   useEffect(() => {
-    try {
-      localStorage.setItem('transactions', JSON.stringify(state.transactions))
-    } catch (error) {
-      console.error('Error saving transactions:', error)
-    }
-  }, [state.transactions])
+    writeQueue.current.transactions = state.transactions
+    debouncedSave('transactions', state.transactions)
+  }, [state.transactions, debouncedSave])
 
   useEffect(() => {
-    try {
-      localStorage.setItem('budgets', JSON.stringify(state.budgets))
-    } catch (error) {
-      console.error('Error saving budgets:', error)
-    }
-  }, [state.budgets])
+    writeQueue.current.budgets = state.budgets
+    debouncedSave('budgets', state.budgets)
+  }, [state.budgets, debouncedSave])
 
   useEffect(() => {
-    try {
-      localStorage.setItem('paymentModes', JSON.stringify(state.paymentModes))
-    } catch (error) {
-      console.error('Error saving payment modes:', error)
-    }
-  }, [state.paymentModes])
+    writeQueue.current.paymentModes = state.paymentModes
+    debouncedSave('paymentModes', state.paymentModes)
+  }, [state.paymentModes, debouncedSave])
 
   useEffect(() => {
-    try {
-      localStorage.setItem('todoCategories', JSON.stringify(state.categories))
-    } catch (error) {
-      console.error('Error saving categories:', error)
-    }
-  }, [state.categories])
+    writeQueue.current.todoCategories = state.categories
+    debouncedSave('todoCategories', state.categories)
+  }, [state.categories, debouncedSave])
 
   useEffect(() => {
-    try {
-      localStorage.setItem('settings', JSON.stringify(state.settings))
-    } catch (error) {
-      console.error('Error saving settings:', error)
+    writeQueue.current.settings = state.settings
+    debouncedSave('settings', state.settings)
+  }, [state.settings, debouncedSave])
+
+  // Flush writes on visibility change
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        Object.entries(writeQueue.current).forEach(([key, value]) => {
+          try {
+            localStorage.setItem(key, JSON.stringify(value))
+          } catch (error) {
+            console.error(`Error flushing ${key}:`, error)
+          }
+        })
+        writeQueue.current = {}
+      }
     }
-  }, [state.settings])
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
+
+  // Flush writes on beforeunload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      Object.entries(writeQueue.current).forEach(([key, value]) => {
+        try {
+          localStorage.setItem(key, JSON.stringify(value))
+        } catch (error) {
+          console.error(`Error flushing ${key}:`, error)
+        }
+      })
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [])
 
   return (
     <AppContext.Provider value={{ state, dispatch, ACTIONS }}>

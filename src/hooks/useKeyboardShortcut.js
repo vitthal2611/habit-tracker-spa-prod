@@ -7,6 +7,11 @@ export function useKeyboardShortcut(key, callback, options = {}) {
     if (!enabled) return
 
     const handleKeyDown = (e) => {
+      const target = e.target
+      const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+      
+      if (isTyping && !ctrl && !shift && !alt) return
+      
       const isCtrlPressed = e.ctrlKey || e.metaKey
       const isShiftPressed = e.shiftKey
       const isAltPressed = e.altKey

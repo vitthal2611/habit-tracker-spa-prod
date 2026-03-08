@@ -1,13 +1,14 @@
-import { useState } from 'react'
-import { Plus, Target, TrendingUp, Calendar, Sparkles, BarChart3, Bell, FileText, Award } from 'lucide-react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { Plus, Target, TrendingUp, Calendar, Sparkles, BarChart3, Bell, FileText, Award, Link2 } from 'lucide-react'
 import QuickHabitForm from './components/QuickHabitForm'
 import HabitList from './components/HabitList'
-import HabitTableView from './components/HabitTableView'
 import DailyHabitView from './components/DailyHabitView'
 import HabitTemplates from './components/HabitTemplates'
 import HabitAnalytics from './components/HabitAnalytics'
 import HabitReminders from './components/HabitReminders'
 import HabitScorecard from './components/HabitScorecard'
+import HabitChainView from './components/HabitChainView'
+import OnboardingHabitFlow from '../../components/OnboardingHabitFlow'
 import Loading from '../../components/ui/Loading'
 import EmptyState from '../../components/ui/EmptyState'
 import Toast from '../../components/ui/Toast'
@@ -16,7 +17,6 @@ import Tooltip from '../../components/ui/Tooltip'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useHabitLinkedList } from '../../hooks/useHabitLinkedList'
 import { useToast } from '../../hooks/useToast'
-import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut'
 
 export default function HabitsModule() {
   const [dbHabits, { addItem: addHabitToDb, updateItem: updateHabitInDb, deleteItem: deleteHabitFromDb, loading }] = useLocalStorage('habits', [])
@@ -28,22 +28,67 @@ export default function HabitsModule() {
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [groupBy, setGroupBy] = useState('none')
-  const [viewMode, setViewMode] = useState('today')
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('habitViewMode') || 'today')
+  const [touchStart, setTouchStart] = useState(null)
+  const [touchEnd, setTouchEnd] = useState(null)
+  const viewContainerRef = useRef(null)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [showTemplates, setShowTemplates] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [reminderHabit, setReminderHabit] = useState(null)
   const [habitNotes, { addItem: addNote }] = useLocalStorage('habitNotes', [])
+  const [achievements, { addItem: addAchievement }] = useLocalStorage('achievements', [])
+  const [metricsHistory, { addItem: addMetric, updateItem: updateMetric }] = useLocalStorage('habitMetricsHistory', [])
   const [scorecardHabits, setScorecardHabits] = useState(() => {
     const saved = localStorage.getItem('scorecardHabits')
     return saved ? JSON.parse(saved) : []
   })
+  const [scorecardHabitData, setScorecardHabitData] = useState(null)
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem('hasCompletedOnboarding')
+  })
 
-  // Keyboard shortcuts
-  useKeyboardShortcut('n', () => setShowQuickForm(true), { enabled: !showQuickForm })
-  useKeyboardShortcut('s', () => setIsSelectionMode(!isSelectionMode), { enabled: habits.length > 0 })
-  useKeyboardShortcut('t', () => setShowTemplates(true), { enabled: !showTemplates })
-  useKeyboardShortcut('a', () => setShowAnalytics(true), { enabled: !showAnalytics })
+  // View persistence
+  useEffect(() => {
+    localStorage.setItem('habitViewMode', viewMode)
+  }, [viewMode])
+
+  // Swipe gesture handling
+  const minSwipeDistance = 50
+  const views = ['today', 'weekly', 'chain', 'scorecard']
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX)
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+    
+    if (isLeftSwipe || isRightSwipe) {
+      const currentIndex = views.indexOf(viewMode)
+      if (isLeftSwipe && currentIndex < views.length - 1) {
+        setViewMode(views[currentIndex + 1])
+      } else if (isRightSwipe && currentIndex > 0) {
+        setViewMode(views[currentIndex - 1])
+      }
+    }
+  }
+
+  const handleMilestone = async (milestone, habit) => {
+    await addAchievement({
+      id: Date.now(),
+      habitId: habit.id,
+      habitName: habit.newHabit || habit.habit,
+      milestone,
+      date: new Date().toISOString()
+    })
+  }
 
   // Save scorecard to localStorage
   const saveScorecard = (habits) => {
@@ -53,14 +98,15 @@ export default function HabitsModule() {
   }
 
   // Create habit from scorecard
-  const createFromScorecard = (scorecardHabit) => {
+  const createFromScorecard = (habitData) => {
+    setScorecardHabitData(habitData)
     setShowQuickForm(true)
-    // Pre-fill form data will be handled in QuickHabitForm
+    setViewMode('today')
   }
 
   const today = new Date().toDateString()
 
-  const getTodayMetrics = () => {
+  const getTodayMetrics = useMemo(() => {
     const todayHabits = habits.filter(h => {
       const habitStartDate = new Date(h.createdAt || h.id)
       const todayDate = new Date()
@@ -77,9 +123,9 @@ export default function HabitsModule() {
     const total = todayHabits.length
     const rate = total > 0 ? Math.round((completed / total) * 100) : 0
     return { completed, total, rate }
-  }
+  }, [habits, today])
 
-  const getWeeklyMetrics = () => {
+  const getWeeklyMetrics = useMemo(() => {
     const weekDays = 7
     let totalScheduled = 0
     let totalCompleted = 0
@@ -107,9 +153,76 @@ export default function HabitsModule() {
     }
     const rate = totalScheduled > 0 ? Math.round((totalCompleted / totalScheduled) * 100) : 0
     return { completed: totalCompleted, total: totalScheduled, rate }
-  }
+  }, [habits])
 
-  const metrics = viewMode === 'today' ? getTodayMetrics() : getWeeklyMetrics()
+  // Store daily metrics
+  useEffect(() => {
+    const todayKey = new Date().toISOString().split('T')[0]
+    const existingMetric = metricsHistory.find(m => m.date === todayKey)
+    const { completed, total, rate } = getTodayMetrics
+    
+    if (existingMetric) {
+      if (existingMetric.completed !== completed || existingMetric.total !== total) {
+        updateMetric({ ...existingMetric, completed, total, rate })
+      }
+    } else {
+      addMetric({ date: todayKey, completed, total, rate })
+    }
+    
+    // Keep only last 30 days
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const recentMetrics = metricsHistory.filter(m => new Date(m.date) >= thirtyDaysAgo)
+    if (recentMetrics.length !== metricsHistory.length) {
+      localStorage.setItem('habitMetricsHistory', JSON.stringify(recentMetrics))
+    }
+  }, [habits, getTodayMetrics])
+
+  const getComparison = useMemo(() => {
+    const todayKey = new Date().toISOString().split('T')[0]
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+    const yesterdayKey = yesterday.toISOString().split('T')[0]
+    
+    const weekAgo = new Date()
+    weekAgo.setDate(weekAgo.getDate() - 7)
+    const weekAgoKey = weekAgo.toISOString().split('T')[0]
+    
+    const todayMetric = metricsHistory.find(m => m.date === todayKey) || getTodayMetrics
+    const yesterdayMetric = metricsHistory.find(m => m.date === yesterdayKey)
+    const weekAgoMetric = metricsHistory.find(m => m.date === weekAgoKey)
+    
+    // Total habits comparison
+    const totalChange = weekAgoMetric ? todayMetric.total - weekAgoMetric.total : 0
+    const totalText = totalChange > 0 ? `${totalChange} new this week` : totalChange < 0 ? `${Math.abs(totalChange)} removed` : 'Same as last week'
+    const totalColor = totalChange > 0 ? 'text-green-600 dark:text-green-400' : totalChange < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
+    
+    // Completed today comparison
+    const completedDiff = yesterdayMetric ? todayMetric.completed - yesterdayMetric.completed : 0
+    const completedArrow = completedDiff > 0 ? '↑' : completedDiff < 0 ? '↓' : '→'
+    const completedText = completedDiff !== 0 ? `${completedArrow} ${Math.abs(completedDiff)} ${completedDiff > 0 ? 'more' : 'less'} than yesterday` : 'Same as yesterday'
+    const completedColor = completedDiff > 0 ? 'text-green-600 dark:text-green-400' : completedDiff < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
+    
+    // Success rate comparison
+    const rateDiff = weekAgoMetric ? todayMetric.rate - weekAgoMetric.rate : 0
+    const rateArrow = rateDiff > 0 ? '↑' : rateDiff < 0 ? '↓' : '→'
+    const bestWeek = metricsHistory.length > 0 ? Math.max(...metricsHistory.map(m => m.rate)) : 0
+    const isBestWeek = todayMetric.rate >= bestWeek && todayMetric.rate >= 80
+    const rateText = isBestWeek ? '🏆 Your best week!' : rateDiff !== 0 ? `${rateArrow} ${Math.abs(rateDiff)}% from last week` : 'Same as last week'
+    const rateColor = isBestWeek ? 'text-yellow-600 dark:text-yellow-400' : rateDiff > 0 ? 'text-green-600 dark:text-green-400' : rateDiff < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
+    
+    // Motivational context
+    const isPerfectDay = todayMetric.total > 0 && todayMetric.completed === todayMetric.total
+    const motivation = isPerfectDay ? '🎉 Perfect day!' : todayMetric.rate > 90 ? '⭐ Exceptional!' : todayMetric.rate > 80 ? '🔥 On fire!' : todayMetric.rate < 50 ? '💪 Keep pushing!' : ''
+    
+    return {
+      total: { text: totalText, color: totalColor },
+      completed: { text: completedText, color: completedColor },
+      rate: { text: rateText, color: rateColor, motivation }
+    }
+  }, [metricsHistory, getTodayMetrics])
+
+  const metrics = viewMode === 'today' ? getTodayMetrics : getWeeklyMetrics
   const completedToday = metrics.completed
   const totalHabits = metrics.total
   const completionRate = metrics.rate
@@ -280,6 +393,15 @@ export default function HabitsModule() {
 
   if (loading) return <Loading text="Loading habits..." />
 
+  if (showOnboarding) {
+    return (
+      <OnboardingHabitFlow
+        onComplete={() => setShowOnboarding(false)}
+        onAddHabit={addHabit}
+      />
+    )
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -333,7 +455,8 @@ export default function HabitsModule() {
               <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Total</span>
             </div>
             <h3 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white">{totalHabits}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Active Habits</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Active Habits</p>
+            <p className={`text-xs font-semibold mt-2 ${getComparison.total.color}`}>{getComparison.total.text}</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center gap-3 mb-3">
@@ -343,7 +466,8 @@ export default function HabitsModule() {
               <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Today</span>
             </div>
             <h3 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white">{completedToday}<span className="text-2xl sm:text-3xl text-gray-400">/{totalHabits}</span></h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Completed</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Completed</p>
+            <p className={`text-xs font-semibold mt-2 ${getComparison.completed.color}`}>{getComparison.completed.text}</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center gap-3 mb-3">
@@ -353,70 +477,146 @@ export default function HabitsModule() {
               <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Rate</span>
             </div>
             <h3 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white">{completionRate}%</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Success Rate</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1.5 gap-1.5">
-          <button onClick={() => { setViewMode('today'); setCurrentDate(new Date()); }} className={`flex-1 min-h-[48px] px-4 py-3 rounded-lg text-sm sm:text-base font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${viewMode === 'today' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md' : 'text-gray-600 dark:text-gray-400'}`}>
-            <Calendar className="w-5 h-5" /><span className="hidden sm:inline">Today</span>
-          </button>
-          <button onClick={() => setViewMode('weekly')} className={`flex-1 min-h-[48px] px-4 py-3 rounded-lg text-sm sm:text-base font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${viewMode === 'weekly' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md' : 'text-gray-600 dark:text-gray-400'}`}>
-            <Target className="w-5 h-5" /><span className="hidden sm:inline">Weekly</span>
-          </button>
-          <button onClick={() => setViewMode('table')} className={`flex-1 min-h-[48px] px-4 py-3 rounded-lg text-sm sm:text-base font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${viewMode === 'table' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md' : 'text-gray-600 dark:text-gray-400'}`}>
-            <TrendingUp className="w-5 h-5" /><span className="hidden sm:inline">Table</span>
-          </button>
-          <button onClick={() => setViewMode('scorecard')} className={`flex-1 min-h-[48px] px-4 py-3 rounded-lg text-sm sm:text-base font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${viewMode === 'scorecard' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md' : 'text-gray-600 dark:text-gray-400'}`}>
-            <Award className="w-5 h-5" /><span className="hidden sm:inline">Scorecard</span>
-          </button>
-        </div>
-      </div>
-
-      {viewMode === 'scorecard' ? (
-        <HabitScorecard
-          habits={scorecardHabits}
-          onSave={saveScorecard}
-          onCreateHabit={createFromScorecard}
-        />
-      ) : viewMode === 'table' ? (
-        <HabitTableView habits={habits} onDelete={deleteHabit} onUpdate={updateHabit} onDuplicate={duplicateHabit} isSelectionMode={isSelectionMode} selectedHabits={selectedHabits} onToggleSelection={toggleHabitSelection} />
-      ) : viewMode === 'today' ? (
-        <DailyHabitView habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} onAdd={addHabit} onDuplicate={duplicateHabit} currentDate={currentDate} setCurrentDate={setCurrentDate} isSelectionMode={isSelectionMode} selectedHabits={selectedHabits} onToggleSelection={toggleHabitSelection} />
-      ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
-          <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center">
-                  <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h2 className="font-display text-xl font-bold text-gray-900 dark:text-white">Weekly Focus</h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Track your weekly progress</p>
-                </div>
-              </div>
-              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)} className="w-full sm:w-auto px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="none">No Grouping</option>
-                <option value="identity">By Identity</option>
-                <option value="location">By Location</option>
-              </select>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Success Rate</p>
+            <div className="mt-2 space-y-1">
+              <p className={`text-xs font-semibold ${getComparison.rate.color}`}>{getComparison.rate.text}</p>
+              {getComparison.rate.motivation && (
+                <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{getComparison.rate.motivation}</p>
+              )}
             </div>
           </div>
-          <div className="p-4 sm:p-6">
-            {habits.length === 0 ? (
-              <EmptyState type="habits" onAction={() => setShowQuickForm(true)} actionLabel="Create Your First Habit" />
-            ) : (
-              <HabitList habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} onDuplicate={duplicateHabit} groupBy={groupBy} isSelectionMode={isSelectionMode} selectedHabits={selectedHabits} onToggleSelection={toggleHabitSelection} />
-            )}
-          </div>
         </div>
-      )}
+      </div>
+
+      <div className="mb-6 sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 -mx-4 px-4 py-3">
+        <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
+          <button 
+            onClick={() => { setViewMode('today'); setCurrentDate(new Date()); }} 
+            className={`flex-1 min-h-[48px] px-3 py-3 rounded-lg text-sm sm:text-base font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 ${viewMode === 'today' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400'}`}
+          >
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5" /><span className="hidden sm:inline">Today</span>
+          </button>
+          <button 
+            onClick={() => setViewMode('weekly')} 
+            className={`flex-1 min-h-[48px] px-3 py-3 rounded-lg text-sm sm:text-base font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 ${viewMode === 'weekly' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400'}`}
+          >
+            <Target className="w-4 h-4 sm:w-5 sm:h-5" /><span className="hidden sm:inline">Weekly</span>
+          </button>
+          <button 
+            onClick={() => setViewMode('chain')} 
+            className={`flex-1 min-h-[48px] px-3 py-3 rounded-lg text-sm sm:text-base font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 ${viewMode === 'chain' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400'}`}
+          >
+            <Link2 className="w-4 h-4 sm:w-5 sm:h-5" /><span className="hidden sm:inline">Chain</span>
+          </button>
+          <button 
+            onClick={() => setViewMode('scorecard')} 
+            className={`flex-1 min-h-[48px] px-3 py-3 rounded-lg text-sm sm:text-base font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 ${viewMode === 'scorecard' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400'}`}
+          >
+            <Award className="w-4 h-4 sm:w-5 sm:h-5" /><span className="hidden sm:inline">Score</span>
+          </button>
+        </div>
+        <div className="flex justify-center gap-2 mt-3">
+          {views.map((view, idx) => (
+            <div 
+              key={view}
+              className={`w-2 h-2 rounded-full transition-all duration-200 ${viewMode === view ? 'bg-indigo-600 w-6' : 'bg-gray-300 dark:bg-gray-600'}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div 
+        ref={viewContainerRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        className="transition-all duration-300 ease-out"
+      >
+        {viewMode === 'scorecard' ? (
+          <HabitScorecard
+            habits={scorecardHabits}
+            onSave={saveScorecard}
+            onCreateHabit={createFromScorecard}
+          />
+        ) : viewMode === 'chain' ? (
+          <HabitChainView
+            habits={habits}
+            onToggle={toggleHabit}
+            onAdd={(habitId) => {
+              setShowQuickForm(true)
+              // Pre-fill with stackAfter
+              setTimeout(() => {
+                const form = document.querySelector('[name="stackAfter"]')
+                if (form) form.value = habitId
+              }, 100)
+            }}
+          />
+        ) : viewMode === 'today' ? (
+          <DailyHabitView 
+            habits={habits} 
+            onToggle={toggleHabit} 
+            onDelete={deleteHabit} 
+            onUpdate={updateHabit} 
+            onAdd={addHabit} 
+            onDuplicate={duplicateHabit} 
+            currentDate={currentDate} 
+            setCurrentDate={setCurrentDate} 
+            isSelectionMode={isSelectionMode} 
+            selectedHabits={selectedHabits} 
+            onToggleSelection={toggleHabitSelection}
+            onMilestone={handleMilestone}
+          />
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+            <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center">
+                    <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-xl font-bold text-gray-900 dark:text-white">Weekly Focus</h2>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Track your weekly progress</p>
+                  </div>
+                </div>
+                <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)} className="w-full sm:w-auto px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <option value="none">No Grouping</option>
+                  <option value="identity">By Identity</option>
+                  <option value="location">By Location</option>
+                </select>
+              </div>
+            </div>
+            <div className="p-4 sm:p-6">
+              {habits.length === 0 ? (
+                <EmptyState type="habits" onAction={() => setShowQuickForm(true)} actionLabel="Create Your First Habit" />
+              ) : (
+                <HabitList 
+                  habits={habits} 
+                  onToggle={toggleHabit} 
+                  onDelete={deleteHabit} 
+                  onUpdate={updateHabit} 
+                  onDuplicate={duplicateHabit} 
+                  groupBy={groupBy} 
+                  isSelectionMode={isSelectionMode} 
+                  selectedHabits={selectedHabits} 
+                  onToggleSelection={toggleHabitSelection} 
+                />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {showQuickForm && (
-        <QuickHabitForm habits={habits} onSubmit={addHabit} onClose={() => setShowQuickForm(false)} />
+        <QuickHabitForm 
+          habits={habits} 
+          onSubmit={addHabit} 
+          onClose={() => { 
+            setShowQuickForm(false)
+            setScorecardHabitData(null)
+          }} 
+          scorecardHabit={scorecardHabitData}
+        />
       )}
 
       {showTemplates && (

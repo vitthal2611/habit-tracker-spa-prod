@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { TrendingUp, TrendingDown, DollarSign, Download, Target, Calendar, Repeat, FileText } from 'lucide-react'
 import jsPDF from 'jspdf'
 
@@ -35,9 +35,9 @@ export default function EnhancedExpenseManager({ transactions, onAddTransaction,
     return { income, expense, balance: income - expense, transactions: monthTransactions }
   }
 
-  const monthlyData = getMonthlyData()
+  const monthlyData = useMemo(() => getMonthlyData(), [transactions, budgetMonth])
 
-  const getCategorySpending = () => {
+  const categorySpending = useMemo(() => {
     return currentBudget.map(cat => {
       const spent = monthlyData.transactions
         .filter(t => t.category === cat.name && t.type === 'expense')
@@ -45,7 +45,23 @@ export default function EnhancedExpenseManager({ transactions, onAddTransaction,
       const budget = cat.budget || 0
       return { ...cat, spent, budget, remaining: budget - spent, percentage: budget > 0 ? (spent / budget) * 100 : 0 }
     }).sort((a, b) => b.spent - a.spent)
-  }
+  }, [currentBudget, monthlyData.transactions])
+
+  const trends = useMemo(() => {
+    const last3Months = []
+    for (let i = 2; i >= 0; i--) {
+      const date = new Date(budgetMonth)
+      date.setMonth(date.getMonth() - i)
+      const monthKey = date.toLocaleString('en-US', { month: 'short', year: 'numeric' })
+      const monthTxns = transactions.filter(t => {
+        const txnDate = new Date(t.date)
+        return txnDate.getMonth() === date.getMonth() && txnDate.getFullYear() === date.getFullYear()
+      })
+      const expense = monthTxns.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
+      last3Months.push({ month: monthKey, expense })
+    }
+    return last3Months
+  }, [transactions, budgetMonth])
 
   const exportToCSV = () => {
     const csv = [
@@ -75,7 +91,7 @@ export default function EnhancedExpenseManager({ transactions, onAddTransaction,
     
     doc.text('Category Breakdown:', 20, 80)
     let y = 90
-    getCategorySpending().slice(0, 10).forEach(cat => {
+    categorySpending.slice(0, 10).forEach(cat => {
       doc.text(`${cat.name}: ₹${cat.spent.toLocaleString()} / ₹${cat.budget.toLocaleString()}`, 20, y)
       y += 10
     })
@@ -92,22 +108,6 @@ export default function EnhancedExpenseManager({ transactions, onAddTransaction,
         createdAt: new Date().toISOString()
       })
     })
-  }
-
-  const getTrends = () => {
-    const last3Months = []
-    for (let i = 2; i >= 0; i--) {
-      const date = new Date(budgetMonth)
-      date.setMonth(date.getMonth() - i)
-      const monthKey = date.toLocaleString('en-US', { month: 'short', year: 'numeric' })
-      const monthTxns = transactions.filter(t => {
-        const txnDate = new Date(t.date)
-        return txnDate.getMonth() === date.getMonth() && txnDate.getFullYear() === date.getFullYear()
-      })
-      const expense = monthTxns.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
-      last3Months.push({ month: monthKey, expense })
-    }
-    return last3Months
   }
 
   return (
@@ -166,7 +166,7 @@ export default function EnhancedExpenseManager({ transactions, onAddTransaction,
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border">
         <h3 className="text-lg font-bold mb-4">Budget vs Actual</h3>
         <div className="space-y-3">
-          {getCategorySpending().slice(0, 8).map(cat => (
+          {categorySpending.slice(0, 8).map(cat => (
             <div key={cat.name}>
               <div className="flex justify-between text-sm mb-1">
                 <span className="flex items-center gap-2">
@@ -266,9 +266,9 @@ export default function EnhancedExpenseManager({ transactions, onAddTransaction,
         {showInsights && (
           <div>
             <div className="flex items-end gap-4 h-40">
-              {getTrends().map((month, i) => (
+              {trends.map((month, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center">
-                  <div className="w-full bg-blue-500 rounded-t" style={{ height: `${(month.expense / Math.max(...getTrends().map(m => m.expense))) * 100}%` }} />
+                  <div className="w-full bg-blue-500 rounded-t" style={{ height: `${(month.expense / Math.max(...trends.map(m => m.expense))) * 100}%` }} />
                   <div className="text-xs mt-2">{month.month.split(' ')[0]}</div>
                   <div className="text-xs text-gray-600">₹{(month.expense / 1000).toFixed(0)}k</div>
                 </div>
@@ -277,11 +277,11 @@ export default function EnhancedExpenseManager({ transactions, onAddTransaction,
             <div className="mt-6 grid grid-cols-2 gap-4">
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <div className="text-sm text-gray-600">Avg Monthly Expense</div>
-                <div className="text-xl font-bold">₹{(getTrends().reduce((sum, m) => sum + m.expense, 0) / getTrends().length).toLocaleString()}</div>
+                <div className="text-xl font-bold">₹{(trends.reduce((sum, m) => sum + m.expense, 0) / trends.length).toLocaleString()}</div>
               </div>
               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                 <div className="text-sm text-gray-600">Top Category</div>
-                <div className="text-xl font-bold">{getCategorySpending()[0]?.name || 'N/A'}</div>
+                <div className="text-xl font-bold">{categorySpending[0]?.name || 'N/A'}</div>
               </div>
             </div>
           </div>

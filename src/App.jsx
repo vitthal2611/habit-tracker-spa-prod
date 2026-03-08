@@ -4,8 +4,10 @@ import BottomNav from './components/BottomNav'
 import HabitsModule from './modules/habits/HabitsModule'
 import TodosModule from './modules/todos/TodosModule'
 import ExpensesModule from './modules/expenses/ExpensesModule'
+import StatsModule from './modules/stats/StatsModule'
 import OnboardingTour from './components/OnboardingTour'
 import KeyboardShortcuts from './components/KeyboardShortcuts'
+import { ModuleErrorBoundary } from './components/ModuleErrorBoundary'
 import { useGlobalShortcuts } from './hooks/useKeyboardShortcut'
 
 function App() {
@@ -40,10 +42,42 @@ function App() {
       )}
       <main className={`max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 ${useBottomNav ? 'pb-24' : 'pb-6'}`}>
         <div className="animate-fade-in">
-          {activeModule === 'habits' && <HabitsModule />}
-          {activeModule === 'todos' && <TodosModule />}
-          {activeModule === 'expenses' && <ExpensesModule />}
-          {activeModule === 'stats' && <div className="text-center py-20"><h2 className="text-2xl font-bold">Stats Coming Soon</h2></div>}
+          {activeModule === 'habits' && (
+            <ModuleErrorBoundary 
+              moduleName="Habits" 
+              fallbackMessage="Your habits module encountered an error. Your data is safe."
+              onGoHome={() => setActiveModule('todos')}
+            >
+              <HabitsModule />
+            </ModuleErrorBoundary>
+          )}
+          {activeModule === 'todos' && (
+            <ModuleErrorBoundary 
+              moduleName="Tasks" 
+              fallbackMessage="Your tasks module encountered an error. Your data is safe."
+              onGoHome={() => setActiveModule('habits')}
+            >
+              <TodosModule />
+            </ModuleErrorBoundary>
+          )}
+          {activeModule === 'expenses' && (
+            <ModuleErrorBoundary 
+              moduleName="Expenses" 
+              fallbackMessage="Your expenses module encountered an error. Your data is safe."
+              onGoHome={() => setActiveModule('habits')}
+            >
+              <ExpensesModule />
+            </ModuleErrorBoundary>
+          )}
+          {activeModule === 'stats' && (
+            <ModuleErrorBoundary 
+              moduleName="Stats" 
+              fallbackMessage="Your stats module encountered an error. Your data is safe."
+              onGoHome={() => setActiveModule('habits')}
+            >
+              <StatsModule />
+            </ModuleErrorBoundary>
+          )}
         </div>
       </main>
       {useBottomNav && <BottomNav activeTab={activeModule} onTabChange={setActiveModule} />}

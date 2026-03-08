@@ -4,15 +4,22 @@ import QuickHabitForm from './QuickHabitForm'
 import Modal from '../../../components/ui/Modal'
 import PhaseProgressCard from './PhaseProgressCard'
 import TemptationBundling from './TemptationBundling'
+import MilestoneCelebration from './MilestoneCelebration'
 
-export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, onAdd, onDuplicate, currentDate: propCurrentDate, setCurrentDate: propSetCurrentDate, isSelectionMode = false, selectedHabits = new Set(), onToggleSelection }) {
+export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, onAdd, onDuplicate, currentDate: propCurrentDate, setCurrentDate: propSetCurrentDate, isSelectionMode = false, selectedHabits = new Set(), onToggleSelection, onMilestone }) {
   const [currentDate, setCurrentDate] = useState(propCurrentDate || new Date())
   const [showAll, setShowAll] = useState(false)
   const [completedHabit, setCompletedHabit] = useState(null)
   const [editingHabit, setEditingHabit] = useState(null)
   const [groupBy, setGroupBy] = useState('none')
-  const [skipModal, setSkipModal] = useState({ isOpen: false, habitId: null, dateStr: null })
+  const [skipModal, setSkipModal] = useState({ isOpen: false, habitId: null, dateStr: null, missedYesterday: false })
   const [skipNote, setSkipNote] = useState('')
+  const [interventionModal, setInterventionModal] = useState({ isOpen: false, habit: null, dateStr: null })
+  const [skipConfirmText, setSkipConfirmText] = useState('')
+  const [celebration, setCelebration] = useState(null)
+  const [streakAnimation, setStreakAnimation] = useState(null)
+  const [swipeState, setSwipeState] = useState({})
+  const [undoToast, setUndoToast] = useState(null)
 
   useEffect(() => {
     if (propCurrentDate) setCurrentDate(propCurrentDate)
@@ -33,9 +40,146 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
   }, [currentDate])
 
   const handleComplete = (habitId, dateStr) => {
+    const habit = habits.find(h => h.id === habitId)
+    if (!habit) return
+
     setCompletedHabit(habitId)
     setTimeout(() => setCompletedHabit(null), 1000)
     onToggle(habitId, dateStr)
+
+    // Haptic feedback
+    if (navigator.vibrate) navigator.vibrate(50)
+
+    // Show undo toast
+    setUndoToast({ habitId, dateStr, action: 'complete' })
+    setTimeout(() => setUndoToast(null), 3000)
+
+    // Check for milestone
+    const newStreak = (habit.streak || 0) + 1
+    if ([7, 30, 100].includes(newStreak)) {
+      setTimeout(() => {
+        setCelebration({ milestone: newStreak, habitName: habit.newHabit || habit.habit })
+        onMilestone && onMilestone(newStreak, habit)
+      }, 500)
+    }
+  }
+
+  const handleUndo = () => {
+    if (undoToast) {
+      onToggle(undoToast.habitId, undoToast.dateStr)
+      setUndoToast(null)
+    }
+  }
+
+  const handleTouchStart = (e, habitId) => {
+    const touch = e.touches[0]
+    setSwipeState(prev => ({
+      ...prev,
+      [habitId]: { startX: touch.clientX, currentX: touch.clientX, swiping: true }
+    }))
+  }
+
+  const handleTouchMove = (e, habitId) => {
+    if (!swipeState[habitId]?.swiping) return
+    const touch = e.touches[0]
+    setSwipeState(prev => ({
+      ...prev,
+      [habitId]: { ...prev[habitId], currentX: touch.clientX }
+    }))
+  }
+
+  const handleTouchEnd = (habitId, dateStr, isCompleted) => {
+    const state = swipeState[habitId]
+    if (!state) return
+
+    const deltaX = state.currentX - state.startX
+    const threshold = window.innerWidth * 0.5
+
+    if (Math.abs(deltaX) > threshold) {
+      if (deltaX > 0 && !isCompleted) {
+        // Swipe right - complete
+        handleComplete(habitId, dateStr)
+      } else if (deltaX < 0 && !isCompleted) {
+        // Swipe left - skip
+        const habit = habits.find(h => h.id === habitId)
+        handleSkipClick(habit, dateStr)
+      }
+    }
+
+    setSwipeState(prev => ({ ...prev, [habitId]: null }))
+  }
+
+  const wasMissedYesterday = (habit) => {
+    const yesterday = new Date(currentDate)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const yesterdayStr = yesterday.toDateString()
+    return habit.completions && habit.completions[yesterdayStr] === false
+  }
+
+  const handleSkipClick = (habit, dateStr) => {
+    setInterventionModal({ isOpen: true, habit, dateStr })
+  }
+
+  const handleDoTwoMinVersion = () => {
+    handleComplete(interventionModal.habit.id, interventionModal.dateStr)
+    setInterventionModal({ isOpen: false, habit: null, dateStr: null })
+  }
+
+  const handleProceedToSkip = () => {
+    const missedYesterday = wasMissedYesterday(interventionModal.habit)
+    setInterventionModal({ isOpen: false, habit: null, dateStr: null })
+    setSkipModal({ 
+      isOpen: true, 
+      habitId: interventionModal.habit.id, 
+      dateStr: interventionModal.dateStr,
+      missedYesterday 
+    })
+  }
+
+  const getMilestones = () => [7, 30, 100, 365]
+
+  const getNextMilestone = (streak) => {
+    const milestones = getMilestones()
+    return milestones.find(m => m > streak) || null
+  }
+
+  const getMilestoneProgress = (streak) => {
+    const next = getNextMilestone(streak)
+    if (!next) return { current: streak, next: 365, remaining: 0, progress: 100, reward: 'Legend status 🏆' }
+    
+    const milestones = getMilestones()
+    const prevMilestone = milestones.filter(m => m <= streak).pop() || 0
+    const range = next - prevMilestone
+    const progress = ((streak - prevMilestone) / range) * 100
+    
+    const rewards = {
+      7: 'Red flame badge 🔥',
+      30: 'Purple flame badge 🔥',
+      100: 'Pink flame badge 🔥',
+      365: 'Gold legend badge 🏆'
+    }
+    
+    return {
+      current: streak,
+      next,
+      remaining: next - streak,
+      progress,
+      reward: rewards[next]
+    }
+  }
+
+  const getStreakColor = (streak) => {
+    if (streak >= 100) return 'from-yellow-400 to-amber-500'
+    if (streak >= 30) return 'from-purple-500 to-pink-500'
+    if (streak >= 7) return 'from-red-500 to-orange-500'
+    return 'from-orange-400 to-orange-500'
+  }
+
+  const getProgressBarColor = (streak) => {
+    if (streak >= 100) return 'from-yellow-400 via-amber-400 to-yellow-500'
+    if (streak >= 30) return 'from-purple-500 via-pink-500 to-purple-600'
+    if (streak >= 7) return 'from-red-500 via-orange-500 to-red-600'
+    return 'from-orange-400 via-red-400 to-orange-500'
   }
 
   const getMotivationalMessage = () => {
@@ -268,9 +412,30 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
             return (
               <div key={habit.id} className="animate-fade-in">
                 {habit.currentHabit && (
-                  <div className={`relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-all ${
-                    completedHabit === habit.id ? 'scale-[1.01] shadow-2xl' : ''
-                  } ${isCompleted ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-700' : ''}`}>
+                  <div 
+                    className={`relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-all ${
+                      completedHabit === habit.id ? 'scale-[1.01] shadow-2xl' : ''
+                    } ${isCompleted ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-700' : ''}`}
+                    onTouchStart={(e) => !isCompleted && handleTouchStart(e, habit.id)}
+                    onTouchMove={(e) => !isCompleted && handleTouchMove(e, habit.id)}
+                    onTouchEnd={() => !isCompleted && handleTouchEnd(habit.id, dateStr, isCompleted)}
+                    style={{
+                      transform: swipeState[habit.id] ? `translateX(${swipeState[habit.id].currentX - swipeState[habit.id].startX}px)` : 'none',
+                      transition: swipeState[habit.id]?.swiping ? 'none' : 'transform 0.3s ease-out'
+                    }}
+                  >
+                    {/* Swipe Background */}
+                    {swipeState[habit.id] && (() => {
+                      const deltaX = swipeState[habit.id].currentX - swipeState[habit.id].startX
+                      const isRight = deltaX > 0
+                      return (
+                        <div className={`absolute inset-0 flex items-center ${
+                          isRight ? 'justify-start pl-8 bg-gradient-to-r from-green-500 to-emerald-600' : 'justify-end pr-8 bg-gradient-to-l from-red-500 to-orange-600'
+                        }`}>
+                          <span className="text-4xl text-white">{isRight ? '✓' : '✗'}</span>
+                        </div>
+                      )
+                    })()}
                     
                     {/* Identity Header */}
                     <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 sm:px-6 py-3 flex items-center justify-between">
@@ -278,11 +443,64 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                         <span className="text-sm sm:text-lg font-bold text-white truncate">{habit.identity}</span>
                       </div>
                       <div className="flex items-center gap-1 sm:gap-2">
-                        {habit.streak > 0 && (
-                          <span className="bg-orange-500 text-white text-xs sm:text-sm font-bold px-2 sm:px-3 py-1 rounded-full flex items-center gap-1">
-                            🔥 {habit.streak}
-                          </span>
-                        )}
+                        {habit.streak > 0 && (() => {
+                          const milestoneData = getMilestoneProgress(habit.streak)
+                          return (
+                            <div className="relative group">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setStreakAnimation(habit.id)
+                                  setTimeout(() => setStreakAnimation(null), 300)
+                                }}
+                                className={`bg-gradient-to-r ${getStreakColor(habit.streak)} text-white text-base sm:text-lg font-black px-3 sm:px-4 py-2 rounded-full shadow-lg transition-all active:scale-110 hover:shadow-xl ${
+                                  streakAnimation === habit.id ? 'animate-bounce' : ''
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5">
+                                  <span>🔥 {habit.streak}</span>
+                                  {milestoneData.next && (
+                                    <span className="text-xs opacity-90">→ {milestoneData.next}</span>
+                                  )}
+                                  {habit.streak >= 100 && <span className="text-sm">✨</span>}
+                                </div>
+                                {milestoneData.next && (
+                                  <div className="mt-1 h-1 bg-white/30 rounded-full overflow-hidden">
+                                    <div 
+                                      className={`h-full bg-gradient-to-r ${getProgressBarColor(habit.streak)} transition-all duration-500 group-hover:animate-pulse`}
+                                      style={{ width: `${milestoneData.progress}%` }}
+                                    />
+                                  </div>
+                                )}
+                              </button>
+                              {/* Tooltip */}
+                              <div className="absolute top-full right-0 mt-2 w-64 bg-gray-900 text-white text-sm rounded-lg p-3 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                <div className="space-y-2">
+                                  <div>
+                                    <span className="text-gray-400">Current:</span>
+                                    <span className="ml-2 font-bold">{milestoneData.current} days</span>
+                                  </div>
+                                  {milestoneData.next && (
+                                    <>
+                                      <div>
+                                        <span className="text-gray-400">Next milestone:</span>
+                                        <span className="ml-2 font-bold">{milestoneData.next} days</span>
+                                        <span className="ml-1 text-yellow-400">({milestoneData.remaining} to go!)</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-400">Reward:</span>
+                                        <span className="ml-2">{milestoneData.reward}</span>
+                                      </div>
+                                    </>
+                                  )}
+                                  {!milestoneData.next && (
+                                    <div className="text-yellow-400 font-bold">🏆 Legend Status Achieved!</div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()}
                         {isSelectionMode ? (
                           <input
                             type="checkbox"
@@ -329,7 +547,7 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                           <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">I will</div>
                           <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">{habit.newHabit}</div>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="space-y-2">
                           <button
                             onClick={(e) => { 
                               e.stopPropagation(); 
@@ -338,34 +556,30 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                               }
                             }}
                             disabled={isCompleted || currentDateOnly > new Date().setHours(0,0,0,0)}
-                            className={`flex-1 py-3 rounded-lg font-bold text-base transition-all ${
+                            className={`w-full min-h-[52px] py-3 rounded-xl font-bold text-base transition-all ${
                               isCompleted 
-                                ? 'bg-emerald-500 text-white' 
+                                ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white' 
                                 : currentDateOnly > new Date().setHours(0,0,0,0) 
                                 ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' 
-                                : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
+                                : 'bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:shadow-lg active:scale-95'
                             }`}
                           >
-                            {isCompleted ? '✓ Done' : '✓ Complete'}
+                            {isCompleted ? '✓ Completed' : '✓ Complete'}
                           </button>
-                          <button
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              if (!isMissed && currentDateOnly <= new Date().setHours(0,0,0,0)) {
-                                setSkipModal({ isOpen: true, habitId: habit.id, dateStr })
-                              }
-                            }}
-                            disabled={isMissed || currentDateOnly > new Date().setHours(0,0,0,0)}
-                            className={`px-6 py-3 rounded-lg font-bold text-base transition-all ${
-                              isMissed 
-                                ? 'bg-red-500 text-white' 
-                                : currentDateOnly > new Date().setHours(0,0,0,0) 
-                                ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' 
-                                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 active:scale-95'
-                            }`}
-                          >
-                            {isMissed ? '✗' : 'Skip'}
-                          </button>
+                          {!isCompleted && !isMissed && currentDateOnly <= new Date().setHours(0,0,0,0) && (
+                            <button
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                handleSkipClick(habit, dateStr)
+                              }}
+                              className="w-full text-center text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                            >
+                              Can't complete?
+                            </button>
+                          )}
+                          {isMissed && (
+                            <div className="text-center text-sm text-red-500 font-semibold">✗ Skipped</div>
+                          )}
                         </div>
                       </div>
 
@@ -399,7 +613,7 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="col-span-2 flex gap-2">
+                        <div className="col-span-2 space-y-1">
                           <button
                             onClick={(e) => { 
                               e.stopPropagation(); 
@@ -408,34 +622,30 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                               }
                             }}
                             disabled={isCompleted || currentDateOnly > new Date().setHours(0,0,0,0)}
-                            className={`flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all ${
+                            className={`w-full min-h-[52px] py-2 px-3 rounded-xl font-bold text-sm transition-all ${
                               isCompleted 
-                                ? 'bg-emerald-500 text-white' 
+                                ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white' 
                                 : currentDateOnly > new Date().setHours(0,0,0,0) 
                                 ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' 
-                                : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
+                                : 'bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:shadow-lg active:scale-95'
                             }`}
                           >
                             {isCompleted ? '✓' : '✓'}
                           </button>
-                          <button
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              if (!isMissed && currentDateOnly <= new Date().setHours(0,0,0,0)) {
-                                setSkipModal({ isOpen: true, habitId: habit.id, dateStr })
-                              }
-                            }}
-                            disabled={isMissed || currentDateOnly > new Date().setHours(0,0,0,0)}
-                            className={`flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all ${
-                              isMissed 
-                                ? 'bg-red-500 text-white' 
-                                : currentDateOnly > new Date().setHours(0,0,0,0) 
-                                ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' 
-                                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 active:scale-95'
-                            }`}
-                          >
-                            {isMissed ? '✗' : '✗'}
-                          </button>
+                          {!isCompleted && !isMissed && currentDateOnly <= new Date().setHours(0,0,0,0) && (
+                            <button
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                handleSkipClick(habit, dateStr)
+                              }}
+                              className="w-full text-center text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                            >
+                              Can't complete?
+                            </button>
+                          )}
+                          {isMissed && (
+                            <div className="text-center text-xs text-red-500 font-semibold">✗ Skipped</div>
+                          )}
                         </div>
                       </div>
 
@@ -456,6 +666,40 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                           return dots;
                         })()}
                       </div>
+
+                      {/* Milestone Progress Indicator */}
+                      {habit.streak > 0 && (() => {
+                        const milestoneData = getMilestoneProgress(habit.streak)
+                        if (!milestoneData.next) return null
+                        return (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setStreakAnimation(habit.id)
+                              setTimeout(() => setStreakAnimation(null), 300)
+                            }}
+                            className="mt-3 w-full bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-lg p-3 hover:shadow-md transition-all active:scale-[0.99]"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                Progress to next milestone
+                              </span>
+                              <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                                {milestoneData.current}/{milestoneData.next} days
+                              </span>
+                            </div>
+                            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full bg-gradient-to-r ${getProgressBarColor(habit.streak)} transition-all duration-500`}
+                                style={{ width: `${milestoneData.progress}%` }}
+                              />
+                            </div>
+                            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                              {milestoneData.remaining} days to go! 🎯
+                            </div>
+                          </button>
+                        )
+                      })()}
 
                       {/* Phase 2 Components */}
                       <div className="mt-4 space-y-3">
@@ -491,28 +735,117 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
         />
       )}
 
+      {celebration && (
+        <MilestoneCelebration
+          milestone={celebration.milestone}
+          habitName={celebration.habitName}
+          onClose={() => setCelebration(null)}
+          onShare={(milestone, habitName) => {
+            // Share functionality
+            if (navigator.share) {
+              navigator.share({
+                title: `${milestone} Day Streak!`,
+                text: `I just hit a ${milestone}-day streak on "${habitName}"! 🔥`,
+              }).catch(() => {})
+            }
+          }}
+        />
+      )}
+
+      {/* Undo Toast */}
+      {undoToast && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
+          <div className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4">
+            <span className="font-semibold">Habit completed!</span>
+            <button
+              onClick={handleUndo}
+              className="px-4 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg font-bold hover:scale-105 transition-transform"
+            >
+              Undo
+            </button>
+          </div>
+        </div>
+      )}
+
+      <Modal
+        isOpen={interventionModal.isOpen}
+        onClose={() => {
+          setInterventionModal({ isOpen: false, habit: null, dateStr: null })
+        }}
+        title="Before you skip..."
+      >
+        <div className="space-y-4">
+          {interventionModal.habit?.twoMinVersion && (
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">Can you do just:</p>
+              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{interventionModal.habit.twoMinVersion}</p>
+            </div>
+          )}
+          <div className="flex flex-col gap-3">
+            {interventionModal.habit?.twoMinVersion && (
+              <button
+                onClick={handleDoTwoMinVersion}
+                className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+              >
+                ✓ Do 2-Min Version
+              </button>
+            )}
+            <button
+              onClick={handleProceedToSkip}
+              className="w-full px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
+            >
+              Still Skip
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       <Modal
         isOpen={skipModal.isOpen}
         onClose={() => {
-          setSkipModal({ isOpen: false, habitId: null, dateStr: null })
+          setSkipModal({ isOpen: false, habitId: null, dateStr: null, missedYesterday: false })
           setSkipNote('')
+          setSkipConfirmText('')
         }}
         title="Why are you skipping?"
       >
         <div className="space-y-4">
+          {skipModal.missedYesterday && (
+            <div className="bg-red-50 dark:bg-red-950/30 border-2 border-red-500 rounded-lg p-4">
+              <p className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
+                <span>⚠️</span>
+                <span>You missed yesterday. Never miss twice! Even 2 minutes counts.</span>
+              </p>
+            </div>
+          )}
           <textarea
             value={skipNote}
             onChange={(e) => setSkipNote(e.target.value)}
             placeholder="Add a note about why you're skipping this habit..."
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white resize-none"
             rows={4}
-            autoFocus
           />
+          {skipModal.missedYesterday && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Type "SKIP" to confirm:
+              </label>
+              <input
+                type="text"
+                value={skipConfirmText}
+                onChange={(e) => setSkipConfirmText(e.target.value)}
+                placeholder="SKIP"
+                className="w-full px-4 py-3 border border-red-300 dark:border-red-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white"
+                autoFocus
+              />
+            </div>
+          )}
           <div className="flex gap-3">
             <button
               onClick={() => {
-                setSkipModal({ isOpen: false, habitId: null, dateStr: null })
+                setSkipModal({ isOpen: false, habitId: null, dateStr: null, missedYesterday: false })
                 setSkipNote('')
+                setSkipConfirmText('')
               }}
               className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
             >
@@ -532,12 +865,20 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                   onUpdate(updatedHabit)
                 }
                 onToggle(skipModal.habitId, skipModal.dateStr)
-                setSkipModal({ isOpen: false, habitId: null, dateStr: null })
+                setSkipModal({ isOpen: false, habitId: null, dateStr: null, missedYesterday: false })
                 setSkipNote('')
+                setSkipConfirmText('')
               }}
-              className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all"
+              disabled={skipModal.missedYesterday && skipConfirmText !== 'SKIP'}
+              className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
+                skipModal.missedYesterday
+                  ? skipConfirmText === 'SKIP'
+                    ? 'bg-red-500 text-white hover:bg-red-600'
+                    : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                  : 'bg-orange-500 text-white hover:bg-orange-600'
+              }`}
             >
-              Skip Habit
+              {skipModal.missedYesterday ? '⚠️ Skip Anyway' : 'Skip Habit'}
             </button>
           </div>
         </div>

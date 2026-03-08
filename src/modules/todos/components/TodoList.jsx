@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, X, Check, Circle, Edit2, Calendar, Search, Filter, Tag, TrendingUp, Clock, AlertCircle } from 'lucide-react'
+import QuickAddBottomSheet from './QuickAddBottomSheet'
 
 const DEFAULT_CATEGORIES = [
   { id: 'work', name: 'Work', color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-900/20' },
@@ -854,7 +855,10 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
 
       {/* Quick Add Floating Button */}
       <button
-        onClick={() => setShowQuickAdd(true)}
+        onClick={() => {
+          navigator.vibrate?.(10)
+          setShowQuickAdd(true)
+        }}
         className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 w-14 h-14 bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-40 hover:scale-110 active:scale-95"
         title="Quick Add Task"
         aria-label="Quick Add Task"
@@ -862,52 +866,13 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
         <Plus className="w-6 h-6" />
       </button>
 
-      {/* Quick Add Modal */}
+      {/* Quick Add Bottom Sheet */}
       {showQuickAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowQuickAdd(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Quick Add Task</h3>
-            <form onSubmit={handleAdd} className="space-y-3">
-              <input
-                type="text"
-                value={newTodo}
-                onChange={(e) => setNewTodo(e.target.value)}
-                placeholder="What needs to be done?"
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                autoFocus
-              />
-              <div className="flex gap-2">
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                />
-                <input
-                  type="number"
-                  value={timeEstimate}
-                  onChange={(e) => setTimeEstimate(e.target.value)}
-                  placeholder="30"
-                  min="1"
-                  className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setPriority('high')} className={`flex-1 px-3 py-2 rounded-lg font-semibold text-sm ${priority === 'high' ? 'bg-red-500 text-white' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>🔴 High</button>
-                <button type="button" onClick={() => setPriority('medium')} className={`flex-1 px-3 py-2 rounded-lg font-semibold text-sm ${priority === 'medium' ? 'bg-yellow-500 text-white' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'}`}>🟡 Med</button>
-                <button type="button" onClick={() => setPriority('low')} className={`flex-1 px-3 py-2 rounded-lg font-semibold text-sm ${priority === 'low' ? 'bg-blue-500 text-white' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'}`}>🔵 Low</button>
-              </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setShowQuickAdd(false)} className="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-gray-700">
-                  Cancel
-                </button>
-                <button type="submit" className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 font-semibold">
-                  Add Task
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <QuickAddBottomSheet
+          onAdd={onAdd}
+          onClose={() => setShowQuickAdd(false)}
+          allCategories={allCategories}
+        />
       )}
     </div>
   )

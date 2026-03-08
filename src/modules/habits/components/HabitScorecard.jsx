@@ -1,9 +1,62 @@
 import { useState } from 'react'
-import { Plus, Trash2, TrendingUp } from 'lucide-react'
+import { Plus, Trash2, TrendingUp, ArrowRight } from 'lucide-react'
 
 export default function HabitScorecard({ habits, onSave, onCreateHabit }) {
   const [scorecard, setScorecard] = useState(habits || [])
   const [newHabit, setNewHabit] = useState('')
+  const [selectedBadHabit, setSelectedBadHabit] = useState(null)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+  const getReplacements = (badHabitText) => {
+    const text = badHabitText.toLowerCase()
+    if (text.includes('phone') || text.includes('social media')) return ['do 1 pushup', 'drink water', 'take 3 deep breaths']
+    if (text.includes('junk') || text.includes('snack') || text.includes('candy')) return ['eat one piece of fruit', 'drink water', 'chew gum']
+    if (text.includes('tv') || text.includes('netflix') || text.includes('watch')) return ['read 1 page', 'stretch for 1 minute', 'go for a walk']
+    if (text.includes('smoke') || text.includes('cigarette')) return ['do 10 jumping jacks', 'drink water', 'chew gum']
+    if (text.includes('procrastinate') || text.includes('delay')) return ['work for 2 minutes', 'write 1 task', 'clear desk']
+    return ['do 1 pushup', 'drink water', 'take 3 deep breaths']
+  }
+
+  const getOppositeIdentity = (badHabitText) => {
+    const text = badHabitText.toLowerCase()
+    if (text.includes('phone') || text.includes('social')) return 'focused person'
+    if (text.includes('junk') || text.includes('snack')) return 'healthy person'
+    if (text.includes('tv') || text.includes('watch')) return 'productive person'
+    if (text.includes('smoke')) return 'healthy person'
+    if (text.includes('procrastinate')) return 'action-taker'
+    return 'better person'
+  }
+
+  const handleImprove = (habit) => {
+    setSelectedBadHabit(habit)
+    setShowSuggestions(true)
+  }
+
+  const handleSuggestionClick = (suggestion) => {
+    const habitData = {
+      currentHabit: selectedBadHabit.text,
+      newHabit: suggestion,
+      identity: getOppositeIdentity(selectedBadHabit.text),
+      time: '',
+      location: ''
+    }
+    setShowSuggestions(false)
+    setSelectedBadHabit(null)
+    onCreateHabit(habitData)
+  }
+
+  const handleCustomReplacement = () => {
+    const habitData = {
+      currentHabit: selectedBadHabit.text,
+      newHabit: '',
+      identity: getOppositeIdentity(selectedBadHabit.text),
+      time: '',
+      location: ''
+    }
+    setShowSuggestions(false)
+    setSelectedBadHabit(null)
+    onCreateHabit(habitData)
+  }
 
   const addHabit = () => {
     if (newHabit.trim()) {
@@ -126,7 +179,7 @@ export default function HabitScorecard({ habits, onSave, onCreateHabit }) {
                   <div className="flex gap-2 justify-center">
                     {habit.type === 'bad' && (
                       <button
-                        onClick={() => onCreateHabit(habit)}
+                        onClick={() => handleImprove(habit)}
                         className="px-3 py-1 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 flex items-center gap-1"
                       >
                         <TrendingUp className="w-3 h-3" /> Improve
@@ -158,6 +211,56 @@ export default function HabitScorecard({ habits, onSave, onCreateHabit }) {
       >
         Save Scorecard
       </button>
+
+      {/* Replacement Suggestions Modal */}
+      {showSuggestions && selectedBadHabit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg animate-scale-in">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Let's replace this habit with a better one</h3>
+              <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full font-medium">{selectedBadHabit.text}</span>
+                <ArrowRight className="w-4 h-4" />
+                <span className="text-green-600 dark:text-green-400 font-semibold">Better habit</span>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Choose a replacement:</p>
+              <div className="space-y-3">
+                {getReplacements(selectedBadHabit.text).map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="w-full p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-200 dark:border-green-700 rounded-xl hover:border-green-400 dark:hover:border-green-500 transition-all text-left group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white">{suggestion}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">After I {selectedBadHabit.text}, I will {suggestion}</p>
+                      </div>
+                      <ArrowRight className="w-5 h-5 text-green-600 dark:text-green-400 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={handleCustomReplacement}
+                className="w-full p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-gray-700 dark:text-gray-300 font-semibold"
+              >
+                + Create custom replacement
+              </button>
+            </div>
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => { setShowSuggestions(false); setSelectedBadHabit(null); }}
+                className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
