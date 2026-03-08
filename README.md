@@ -10,7 +10,7 @@ A beautiful, single-page React application for tracking habits with smooth navig
 - **Dynamic Dropdowns** - Add new options directly in dropdowns
 - **Progress Tracking** - Weekly, monthly, yearly views with visual progress bars
 - **Dark/Light Mode** - System preference detection with smooth transitions
-- **Local Storage** - All data persists between sessions
+- **Local Storage** - All data persists in browser storage between sessions
 - **Responsive Design** - Mobile-first, works on all devices
 - **Smooth Animations** - Fade-in, slide-up, scale effects
 
@@ -42,7 +42,8 @@ src/
 │   ├── HabitForm.jsx    # Habit creation form
 │   └── HabitList.jsx    # Habit display and management
 ├── hooks/
-│   └── useLocalStorage.js # Local storage hook
+│   ├── useLocalStorage.js # Local storage hook
+│   └── useHabitLinkedList.js # Habit linked list logic
 └── App.jsx              # Main SPA component
 ```
 

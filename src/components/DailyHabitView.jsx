@@ -142,35 +142,35 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
       {/* Header Section */}
       <div className="bg-gradient-to-br from-white to-indigo-50/30 dark:from-gray-800 dark:to-indigo-950/20 rounded-2xl p-4 sm:p-6 shadow-md border border-indigo-100 dark:border-indigo-900/30">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <button onClick={() => navigateDay(-1)} className="p-2.5 rounded-xl bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all shadow-sm">
-            <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+          <button onClick={() => navigateDay(-1)} className="min-w-[52px] min-h-[52px] flex items-center justify-center rounded-xl bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all shadow-md active:scale-95">
+            <ChevronLeft className="w-6 h-6 text-gray-700 dark:text-gray-300" />
           </button>
-          <div className="text-center">
-            <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">{formatDate(currentDate)}</div>
+          <div className="text-center flex-1 px-2">
+            <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">{formatDate(currentDate)}</div>
             {currentDate.toDateString() === new Date().toDateString() && (
-              <span className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-md">
+              <span className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-md">
                 <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>TODAY
               </span>
             )}
           </div>
-          <button onClick={() => navigateDay(1)} className="p-2.5 rounded-xl bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all shadow-sm">
-            <ChevronRight className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+          <button onClick={() => navigateDay(1)} className="min-w-[52px] min-h-[52px] flex items-center justify-center rounded-xl bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all shadow-md active:scale-95">
+            <ChevronRight className="w-6 h-6 text-gray-700 dark:text-gray-300" />
           </button>
         </div>
 
         {totalScheduled.length > 0 && (
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
-            <div className="bg-white dark:bg-gray-900/50 rounded-xl p-3 sm:p-5 text-center shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="text-2xl sm:text-4xl font-black text-gray-900 dark:text-white mb-1">{totalScheduled.length}</div>
-              <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</div>
+            <div className="bg-white dark:bg-gray-900/50 rounded-xl p-4 sm:p-5 text-center shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mb-1">{totalScheduled.length}</div>
+              <div className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</div>
             </div>
-            <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl p-3 sm:p-5 text-center shadow-lg">
-              <div className="text-2xl sm:text-4xl font-black text-white mb-1">{completedToday}</div>
-              <div className="text-xs font-bold text-white/90 uppercase tracking-wide">Done</div>
+            <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl p-4 sm:p-5 text-center shadow-lg">
+              <div className="text-3xl sm:text-4xl font-black text-white mb-1">{completedToday}</div>
+              <div className="text-sm font-bold text-white/90 uppercase tracking-wide">Done</div>
             </div>
-            <div className="bg-white dark:bg-gray-900/50 rounded-xl p-3 sm:p-5 text-center shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="text-2xl sm:text-4xl font-black text-orange-500 dark:text-orange-400 mb-1">{missedToday}</div>
-              <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Skipped</div>
+            <div className="bg-white dark:bg-gray-900/50 rounded-xl p-4 sm:p-5 text-center shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="text-3xl sm:text-4xl font-black text-orange-500 dark:text-orange-400 mb-1">{missedToday}</div>
+              <div className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Skipped</div>
             </div>
           </div>
         )}
@@ -181,14 +181,14 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Progress</span>
               <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{Math.round((completedToday / totalScheduled.length) * 100)}%</span>
             </div>
-            <div className="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div className="mt-2 h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div className="h-full bg-gradient-to-r from-emerald-500 to-green-600 rounded-full transition-all duration-500" style={{ width: `${(completedToday / totalScheduled.length) * 100}%` }}></div>
             </div>
           </div>
         )}
 
         {pendingToday === 0 && totalScheduled.length > 0 && (
-          <button onClick={() => setShowAll(!showAll)} className="w-full mt-4 py-3 rounded-xl font-semibold text-sm bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg transition-all">
+          <button onClick={() => setShowAll(!showAll)} className="w-full mt-4 min-h-[48px] py-3 rounded-xl font-bold text-base bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg transition-all active:scale-95">
             {showAll ? 'Hide Completed' : 'Show All Habits'}
           </button>
         )}
@@ -200,9 +200,9 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
           <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
             <button
               onClick={() => setGroupBy('none')}
-              className={`px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm font-medium transition-all ${
+              className={`min-h-[44px] px-5 sm:px-6 py-2.5 rounded-lg text-sm sm:text-base font-semibold transition-all active:scale-95 ${
                 groupBy === 'none'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
                   : 'text-gray-600 dark:text-gray-400'
               }`}
             >
@@ -210,9 +210,9 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
             </button>
             <button
               onClick={() => setGroupBy('identity')}
-              className={`px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm font-medium transition-all ${
+              className={`min-h-[44px] px-5 sm:px-6 py-2.5 rounded-lg text-sm sm:text-base font-semibold transition-all active:scale-95 ${
                 groupBy === 'identity'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
                   : 'text-gray-600 dark:text-gray-400'
               }`}
             >

@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Plus, Target, TrendingUp, Calendar, CheckSquare, DollarSign } from 'lucide-react'
-import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { auth } from './firebase'
 import Navigation from './components/Navigation'
 import QuickHabitForm from './components/QuickHabitForm'
 import HabitList from './components/HabitList'
@@ -11,16 +9,12 @@ import TodoList from './components/TodoList'
 import YearlyBudget from './components/YearlyBudget'
 import Transactions from './components/Transactions'
 import Dashboard from './components/Dashboard'
-import Button from './components/ui/Button'
-import Auth from './components/Auth'
-import { useFirestore } from './hooks/useFirestore'
+import { useLocalStorage } from './hooks/useLocalStorage'
 import { useHabitLinkedList } from './hooks/useHabitLinkedList'
 import { DEFAULT_BUDGET_CATEGORIES } from './utils/budgetCategories'
 
 function App() {
-  const [user, setUser] = useState(null)
-  const [authLoading, setAuthLoading] = useState(true)
-  const [dbHabits, { addItem: addHabitToDb, updateItem: updateHabitInDb, deleteItem: deleteHabitFromDb, loading }] = useFirestore('habits', [])
+  const [dbHabits, { addItem: addHabitToDb, updateItem: updateHabitInDb, deleteItem: deleteHabitFromDb, loading }] = useLocalStorage('habits', [])
   const { habits, removeHabit: removeFromList } = useHabitLinkedList(dbHabits)
 
   // Removed auto-sync to prevent overwriting manual edits
@@ -35,11 +29,11 @@ function App() {
   const [groupBy, setGroupBy] = useState('none')
   const [viewMode, setViewMode] = useState('today')
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [dbTodos, { addItem: addTodoToDb, updateItem: updateTodoInDb, deleteItem: deleteTodoFromDb }] = useFirestore('todos', [])
-  const [dbCategories, { addItem: addCategoryToDb, deleteItem: deleteCategoryFromDb }] = useFirestore('todoCategories', [])
-  const [dbYearlyBudgets, { addItem: addYearlyBudgetToDb, updateItem: updateYearlyBudgetInDb }] = useFirestore('yearlyBudgets', [])
-  const [dbTransactions, { addItem: addTransactionToDb, updateItem: updateTransactionInDb, deleteItem: deleteTransactionFromDb }] = useFirestore('transactions', [])
-  const [dbSettings, { addItem: addSettingToDb, updateItem: updateSettingInDb }] = useFirestore('settings', [])
+  const [dbTodos, { addItem: addTodoToDb, updateItem: updateTodoInDb, deleteItem: deleteTodoFromDb }] = useLocalStorage('todos', [])
+  const [dbCategories, { addItem: addCategoryToDb, deleteItem: deleteCategoryFromDb }] = useLocalStorage('todoCategories', [])
+  const [dbYearlyBudgets, { addItem: addYearlyBudgetToDb, updateItem: updateYearlyBudgetInDb }] = useLocalStorage('yearlyBudgets', [])
+  const [dbTransactions, { addItem: addTransactionToDb, updateItem: updateTransactionInDb, deleteItem: deleteTransactionFromDb }] = useLocalStorage('transactions', [])
+  const [dbSettings, { addItem: addSettingToDb, updateItem: updateSettingInDb }] = useLocalStorage('settings', [])
   const currentYear = new Date().getFullYear()
   const currentYearBudget = dbYearlyBudgets.find(b => b.year === currentYear)
   const [activeTab, setActiveTab] = useState('habits')
@@ -335,83 +329,65 @@ function App() {
   
 
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user)
-      setAuthLoading(false)
-    })
-    return unsubscribe
-  }, [])
 
-
-
-
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth)
-    } catch (err) {
-      showToast('Failed to logout', 'error')
-    }
-  }
 
   const renderDashboard = () => {
-    if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-600 border-t-transparent"></div></div>
+    if (loading) return <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent"></div></div>
     return (
       <div className="space-y-6 animate-fade-in">
         {/* Tab Toggle */}
         <div className="mb-6">
-          <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full overflow-x-auto">
+          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1.5 gap-1 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setActiveTab('habits')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+              className={`flex-1 min-w-[80px] px-4 py-3 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${
                 activeTab === 'habits'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
                   : 'text-gray-600 dark:text-gray-400'
               }`}
             >
-              <Target className="w-4 h-4" />Habits
+              <Target className="w-5 h-5" /><span className="hidden sm:inline">Habits</span>
             </button>
             <button
               onClick={() => setActiveTab('todos')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+              className={`flex-1 min-w-[80px] px-4 py-3 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${
                 activeTab === 'todos'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
                   : 'text-gray-600 dark:text-gray-400'
               }`}
             >
-              <CheckSquare className="w-4 h-4" />To-Do
+              <CheckSquare className="w-5 h-5" /><span className="hidden sm:inline">To-Do</span>
             </button>
 
             <button
               onClick={() => setActiveTab('budget')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+              className={`flex-1 min-w-[80px] px-4 py-3 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${
                 activeTab === 'budget'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
                   : 'text-gray-600 dark:text-gray-400'
               }`}
             >
-              <DollarSign className="w-4 h-4" />Budget
+              <DollarSign className="w-5 h-5" /><span className="hidden sm:inline">Budget</span>
             </button>
             <button
               onClick={() => setActiveTab('transactions')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+              className={`flex-1 min-w-[80px] px-4 py-3 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${
                 activeTab === 'transactions'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
                   : 'text-gray-600 dark:text-gray-400'
               }`}
             >
-              <TrendingUp className="w-4 h-4" />Transactions
+              <TrendingUp className="w-5 h-5" /><span className="hidden sm:inline">Transactions</span>
             </button>
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+              className={`flex-1 min-w-[80px] px-4 py-3 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${
                 activeTab === 'dashboard'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
                   : 'text-gray-600 dark:text-gray-400'
               }`}
             >
-              <Calendar className="w-4 h-4" />Dashboard
+              <Calendar className="w-5 h-5" /><span className="hidden sm:inline">Dashboard</span>
             </button>
           </div>
         </div>
@@ -429,62 +405,62 @@ function App() {
                   <>
                     {isSelectionMode ? (
                       <>
-                        <button onClick={selectAllHabits} className="px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
+                        <button onClick={selectAllHabits} className="min-h-[44px] px-4 py-2.5 text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl active:scale-95">
                           Select All
                         </button>
-                        <button onClick={clearSelection} className="px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg">
+                        <button onClick={clearSelection} className="min-h-[44px] px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl active:scale-95">
                           Cancel
                         </button>
                         {selectedHabits.size > 0 && (
-                          <button onClick={deleteSelectedHabits} className="px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
+                          <button onClick={deleteSelectedHabits} className="min-h-[44px] px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl active:scale-95">
                             Delete ({selectedHabits.size})
                           </button>
                         )}
                       </>
                     ) : (
-                      <button onClick={() => setIsSelectionMode(true)} className="px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg">
+                      <button onClick={() => setIsSelectionMode(true)} className="min-h-[44px] px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl active:scale-95">
                         Select
                       </button>
                     )}
                   </>
                 )}
-                <button onClick={() => setShowQuickForm(true)} className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center justify-center gap-2">
-                  <Plus className="w-4 h-4" />Add Habit
+                <button onClick={() => setShowQuickForm(true)} className="flex-1 sm:flex-none min-h-[52px] px-5 sm:px-6 py-3 text-base font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md active:scale-95">
+                  <Plus className="w-5 h-5" />Add Habit
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mb-6">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                    <Target className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Total</span>
+                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Total</span>
                 </div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{totalHabits}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Active Habits</p>
+                <h3 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white">{totalHabits}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Active Habits</p>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                    <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-green-600 dark:text-green-400" />
                   </div>
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
+                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Today</span>
                 </div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{completedToday}<span className="text-lg sm:text-xl text-gray-400">/{totalHabits}</span></h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Completed</p>
+                <h3 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white">{completedToday}<span className="text-2xl sm:text-3xl text-gray-400">/{totalHabits}</span></h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Completed</p>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Rate</span>
+                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Rate</span>
                 </div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{completionRate}%</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Success Rate</p>
+                <h3 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white">{completionRate}%</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Success Rate</p>
               </div>
             </div>
           </div>
@@ -493,36 +469,36 @@ function App() {
         {/* View Toggle (only for habits) */}
         {activeTab === 'habits' && (
           <div className="mb-6">
-            <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full overflow-x-auto">
+            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1.5 gap-1.5">
               <button
                 onClick={() => { setViewMode('today'); setCurrentDate(new Date()); }}
-                className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 rounded-md text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap ${
+                className={`flex-1 min-h-[48px] px-4 py-3 rounded-lg text-sm sm:text-base font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${
                   viewMode === 'today'
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
                     : 'text-gray-600 dark:text-gray-400'
                 }`}
               >
-                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />Today
+                <Calendar className="w-5 h-5" /><span className="hidden sm:inline">Today</span>
               </button>
               <button
                 onClick={() => setViewMode('weekly')}
-                className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 rounded-md text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap ${
+                className={`flex-1 min-h-[48px] px-4 py-3 rounded-lg text-sm sm:text-base font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${
                   viewMode === 'weekly'
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
                     : 'text-gray-600 dark:text-gray-400'
                 }`}
               >
-                <Target className="w-3 h-3 sm:w-4 sm:h-4" />Weekly
+                <Target className="w-5 h-5" /><span className="hidden sm:inline">Weekly</span>
               </button>
               <button
                 onClick={() => setViewMode('table')}
-                className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 rounded-md text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap ${
+                className={`flex-1 min-h-[48px] px-4 py-3 rounded-lg text-sm sm:text-base font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${
                   viewMode === 'table'
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
                     : 'text-gray-600 dark:text-gray-400'
                 }`}
               >
-                <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />Table
+                <TrendingUp className="w-5 h-5" /><span className="hidden sm:inline">Table</span>
               </button>
             </div>
           </div>
@@ -665,8 +641,8 @@ function App() {
                   <h3 className="font-display text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">Welcome to Habit Tracker!</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Build better habits with habit stacking</p>
                   <p className="text-xs text-gray-500 dark:text-gray-500 mb-6 max-w-md mx-auto">Link new habits to existing ones: "After I [current habit], I will [new habit]"</p>
-                  <button onClick={() => setShowQuickForm(true)} className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm">
-                    <Plus className="w-4 h-4" />Create Your First Habit
+                  <button onClick={() => setShowQuickForm(true)} className="inline-flex items-center gap-2 min-h-[52px] px-6 py-3 text-base font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-lg active:scale-95">
+                    <Plus className="w-5 h-5" />Create Your First Habit
                   </button>
                 </div>
               ) : (
@@ -682,22 +658,10 @@ function App() {
     )
   }
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return <Auth />
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation onLogout={handleLogout} />
-      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <Navigation />
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-20 sm:pb-6">
         {renderDashboard()}
       </main>
       {showQuickForm && (
@@ -714,31 +678,31 @@ function App() {
           onClick={(e) => e.target === e.currentTarget && setShowDeleteConfirm(false)}
           onKeyDown={(e) => e.key === 'Escape' && setShowDeleteConfirm(false)}
         >
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-sm animate-scale-in">
+          <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md animate-scale-in">
             <div className="text-center mb-6">
-              <div className="text-4xl mb-4">🗑️</div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Delete Habit{selectedHabits.size > 1 ? 's' : ''}?</h3>
+              <div className="text-5xl sm:text-6xl mb-4">🗑️</div>
+              <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">Delete Habit{selectedHabits.size > 1 ? 's' : ''}?</h3>
               {habitToDelete ? (
                 <>
-                  <p className="text-gray-600 dark:text-gray-400 mb-2">Are you sure you want to delete:</p>
-                  <p className="font-semibold text-gray-900 dark:text-gray-100">"{habitToDelete.habit || habitToDelete.newHabit}"</p>
+                  <p className="text-base text-gray-600 dark:text-gray-400 mb-2">Are you sure you want to delete:</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">"{habitToDelete.habit || habitToDelete.newHabit}"</p>
                 </>
               ) : (
-                <p className="text-gray-600 dark:text-gray-400 mb-2">Delete {selectedHabits.size} selected habit{selectedHabits.size > 1 ? 's' : ''}?</p>
+                <p className="text-base text-gray-600 dark:text-gray-400 mb-2">Delete {selectedHabits.size} selected habit{selectedHabits.size > 1 ? 's' : ''}?</p>
               )}
-              <p className="text-sm text-red-600 dark:text-red-400 mt-2">This action cannot be undone.</p>
+              <p className="text-sm text-red-600 dark:text-red-400 mt-3 font-medium">This action cannot be undone.</p>
             </div>
             
-            <div className="flex space-x-3">
+            <div className="flex gap-3">
               <button 
                 onClick={() => { setShowDeleteConfirm(false); setHabitToDelete(null); }}
-                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+                className="flex-1 min-h-[52px] px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-bold text-base active:scale-95"
               >
                 Cancel
               </button>
               <button 
                 onClick={confirmDelete}
-                className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-medium"
+                className="flex-1 min-h-[52px] px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-bold text-base active:scale-95"
               >
                 Delete
               </button>
@@ -748,9 +712,9 @@ function App() {
       )}
       
       {toast && (
-        <div className={`fixed bottom-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg animate-fade-in ${
+        <div className={`fixed bottom-20 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-50 px-6 py-4 rounded-xl shadow-2xl animate-fade-in ${
           toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'
-        } text-white font-medium`}>
+        } text-white font-semibold text-base`}>
           {toast.message}
         </div>
       )}
