@@ -48,7 +48,7 @@ export default function TodosModule() {
         </Tooltip>
       </div>
       {dbTodos.length === 0 && !showTemplates && !showCalendar ? (
-        <EmptyState type="todos" onAction={() => document.querySelector('[data-add-todo]')?.click()} actionLabel="Add Your First Task" />
+        <EmptyState type="todos" onAction={() => document.querySelector('input[placeholder="Add a new task..."]')?.focus()} actionLabel="Add Your First Task" />
       ) : (
         <TodoList 
         todos={dbTodos}

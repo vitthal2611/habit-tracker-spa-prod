@@ -126,6 +126,22 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
     return new Date(a.dueDate) - new Date(b.dueDate)
   })
 
+  // Calculate quadrant for each todo
+  const calculateQuadrant = (todo) => {
+    if (todo.quadrant) return todo.quadrant
+    const today = new Date().toISOString().split('T')[0]
+    const dueDate = todo.dueDate
+    const priority = todo.priority || 'medium'
+    
+    const isUrgent = dueDate && dueDate <= new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const isImportant = priority === 'high'
+    
+    if (isImportant && isUrgent) return 'Q1'
+    if (isImportant && !isUrgent) return 'Q2'
+    if (!isImportant && isUrgent) return 'Q3'
+    return 'Q4'
+  }
+
   let backlogTodos = sortedTodos.filter(t => {
     const status = t.status || (t.completed ? 'completed' : 'backlog')
     return status === 'backlog'
@@ -138,6 +154,13 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
     const status = t.status || (t.completed ? 'completed' : 'backlog')
     return status === 'completed'
   })
+
+  // Eisenhower Matrix Quadrants
+  const q1Todos = sortedTodos.filter(t => !t.completed && calculateQuadrant(t) === 'Q1')
+  const q2Todos = sortedTodos.filter(t => !t.completed && calculateQuadrant(t) === 'Q2')
+  const q3Todos = sortedTodos.filter(t => !t.completed && calculateQuadrant(t) === 'Q3')
+  const q4Todos = sortedTodos.filter(t => !t.completed && calculateQuadrant(t) === 'Q4')
+  completedTodos = sortedTodos.filter(t => t.completed || t.status === 'completed')
 
   if (focusMode) {
     const today = new Date().toISOString().split('T')[0]
@@ -370,6 +393,7 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
               />
               <button
                 type="submit"
+                data-add-todo
                 className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-lg font-semibold hover:from-indigo-600 hover:to-violet-700 transition-all flex items-center gap-2 whitespace-nowrap"
               >
                 <Plus className="w-5 h-5" />
@@ -712,47 +736,112 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
         </div>
       )}
 
-      {/* Kanban Board */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        {/* Backlog Column */}
-        <KanbanColumn 
-          title="📋 Backlog" 
-          count={backlogTodos.length}
-          color="from-slate-500 to-slate-600"
-          groups={backlogGroups}
+      {/* Eisenhower Matrix */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Q1: DO - Important & Urgent */}
+        <MatrixQuadrant
+          title="DO NOW"
+          subtitle="Important & Urgent"
+          icon="🔥"
+          count={q1Todos.length}
+          color="from-red-500 to-red-600"
+          bgColor="bg-red-50 dark:bg-red-900/20"
+          borderColor="border-red-300 dark:border-red-700"
+          todos={q1Todos}
+          quadrant="Q1"
+          action="Start Now"
+          actionColor="bg-red-500 hover:bg-red-600"
           onUpdate={onUpdate}
           onToggle={onToggle}
           onDelete={onDelete}
           onAdd={onAdd}
           allCategories={allCategories}
+          calculateQuadrant={calculateQuadrant}
         />
 
-        {/* In Progress Column */}
-        <KanbanColumn 
-          title="🔄 In Progress" 
-          count={inProgressTodos.length}
-          color="from-blue-500 to-indigo-600"
-          groups={inProgressGroups}
+        {/* Q2: SCHEDULE - Important & Not Urgent */}
+        <MatrixQuadrant
+          title="SCHEDULE"
+          subtitle="Important & Not Urgent"
+          icon="📅"
+          count={q2Todos.length}
+          color="from-blue-500 to-blue-600"
+          bgColor="bg-blue-50 dark:bg-blue-900/20"
+          borderColor="border-blue-300 dark:border-blue-700"
+          todos={q2Todos}
+          quadrant="Q2"
+          action="Schedule"
+          actionColor="bg-blue-500 hover:bg-blue-600"
           onUpdate={onUpdate}
           onToggle={onToggle}
           onDelete={onDelete}
           onAdd={onAdd}
           allCategories={allCategories}
+          calculateQuadrant={calculateQuadrant}
         />
 
-        {/* Completed Column */}
-        <KanbanColumn 
-          title="✅ Completed" 
-          count={completedTodos.length}
-          color="from-green-500 to-emerald-600"
-          groups={completedGroups}
+        {/* Q3: DELEGATE - Not Important & Urgent */}
+        <MatrixQuadrant
+          title="DELEGATE"
+          subtitle="Not Important & Urgent"
+          icon="👥"
+          count={q3Todos.length}
+          color="from-yellow-500 to-yellow-600"
+          bgColor="bg-yellow-50 dark:bg-yellow-900/20"
+          borderColor="border-yellow-300 dark:border-yellow-700"
+          todos={q3Todos}
+          quadrant="Q3"
+          action="Delegate"
+          actionColor="bg-yellow-500 hover:bg-yellow-600"
           onUpdate={onUpdate}
           onToggle={onToggle}
           onDelete={onDelete}
           onAdd={onAdd}
           allCategories={allCategories}
+          calculateQuadrant={calculateQuadrant}
+        />
+
+        {/* Q4: ELIMINATE - Not Important & Not Urgent */}
+        <MatrixQuadrant
+          title="ELIMINATE"
+          subtitle="Not Important & Not Urgent"
+          icon="🗑️"
+          count={q4Todos.length}
+          color="from-gray-500 to-gray-600"
+          bgColor="bg-gray-50 dark:bg-gray-900/20"
+          borderColor="border-gray-300 dark:border-gray-700"
+          todos={q4Todos}
+          quadrant="Q4"
+          action="Delete"
+          actionColor="bg-gray-500 hover:bg-gray-600"
+          onUpdate={onUpdate}
+          onToggle={onToggle}
+          onDelete={onDelete}
+          onAdd={onAdd}
+          allCategories={allCategories}
+          calculateQuadrant={calculateQuadrant}
         />
       </div>
+
+      {/* Completed Tasks Section */}
+      {completedTodos.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-200 dark:border-gray-700 p-4">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+            <Check className="w-5 h-5 text-green-500" />
+            Completed Tasks ({completedTodos.length})
+          </h3>
+          <div className="space-y-2">
+            {completedTodos.slice(0, 5).map(todo => (
+              <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} onAdd={onAdd} allCategories={allCategories} />
+            ))}
+          </div>
+          {completedTodos.length > 5 && (
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 text-center">
+              +{completedTodos.length - 5} more completed tasks
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Empty State */}
       {filteredTodos.length === 0 && (
@@ -821,6 +910,132 @@ export default function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate, c
         </div>
       )}
     </div>
+  )
+}
+
+function MatrixQuadrant({ title, subtitle, icon, count, color, bgColor, borderColor, todos, quadrant, action, actionColor, onUpdate, onToggle, onDelete, onAdd, allCategories, calculateQuadrant }) {
+  const [showDelegateModal, setShowDelegateModal] = useState(false)
+  const [delegateEmail, setDelegateEmail] = useState('')
+  const [selectedTodo, setSelectedTodo] = useState(null)
+
+  const handleDelegate = (todo) => {
+    setSelectedTodo(todo)
+    setShowDelegateModal(true)
+  }
+
+  const submitDelegate = () => {
+    if (selectedTodo && delegateEmail.trim()) {
+      onUpdate({ ...selectedTodo, delegatedTo: delegateEmail.trim() })
+      setDelegateEmail('')
+      setShowDelegateModal(false)
+      setSelectedTodo(null)
+    }
+  }
+
+  return (
+    <>
+    <div className={`${bgColor} rounded-xl border-2 ${borderColor} p-4 min-h-[300px]`}>
+      <div className={`bg-gradient-to-r ${color} rounded-lg px-4 py-3 mb-4 shadow-md`}>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <span className="text-2xl">{icon}</span>
+            {title}
+          </h3>
+          <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-bold text-white">{count}</span>
+        </div>
+        <p className="text-xs text-white/90 font-medium">{subtitle}</p>
+      </div>
+      <div className="space-y-2">
+        {todos.map(todo => (
+          <div key={todo.id} className="relative group">
+            <TodoItem 
+              todo={todo} 
+              onToggle={onToggle} 
+              onDelete={onDelete} 
+              onUpdate={onUpdate} 
+              onAdd={onAdd} 
+              allCategories={allCategories}
+              quadrant={quadrant}
+            />
+            {quadrant === 'Q1' && (
+              <button
+                onClick={() => onUpdate({ ...todo, status: 'in-progress', startedAt: new Date().toISOString() })}
+                className={`mt-2 w-full px-3 py-2 ${actionColor} text-white rounded-lg font-semibold text-sm transition-all`}
+              >
+                ▶️ {action}
+              </button>
+            )}
+            {quadrant === 'Q2' && (
+              <button
+                onClick={() => {
+                  const scheduledDate = prompt('Schedule for date (YYYY-MM-DD):');
+                  if (scheduledDate) onUpdate({ ...todo, dueDate: scheduledDate });
+                }}
+                className={`mt-2 w-full px-3 py-2 ${actionColor} text-white rounded-lg font-semibold text-sm transition-all`}
+              >
+                📅 {action}
+              </button>
+            )}
+            {quadrant === 'Q3' && (
+              <button
+                onClick={() => handleDelegate(todo)}
+                className={`mt-2 w-full px-3 py-2 ${actionColor} text-white rounded-lg font-semibold text-sm transition-all`}
+              >
+                👥 {action}
+              </button>
+            )}
+            {quadrant === 'Q4' && (
+              <button
+                onClick={() => { if (confirm(`Delete "${todo.text}"?`)) onDelete(todo.id); }}
+                className={`mt-2 w-full px-3 py-2 ${actionColor} text-white rounded-lg font-semibold text-sm transition-all`}
+              >
+                🗑️ {action}
+              </button>
+            )}
+          </div>
+        ))}
+        {count === 0 && (
+          <div className="text-center py-8 text-slate-400 dark:text-slate-600 text-sm">
+            No tasks in this quadrant
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Delegate Modal */}
+    {showDelegateModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowDelegateModal(false)}>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Delegate Task</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+            Delegate "{selectedTodo?.text}" to:
+          </p>
+          <input
+            type="email"
+            value={delegateEmail}
+            onChange={(e) => setDelegateEmail(e.target.value)}
+            placeholder="colleague@example.com"
+            className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 mb-4"
+            autoFocus
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowDelegateModal(false)}
+              className="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submitDelegate}
+              className="flex-1 px-4 py-2 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 font-semibold"
+            >
+              Delegate
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 
@@ -1124,6 +1339,11 @@ function TodoItem({ todo, onToggle, onDelete, onUpdate, onAdd, allCategories }) 
               <span className="text-xs font-medium px-2 py-0.5 rounded bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400">
                 🔄 {todo.recurringPattern === 'daily' ? 'Daily' : todo.recurringPattern === 'weekly' ? `Every ${todo.recurringDay}` : '1st of month'}
                 {todo.recurringEndDate && ` until ${new Date(todo.recurringEndDate).toLocaleDateString('en', { month: 'short', day: 'numeric' })}`}
+              </span>
+            )}
+            {todo.delegatedTo && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
+                👥 Delegated to: {todo.delegatedTo}
               </span>
             )}
             {todo.subtasks && todo.subtasks.length > 0 && (

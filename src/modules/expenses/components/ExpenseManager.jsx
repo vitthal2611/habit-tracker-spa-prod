@@ -1,11 +1,39 @@
 import { useState, useEffect } from 'react'
-import { Plus, TrendingUp, TrendingDown, DollarSign, Trash2 } from 'lucide-react'
+import { Plus, TrendingUp, TrendingDown, DollarSign, Trash2, Wallet } from 'lucide-react'
+import IncomeAllocationWizard from './IncomeAllocationWizard'
+import EnvelopeCard from './EnvelopeCard'
+import PaymentModeManager from './PaymentModeManager'
+import PaymentModeCard from './PaymentModeCard'
 
 export default function ExpenseManager({ transactions, onAddTransaction, onUpdateTransaction, onDeleteTransaction, budgets, onSaveBudgets, budgetFlowData }) {
   const [showAddTransaction, setShowAddTransaction] = useState(false)
   const [showManageCategories, setShowManageCategories] = useState(false)
+  const [showIncomeWizard, setShowIncomeWizard] = useState(false)
+  const [showPaymentModes, setShowPaymentModes] = useState(false)
   const [budgetMonth, setBudgetMonth] = useState(new Date(2025, 10, 25))
   const [budgetStartDay] = useState(25)
+  
+  const [envelopeBudgets, setEnvelopeBudgets] = useState(() => {
+    const saved = localStorage.getItem('envelopeBudgets')
+    return saved ? JSON.parse(saved) : []
+  })
+  
+  const [paymentModes, setPaymentModes] = useState(() => {
+    const saved = localStorage.getItem('paymentModes')
+    return saved ? JSON.parse(saved) : [
+      { id: 'pm_1', name: 'HDFC Bank', balance: 25000, type: 'bank' },
+      { id: 'pm_2', name: 'Cash', balance: 5000, type: 'cash' },
+      { id: 'pm_3', name: 'SBI Credit Card', balance: -8000, type: 'credit', limit: 50000 }
+    ]
+  })
+  
+  useEffect(() => {
+    localStorage.setItem('envelopeBudgets', JSON.stringify(envelopeBudgets))
+  }, [envelopeBudgets])
+  
+  useEffect(() => {
+    localStorage.setItem('paymentModes', JSON.stringify(paymentModes))
+  }, [paymentModes])
   const defaultCategories = [
     { name: 'EMI', budget: 0 },
     { name: 'DMART & Oil', budget: 0 },
@@ -323,6 +351,18 @@ export default function ExpenseManager({ transactions, onAddTransaction, onUpdat
           </div>
           <div className="flex gap-2">
             <button
+              onClick={() => setShowIncomeWizard(true)}
+              className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm"
+            >
+              💰 Allocate
+            </button>
+            <button
+              onClick={() => setShowPaymentModes(true)}
+              className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs sm:text-sm"
+            >
+              💳 Modes
+            </button>
+            <button
               onClick={() => setShowManageCategories(true)}
               className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-xs sm:text-sm"
             >
@@ -401,6 +441,32 @@ export default function ExpenseManager({ transactions, onAddTransaction, onUpdat
           </div>
         </div>
       </div>
+
+      {/* Envelope Budgets */}
+      {envelopeBudgets.find(b => b.month === currentMonthKey) && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+          <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Budget Envelopes</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {envelopeBudgets
+              .find(b => b.month === currentMonthKey)
+              ?.envelopes.map(envelope => (
+                <EnvelopeCard key={envelope.id} envelope={envelope} />
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* Payment Modes */}
+      {paymentModes.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+          <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Payment Modes</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {paymentModes.map(mode => (
+              <PaymentModeCard key={mode.id} mode={mode} />
+            ))}
+          </div>
+        </div>
+      )}
 
 
 
@@ -756,6 +822,30 @@ export default function ExpenseManager({ transactions, onAddTransaction, onUpdat
             </div>
           </div>
         </div>
+      )}
+
+      {/* Income Allocation Wizard */}
+      {showIncomeWizard && (
+        <IncomeAllocationWizard
+          month={currentMonthKey}
+          onComplete={(budget) => {
+            setEnvelopeBudgets([...envelopeBudgets, budget])
+            setShowIncomeWizard(false)
+          }}
+          onClose={() => setShowIncomeWizard(false)}
+        />
+      )}
+
+      {/* Payment Mode Manager */}
+      {showPaymentModes && (
+        <PaymentModeManager
+          modes={paymentModes}
+          onSave={(modes) => {
+            setPaymentModes(modes)
+            setShowPaymentModes(false)
+          }}
+          onClose={() => setShowPaymentModes(false)}
+        />
       )}
     </div>
   )

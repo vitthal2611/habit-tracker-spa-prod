@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import QuickHabitForm from './QuickHabitForm'
 import Modal from '../../../components/ui/Modal'
+import PhaseProgressCard from './PhaseProgressCard'
+import TemptationBundling from './TemptationBundling'
 
 export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, onAdd, onDuplicate, currentDate: propCurrentDate, setCurrentDate: propSetCurrentDate, isSelectionMode = false, selectedHabits = new Set(), onToggleSelection }) {
   const [currentDate, setCurrentDate] = useState(propCurrentDate || new Date())
@@ -453,6 +455,12 @@ export default function DailyHabitView({ habits, onToggle, onDelete, onUpdate, o
                           }
                           return dots;
                         })()}
+                      </div>
+
+                      {/* Phase 2 Components */}
+                      <div className="mt-4 space-y-3">
+                        <PhaseProgressCard habit={habit} onUpdate={onUpdate} />
+                        <TemptationBundling habit={habit} onUpdate={onUpdate} />
                       </div>
 
                       {/* Motivational Message */}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Target, TrendingUp, Calendar, Sparkles, BarChart3, Bell, FileText } from 'lucide-react'
+import { Plus, Target, TrendingUp, Calendar, Sparkles, BarChart3, Bell, FileText, Award } from 'lucide-react'
 import QuickHabitForm from './components/QuickHabitForm'
 import HabitList from './components/HabitList'
 import HabitTableView from './components/HabitTableView'
@@ -7,6 +7,7 @@ import DailyHabitView from './components/DailyHabitView'
 import HabitTemplates from './components/HabitTemplates'
 import HabitAnalytics from './components/HabitAnalytics'
 import HabitReminders from './components/HabitReminders'
+import HabitScorecard from './components/HabitScorecard'
 import Loading from '../../components/ui/Loading'
 import EmptyState from '../../components/ui/EmptyState'
 import Toast from '../../components/ui/Toast'
@@ -33,12 +34,29 @@ export default function HabitsModule() {
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [reminderHabit, setReminderHabit] = useState(null)
   const [habitNotes, { addItem: addNote }] = useLocalStorage('habitNotes', [])
+  const [scorecardHabits, setScorecardHabits] = useState(() => {
+    const saved = localStorage.getItem('scorecardHabits')
+    return saved ? JSON.parse(saved) : []
+  })
 
   // Keyboard shortcuts
   useKeyboardShortcut('n', () => setShowQuickForm(true), { enabled: !showQuickForm })
   useKeyboardShortcut('s', () => setIsSelectionMode(!isSelectionMode), { enabled: habits.length > 0 })
   useKeyboardShortcut('t', () => setShowTemplates(true), { enabled: !showTemplates })
   useKeyboardShortcut('a', () => setShowAnalytics(true), { enabled: !showAnalytics })
+
+  // Save scorecard to localStorage
+  const saveScorecard = (habits) => {
+    setScorecardHabits(habits)
+    localStorage.setItem('scorecardHabits', JSON.stringify(habits))
+    showToast('Scorecard saved!')
+  }
+
+  // Create habit from scorecard
+  const createFromScorecard = (scorecardHabit) => {
+    setShowQuickForm(true)
+    // Pre-fill form data will be handled in QuickHabitForm
+  }
 
   const today = new Date().toDateString()
 
@@ -271,6 +289,11 @@ export default function HabitsModule() {
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Build better habits daily</p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+            <Tooltip text="Track current habits as good/bad/neutral">
+              <button onClick={() => setViewMode('scorecard')} className="min-h-[44px] px-4 py-2.5 text-sm font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-xl active:scale-95 flex items-center gap-2" aria-label="Open scorecard">
+                <Award className="w-4 h-4" />Scorecard
+              </button>
+            </Tooltip>
             <Tooltip text="Use pre-built habit templates">
               <button onClick={() => setShowTemplates(true)} className="min-h-[44px] px-4 py-2.5 text-sm font-bold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl active:scale-95 flex items-center gap-2" aria-label="Open templates">
                 <Sparkles className="w-4 h-4" />Templates
@@ -346,10 +369,19 @@ export default function HabitsModule() {
           <button onClick={() => setViewMode('table')} className={`flex-1 min-h-[48px] px-4 py-3 rounded-lg text-sm sm:text-base font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${viewMode === 'table' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md' : 'text-gray-600 dark:text-gray-400'}`}>
             <TrendingUp className="w-5 h-5" /><span className="hidden sm:inline">Table</span>
           </button>
+          <button onClick={() => setViewMode('scorecard')} className={`flex-1 min-h-[48px] px-4 py-3 rounded-lg text-sm sm:text-base font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 ${viewMode === 'scorecard' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md' : 'text-gray-600 dark:text-gray-400'}`}>
+            <Award className="w-5 h-5" /><span className="hidden sm:inline">Scorecard</span>
+          </button>
         </div>
       </div>
 
-      {viewMode === 'table' ? (
+      {viewMode === 'scorecard' ? (
+        <HabitScorecard
+          habits={scorecardHabits}
+          onSave={saveScorecard}
+          onCreateHabit={createFromScorecard}
+        />
+      ) : viewMode === 'table' ? (
         <HabitTableView habits={habits} onDelete={deleteHabit} onUpdate={updateHabit} onDuplicate={duplicateHabit} isSelectionMode={isSelectionMode} selectedHabits={selectedHabits} onToggleSelection={toggleHabitSelection} />
       ) : viewMode === 'today' ? (
         <DailyHabitView habits={habits} onToggle={toggleHabit} onDelete={deleteHabit} onUpdate={updateHabit} onAdd={addHabit} onDuplicate={duplicateHabit} currentDate={currentDate} setCurrentDate={setCurrentDate} isSelectionMode={isSelectionMode} selectedHabits={selectedHabits} onToggleSelection={toggleHabitSelection} />

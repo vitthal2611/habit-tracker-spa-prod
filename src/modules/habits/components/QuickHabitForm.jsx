@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Plus, X } from 'lucide-react'
+import PhaseProgressCard from './PhaseProgressCard'
+import TemptationBundling from './TemptationBundling'
+import HabitStatementPreview from './HabitStatementPreview'
 
 export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit = null }) {
   const existingHabits = [...new Set(habits.map(h => h.newHabit).filter(Boolean))]
@@ -252,6 +255,24 @@ export default function QuickHabitForm({ habits, onSubmit, onClose, editingHabit
               )}
             </div>
           )}
+
+          {/* Habit Statement Preview */}
+          <HabitStatementPreview
+            habit={{ cue: form.currentHabit, action: form.newHabit, location: form.location, identity: form.identity }}
+            onUpdate={(updated) => setForm(prev => ({ ...prev, currentHabit: updated.cue, newHabit: updated.action, location: updated.location, identity: updated.identity }))}
+          />
+
+          {/* Phase Progress */}
+          <PhaseProgressCard
+            habit={form}
+            onUpdate={(updated) => setForm(updated)}
+          />
+
+          {/* Temptation Bundling */}
+          <TemptationBundling
+            habit={form}
+            onUpdate={(updated) => setForm(updated)}
+          />
 
           <div className="flex gap-3 pt-2">
             <button
