@@ -185,6 +185,34 @@ export default function ExpenseManager({ transactions, onAddTransaction, onUpdat
       createdAt: new Date().toISOString()
     })
     
+    // Update envelope budget
+    const currentBudget = envelopeBudgets.find(b => b.month === currentMonthKey)
+    if (currentBudget && transactionForm.type === 'expense') {
+      const envelope = currentBudget.envelopes.find(e => 
+        e.name.toLowerCase() === transactionForm.category.toLowerCase()
+      )
+      if (envelope) {
+        envelope.spent += amount
+        envelope.remaining = envelope.allocated - envelope.spent
+        setEnvelopeBudgets([...envelopeBudgets])
+      }
+    }
+    
+    // Update payment mode balance
+    const mode = paymentModes.find(m => m.name === transactionForm.mode)
+    if (mode) {
+      if (transactionForm.type === 'income') {
+        mode.balance += amount
+      } else {
+        if (mode.type !== 'credit' && mode.balance < amount) {
+          alert(`Insufficient balance in ${mode.name}!`)
+          return
+        }
+        mode.balance -= amount
+      }
+      setPaymentModes([...paymentModes])
+    }
+    
     setTransactionForm({
       type: 'expense',
       category: '',
